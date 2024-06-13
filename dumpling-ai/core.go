@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	DUMPLINGAI_API = "http://localhost:3000/api/v1/get-youtube-transcript"
+	DumplingAiApi = "http://localhost:3000/api/v1/get-youtube-transcript"
+	// DumplingAiApi = "https://app.dumplingai.com/api/v1/get-youtube-transcript"
 )
 
 type request struct {
@@ -25,7 +26,7 @@ func GetTranscript(videoUrl string) (string, error) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer " + os.Getenv("DUMPLINGAI_API_KEY")},
 	}
-	ts, err := util.Post[response](DUMPLINGAI_API, request{VideoUrl: videoUrl}, headers)
+	ts, err := util.Post[response](DumplingAiApi, request{VideoUrl: videoUrl}, headers)
 	if err != nil {
 		return "", err
 
