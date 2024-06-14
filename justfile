@@ -3,3 +3,8 @@ watch:
 
 alias w := watch
 
+run:
+    go run main.go
+
+alias r := run
+
