@@ -1,6 +1,7 @@
 package dumplingai
 
 import (
+	"context"
 	"os"
 
 	"github.com/nt54hamnghi/hoc/util"
@@ -21,12 +22,12 @@ type response struct {
 	Transcript string `json:"transcript"`
 }
 
-func GetTranscript(videoUrl string) (string, error) {
+func GetTranscript(ctx context.Context, videoUrl string) (string, error) {
 	headers := map[string][]string{
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer " + os.Getenv("DUMPLINGAI_API_KEY")},
 	}
-	ts, err := util.Post[response](DumplingAiApi, request{VideoUrl: videoUrl}, headers)
+	ts, err := util.Post[response](ctx, DumplingAiApi, request{VideoUrl: videoUrl}, headers)
 	if err != nil {
 		return "", err
 

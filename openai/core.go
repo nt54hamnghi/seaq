@@ -32,18 +32,18 @@ The response should be in Markdown format with a title.
 `
 )
 
-func Prime(transcript string) (string, error) {
-	return gen(primingPrompt, transcript)
+func Prime(ctx context.Context, transcript string) (string, error) {
+	return gen(ctx, primingPrompt, transcript)
 }
 
-func MakeConnection(transcript string) (string, error) {
-	return gen(makeConnectionPrompt, transcript)
+func MakeConnection(ctx context.Context, transcript string) (string, error) {
+	return gen(ctx, makeConnectionPrompt, transcript)
 }
 
-func gen(prompt string, transcript string) (string, error) {
+func gen(ctx context.Context, prompt string, transcript string) (string, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	client := openai.NewClient(apiKey)
-	res, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+	res, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model: openai.GPT4o,
 		Messages: []openai.ChatCompletionMessage{
 			{

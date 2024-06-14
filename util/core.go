@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,15 +28,15 @@ func WriteFile(filename string, msg string) error {
 
 // region: --- http operations
 
-func Get[T any](url string, headers map[string][]string) (T, error) {
-	return do[T](http.MethodGet, url, nil, headers)
+func Get[T any](ctx context.Context, url string, headers map[string][]string) (T, error) {
+	return do[T](ctx, http.MethodGet, url, nil, headers)
 }
 
-func Post[T any](url string, body any, headers map[string][]string) (T, error) {
-	return do[T](http.MethodPost, url, body, headers)
+func Post[T any](ctx context.Context, url string, body any, headers map[string][]string) (T, error) {
+	return do[T](ctx, http.MethodPost, url, body, headers)
 }
 
-func do[T any](method string, url string, body any, headers map[string][]string) (T, error) {
+func do[T any](ctx context.Context, method string, url string, body any, headers map[string][]string) (T, error) {
 	var res T
 
 	// convert struct to into a JSON-encoded byte slice
@@ -45,7 +46,7 @@ func do[T any](method string, url string, body any, headers map[string][]string)
 	}
 
 	// wrap the JSON byte slice in a `*bytes.Buffer` so it can be read by the HTTP request body.
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return res, fmt.Errorf("failed to create request: %w", err)
 	}
