@@ -1,2 +1,6 @@
 /.vscode
 /tmp
+
+# local test files
+connection.md
+summary.md
