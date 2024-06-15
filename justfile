@@ -3,8 +3,12 @@ watch:
 
 alias w := watch
 
+dev:
+    @go run ./dev/main.go
+
+alias d := dev
+
 run:
-    go run main.go
+    @go run ./todo/main.go
 
 alias r := run
-

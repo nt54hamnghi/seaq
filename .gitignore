@@ -1,5 +1,6 @@
 /.vscode
 /tmp
+/dev
 
 # local test files
 connection.md
