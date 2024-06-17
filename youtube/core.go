@@ -82,24 +82,29 @@ func extractCaptionTracks(body io.Reader) ([]CaptionTrack, error) {
 
 	var found bool
 	var match string
-	b := make([]byte, 0, 1<<22)
-	temp := make([]byte, 1<<18)
+	buf := make([]byte, 0, 1<<22) // a YouTube HTML is around 1.4MB, allocate 4MB to avoid resizing
+	tmp := make([]byte, 1<<18)    // each iteration reads 256KB
 
 	for {
-		n, err := io.ReadFull(body, temp)
+		// override the entire tmp buffer with bytes from the body
+		n, err := io.ReadFull(body, tmp)
 		if err != nil {
+			// break if EOF is reached
+			// as we've read all the bytes from the body
 			if err == io.EOF {
 				break
 			}
 			return nil, err
 		}
 
-		b = append(b, temp[:n]...)
+		// copy the bytes from temp to b
+		buf = append(buf, tmp[:n]...)
 
 		// the first element is the entire match
 		// the rest are the group matches
-		matches := re.FindStringSubmatch(string(b))
+		matches := re.FindStringSubmatch(string(buf))
 
+		// if we find the match and at least one group
 		if len(matches) >= 2 {
 			found, match = true, matches[1]
 			break
