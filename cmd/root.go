@@ -4,10 +4,12 @@ Copyright © 2024 Nghi Nguyen
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/nt54hamnghi/hiku/pkg/openai"
 	"github.com/spf13/cobra"
 )
 
@@ -24,9 +26,8 @@ var rootCmd = &cobra.Command{
 			cmd.Help()
 		}
 
-		fmt.Println(input)
+		openai.CreateCompletionStream(context.Background(), openai.PrimingPrompt, input)
 
-		// fmt.Println(string(input))
 		return nil
 	},
 }

@@ -57,10 +57,6 @@ func WithVideoId(ctx context.Context, vid string) (cap string, err error) {
 		return cap, fmt.Errorf("failed to extract caption tracks: %w", err)
 	}
 
-	for _, v := range captionTracks {
-		fmt.Println(v)
-	}
-
 	// fetch the caption of the YouTube video
 	// only support English captions and prioritize user-added caption over ASR (Automatic Speech Recognition) caption
 	caption, err := fetchCaption(ctx, captionTracks)
@@ -92,6 +88,8 @@ func extractCaptionTracks(body io.Reader) ([]CaptionTrack, error) {
 	buf := make([]byte, 0, 1<<22) // a YouTube HTML is around 1.4MB, allocate 4MB to avoid resizing
 	tmp := make([]byte, 1<<18)    // each iteration reads 256KB
 
+	// read the body until the regex pattern is found
+	// this is to avoid reading the entire body ahead of time
 	for {
 		// override the entire tmp buffer with bytes from the body
 		n, err := io.ReadFull(body, tmp)
@@ -108,7 +106,7 @@ func extractCaptionTracks(body io.Reader) ([]CaptionTrack, error) {
 		buf = append(buf, tmp[:n]...)
 
 		// the first element is the entire match
-		// the rest are the group matches
+		// the rest are the captured groups
 		matches := re.FindStringSubmatch(string(buf))
 
 		// if we find the match and at least one group
