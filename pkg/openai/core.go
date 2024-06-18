@@ -2,13 +2,19 @@ package openai
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io"
 	"os"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 )
 
+const OPENAI_API_KEY = "OPENAI_API_KEY"
+
 const (
-	primingPrompt = `
+	PrimingPrompt = `
 Act as a creative, passionate, and knowledgeable educator.
 
 You embrace the idea of priming the mind before learning, which involves reviewing key terms, ideas, and relationships before learning a new skill or complex topic.
@@ -32,34 +38,64 @@ The response should be in Markdown format with a title.
 `
 )
 
-func Prime(ctx context.Context, transcript string) (string, error) {
-	return gen(ctx, primingPrompt, transcript)
-}
-
-func MakeConnection(ctx context.Context, transcript string) (string, error) {
-	return gen(ctx, makeConnectionPrompt, transcript)
-}
-
-func gen(ctx context.Context, prompt string, transcript string) (string, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
+func CreateCompletionStream(ctx context.Context, prompt string, content string) error {
+	apiKey := os.Getenv(OPENAI_API_KEY)
 	client := openai.NewClient(apiKey)
-	res, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: openai.GPT4o,
-		Messages: []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleSystem,
-				Content: prompt,
-			},
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: transcript,
-			},
-		},
-	})
 
-	if err != nil {
-		return "", err
+	req := openai.ChatCompletionRequest{
+		Model:    openai.GPT4o,
+		Messages: prepareMessages(prompt, content),
+		Stream:   true,
 	}
 
-	return res.Choices[0].Message.Content, nil
+	stream, err := client.CreateChatCompletionStream(ctx, req)
+	if err != nil {
+		return fmt.Errorf("chat completion error: %w", err)
+	}
+
+	for {
+		res, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+
+		if err != nil {
+			return fmt.Errorf("streaming error: %w", err)
+		}
+
+		fmt.Printf(res.Choices[0].Delta.Content)
+		time.Sleep(30 * time.Millisecond)
+	}
+
+}
+
+func CreateCompletion(ctx context.Context, prompt string, content string) error {
+	apiKey := os.Getenv(OPENAI_API_KEY)
+	client := openai.NewClient(apiKey)
+
+	req := openai.ChatCompletionRequest{
+		Model:    openai.GPT4o,
+		Messages: prepareMessages(prompt, content),
+	}
+
+	res, err := client.CreateChatCompletion(ctx, req)
+	if err != nil {
+		return fmt.Errorf("chat completion error: %w", err)
+	}
+
+	fmt.Println(res.Choices[0].Message.Content)
+	return nil
+}
+
+func prepareMessages(prompt string, content string) []openai.ChatCompletionMessage {
+	return []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: prompt,
+		},
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: content,
+		},
+	}
 }
