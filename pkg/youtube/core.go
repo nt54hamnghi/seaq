@@ -70,9 +70,28 @@ func WithVideoId(ctx context.Context, vid string) (cap string, err error) {
 // This struct, its fields, and their meanings are reverse-engineered from a YouTube response.
 // Thus, they're subject to change without notice.
 type CaptionTrack struct {
-	BaseURL      string `json:"baseUrl"`
-	LanguageCode string `json:"languageCode"`
-	Kind         string `json:"kind,omitempty"`
+	BaseURL      string `json:"baseUrl"`        // the URL to fetch the caption track
+	LanguageCode string `json:"languageCode"`   // 2-letter language code
+	Kind         string `json:"kind,omitempty"` // empty if user-added caption, "asr" if Automatic Speech Recognition, etc.
+}
+
+// check if the caption track has an English auto-translation
+// if true, add "&tlang=en" to the base URL of the caption track
+func (ct *CaptionTrack) hasEnglishAutoTranslation() bool {
+	url := ct.BaseURL + "&tlang=en"
+	resp, err := http.Get(url)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	hasIt := resp.StatusCode == http.StatusOK
+
+	if hasIt {
+		ct.BaseURL = url
+	}
+
+	return hasIt
 }
 
 // extractCaptionTracks returns the list of caption tracks available for a YouTube video
@@ -140,13 +159,17 @@ func fetchCaption(ctx context.Context, tracks []CaptionTrack) (caption, error) {
 	var ct *CaptionTrack
 
 	for _, t := range tracks {
-		if t.LanguageCode != "en" {
-			continue
-		}
-		if t.Kind == "" || t.Kind == "asr" {
+		if t.LanguageCode == "en" && (t.Kind == "asr" || t.Kind == "") {
+			ct = &t
+			break
+		} else if t.hasEnglishAutoTranslation() {
 			ct = &t
 			break
 		}
+	}
+
+	if ct == nil {
+		return caption, fmt.Errorf("no English caption track found")
 	}
 
 	res, err := util.GetRaw(ctx, ct.BaseURL+"&fmt=json3", nil)
