@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/nt54hamnghi/hiku/pkg/util"
 )
@@ -50,14 +51,19 @@ func WithVideoId(ctx context.Context, vid string) (cap string, err error) {
 	defer resp.Body.Close()
 
 	// the Raw HTML content contains a list of available caption tracks in JSON format
-	captionJson, err := extractCaptionTracks(resp.Body)
+	captionTracks, err := extractCaptionTracks(resp.Body)
+	processCaptionTracks(captionTracks)
 	if err != nil {
 		return cap, fmt.Errorf("failed to extract caption tracks: %w", err)
 	}
 
+	for _, v := range captionTracks {
+		fmt.Println(v)
+	}
+
 	// fetch the caption of the YouTube video
 	// only support English captions and prioritize user-added caption over ASR (Automatic Speech Recognition) caption
-	caption, err := fetchCaption(ctx, captionJson)
+	caption, err := fetchCaption(ctx, captionTracks)
 	if err != nil {
 		return cap, fmt.Errorf("failed to fetch caption: %w", err)
 	}
@@ -70,28 +76,10 @@ func WithVideoId(ctx context.Context, vid string) (cap string, err error) {
 // This struct, its fields, and their meanings are reverse-engineered from a YouTube response.
 // Thus, they're subject to change without notice.
 type CaptionTrack struct {
-	BaseURL      string `json:"baseUrl"`        // the URL to fetch the caption track
-	LanguageCode string `json:"languageCode"`   // 2-letter language code
-	Kind         string `json:"kind,omitempty"` // empty if user-added caption, "asr" if Automatic Speech Recognition, etc.
-}
-
-// check if the caption track has an English auto-translation
-// if true, add "&tlang=en" to the base URL of the caption track
-func (ct *CaptionTrack) hasEnglishAutoTranslation() bool {
-	url := ct.BaseURL + "&tlang=en"
-	resp, err := http.Get(url)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-
-	hasIt := resp.StatusCode == http.StatusOK
-
-	if hasIt {
-		ct.BaseURL = url
-	}
-
-	return hasIt
+	BaseURL            string `json:"baseUrl"`            // the URL to fetch the caption track
+	LanguageCode       string `json:"languageCode"`       // 2-letter language code
+	Kind               string `json:"kind,omitempty"`     // empty if user-added caption, "asr" if Automatic Speech Recognition, etc.
+	HasAutoTranslation bool   `json:"hasAutoTranslation"` // added property to check if the caption track has an English auto-translation
 }
 
 // extractCaptionTracks returns the list of caption tracks available for a YouTube video
@@ -144,6 +132,37 @@ func extractCaptionTracks(body io.Reader) ([]CaptionTrack, error) {
 
 }
 
+// processCaptionTracks add "&fmt=json3" to the base URL of each caption track
+// it also checks if the caption track has an English auto-translation
+// if true, add "&tlang=en" to the base URL of the caption track and set HasAutoTranslation to true
+func processCaptionTracks(captionTracks []CaptionTrack) {
+	wg := sync.WaitGroup{}
+	for i := 0; i < len(captionTracks); i++ {
+		wg.Add(1)
+		c := &captionTracks[i]
+		c.BaseURL = c.BaseURL + "&fmt=json3"
+
+		go func() {
+			defer wg.Done()
+
+			if c.LanguageCode == "en" {
+				return
+			}
+
+			url := c.BaseURL + "&tlang=en"
+			resp, err := http.Get(url)
+			if err != nil || resp.StatusCode != http.StatusOK {
+				return
+			}
+			defer resp.Body.Close()
+
+			c.BaseURL = url
+			c.HasAutoTranslation = true
+		}()
+	}
+	wg.Wait()
+}
+
 // fetchCaption returns the caption of a YouTube video.
 // The returned caption is a list of events.
 // Each event contains a list of segments, and each segment has a caption text.
@@ -162,7 +181,7 @@ func fetchCaption(ctx context.Context, tracks []CaptionTrack) (caption, error) {
 		if t.LanguageCode == "en" && (t.Kind == "asr" || t.Kind == "") {
 			ct = &t
 			break
-		} else if t.hasEnglishAutoTranslation() {
+		} else if t.HasAutoTranslation {
 			ct = &t
 			break
 		}
@@ -172,7 +191,7 @@ func fetchCaption(ctx context.Context, tracks []CaptionTrack) (caption, error) {
 		return caption, fmt.Errorf("no English caption track found")
 	}
 
-	res, err := util.GetRaw(ctx, ct.BaseURL+"&fmt=json3", nil)
+	res, err := util.GetRaw(ctx, ct.BaseURL, nil)
 	if err != nil {
 		return caption, err
 	}
