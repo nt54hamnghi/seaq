@@ -20,13 +20,24 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
+		noStream, err := cmd.Flags().GetBool("no-stream")
+		if err != nil {
+			return err
+		}
+
 		input, err := readStdin()
 
 		if err != nil && err.Error() == "interactive input is not supported" {
 			cmd.Help()
+			return nil
 		}
 
-		openai.CreateCompletionStream(context.Background(), openai.PrimingPrompt, input)
+		ctx := context.Background()
+		if noStream {
+			openai.CreateCompletion(ctx, openai.PrimingPrompt, input)
+		} else {
+			openai.CreateCompletionStream(ctx, openai.PrimingPrompt, input)
+		}
 
 		return nil
 	},
@@ -41,7 +52,10 @@ func Execute() {
 	}
 }
 
-func init() {}
+func init() {
+	rootCmd.Flags().Bool("no-stream", false, "Disable streaming mode")
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+}
 
 // Read from stdin
 // This function allow piping input to the command.
