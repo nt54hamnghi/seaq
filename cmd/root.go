@@ -20,8 +20,8 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		input, err := readStdin()
 
-		if err != nil {
-			return fmt.Errorf("failed to read from stdin: %w", err)
+		if err != nil && err.Error() == "interactive input is not supported" {
+			cmd.Help()
 		}
 
 		fmt.Println(input)

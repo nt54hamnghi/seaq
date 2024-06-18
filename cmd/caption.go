@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nt54hamnghi/hiku/youtube"
+	"github.com/nt54hamnghi/hiku/pkg/youtube"
 	"github.com/spf13/cobra"
 )
 

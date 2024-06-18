@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/nt54hamnghi/hiku/util"
+	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/spf13/cobra"
 )
 

@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/nt54hamnghi/hiku/util"
+	"github.com/nt54hamnghi/hiku/pkg/util"
 )
 
 const (
@@ -194,11 +194,7 @@ func (c *caption) getFullCaption() string {
 		for i := 0; i < len(es); i++ {
 			segs := es[i].Segs
 			for j := 0; j < len(segs); j++ {
-				txt := segs[j].Utf8
-				if txt == "\n" {
-					txt = " "
-				}
-				res += txt
+				res += segs[j].Utf8
 			}
 		}
 		return res
