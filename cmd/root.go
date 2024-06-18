@@ -53,7 +53,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().Bool("no-stream", false, "Disable streaming mode")
+	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }
 
