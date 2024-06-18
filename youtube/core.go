@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/nt54hamnghi/hoc/util"
+	"github.com/nt54hamnghi/hiku/util"
 )
 
 const (

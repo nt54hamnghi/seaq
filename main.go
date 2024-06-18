@@ -1,10 +1,9 @@
 /*
 Copyright © 2024 Nghi Nguyen
-
 */
 package main
 
-import "github.com/nt54hamnghi/hoc/cmd"
+import "github.com/nt54hamnghi/hiku/cmd"
 
 func main() {
 	cmd.Execute()
