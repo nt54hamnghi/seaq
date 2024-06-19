@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/nt54hamnghi/hiku/cmd/pattern"
 	"github.com/nt54hamnghi/hiku/cmd/scrape"
 	"github.com/nt54hamnghi/hiku/pkg/openai"
 	"github.com/spf13/cobra"
@@ -17,7 +18,7 @@ import (
 )
 
 var cfgFile string
-var pattern string
+var patternName string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -33,13 +34,15 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		cfg, err := loadPatternConfig()
+		cfg, err := pattern.WithName(patternName)
 		if err != nil {
+			cmd.SilenceUsage = true
 			return err
 		}
 
-		prompt, err := cfg.getPrompt()
+		prompt, err := cfg.GetPrompt()
 		if err != nil {
+			cmd.SilenceUsage = true
 			return err
 		}
 
@@ -58,68 +61,6 @@ var rootCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-type patternConfig struct {
-	repo    string
-	pattern string
-}
-
-func loadPatternConfig() (cfg patternConfig, err error) {
-	// use viper to read the config file
-	// get the patterns repo path
-	cfg.repo = viper.GetString("patterns.repo")
-	if cfg.repo == "" {
-		return cfg, fmt.Errorf("patterns.repo is not set in the config file")
-	}
-
-	// get the default prompt
-	cfg.pattern = pattern // set to the pattern flag value
-	if cfg.pattern == "" {
-		cfg.pattern = viper.GetString("patterns.default")
-	}
-
-	if cfg.pattern == "" {
-		return cfg, fmt.Errorf("no pattern provided")
-	}
-
-	return
-}
-
-func (cfg patternConfig) getPrompt() (string, error) {
-	// read the pattern
-	prompt, err := os.ReadFile(filepath.Join(cfg.repo, cfg.pattern, "system.md"))
-	if err != nil {
-		return "", err
-	}
-
-	return string(prompt), nil
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
-}
-
-func addCommandPallete() {
-	rootCmd.AddCommand(initCmd)
-	rootCmd.AddCommand(scrape.ScrapeCmd)
-}
-
-func init() {
-	// init viper config and register it with cobra
-	cobra.OnInitialize(initConfig)
-
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
-	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
-	rootCmd.Flags().StringVarP(&pattern, "pattern", "p", "", "pattern to use for completion")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-
-	addCommandPallete()
 }
 
 // Read from stdin
@@ -151,6 +92,33 @@ func readStdin() (string, error) {
 	}
 
 	return string(input), nil
+}
+
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+	err := rootCmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
+}
+
+func addCommandPallete() {
+	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(scrape.ScrapeCmd)
+	rootCmd.AddCommand(pattern.PatternCmd)
+}
+
+func init() {
+	// init viper config and register it with cobra
+	cobra.OnInitialize(initConfig)
+
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
+	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
+	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use for completion")
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	addCommandPallete()
 }
 
 // initConfig reads in config file and ENV variables if set.
