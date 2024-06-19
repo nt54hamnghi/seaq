@@ -1,7 +1,7 @@
 /*
 Copyright © 2024 Nghi Nguyen <hamnghi250699@gmail.com>
 */
-package cmd
+package scrape
 
 import (
 	"context"
@@ -13,11 +13,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// scrapeCmd represents the scrape command
-var scrapeCmd = &cobra.Command{
-	Use:     "scrape [url]",
-	Short:   "Scrape data with a given URL",
-	Aliases: []string{"s"},
+// htmlCmd represents the scrape command
+var htmlCmd = &cobra.Command{
+	Use:     "html [url]",
+	Short:   "Scrape HTML data with a given URL and convert it to markdown",
+	Aliases: []string{"p", "page"},
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parsedUrl, err := url.Parse(args[0])

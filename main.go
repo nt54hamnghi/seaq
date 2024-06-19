@@ -1,5 +1,6 @@
 /*
-Copyright © 2024 Nghi Nguyen
+Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+
 */
 package main
 

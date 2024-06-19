@@ -9,9 +9,13 @@ import (
 	"io"
 	"os"
 
+	"github.com/nt54hamnghi/hiku/cmd/scrape"
 	"github.com/nt54hamnghi/hiku/pkg/openai"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -54,11 +58,15 @@ func Execute() {
 }
 
 func addCommandPallete() {
-	rootCmd.AddCommand(captionCmd)
-	rootCmd.AddCommand(scrapeCmd)
+	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(scrape.ScrapeCmd)
 }
 
 func init() {
+	// init viper config and register it with cobra
+	cobra.OnFinalize(initConfig)
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.hiku.yaml)")
+
 	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
@@ -94,4 +102,33 @@ func readStdin() (string, error) {
 	}
 
 	return string(input), nil
+}
+
+// initConfig reads in config file and ENV variables if set.
+func initConfig() {
+	if cfgFile != "" {
+		// Use config file from the flag.
+		viper.SetConfigFile(cfgFile)
+	} else {
+		// Find home directory.
+		home, err := os.UserHomeDir()
+		cobra.CheckErr(err)
+
+		// Search config in home directory with name ".hiku" (without extension).
+		viper.AddConfigPath(home)
+		viper.SetConfigType("yaml")
+		viper.SetConfigName("hiku")
+		// Path to look for the config file in
+		// The order of paths listed is the order in which they will be searched
+		viper.AddConfigPath("/etc/hiku")
+		viper.AddConfigPath("$HOME/.config/hiku")
+		viper.AddConfigPath(".")
+	}
+
+	viper.AutomaticEnv() // read in environment variables that match
+
+	// If a config file is found, read it in.
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	}
 }

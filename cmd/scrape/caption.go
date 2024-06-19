@@ -1,7 +1,7 @@
 /*
 Copyright © 2024 Nghi Nguyen <hamnghi250699@gmail.com>
 */
-package cmd
+package scrape
 
 import (
 	"context"
