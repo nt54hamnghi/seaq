@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/nt54hamnghi/hiku/cmd/scrape"
 	"github.com/nt54hamnghi/hiku/pkg/openai"
@@ -16,6 +17,7 @@ import (
 )
 
 var cfgFile string
+var pattern string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -25,13 +27,23 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// get the value of the no-stream flag
 		noStream, err := cmd.Flags().GetBool("no-stream")
 		if err != nil {
 			return err
 		}
 
-		input, err := readStdin()
+		cfg, err := loadPatternConfig()
+		if err != nil {
+			return err
+		}
 
+		prompt, err := cfg.getPrompt()
+		if err != nil {
+			return err
+		}
+
+		input, err := readStdin()
 		if err != nil && err.Error() == "interactive input is not supported" {
 			cmd.Help()
 			return nil
@@ -39,13 +51,49 @@ var rootCmd = &cobra.Command{
 
 		ctx := context.Background()
 		if noStream {
-			openai.CreateCompletion(ctx, openai.PrimingPrompt, input)
+			openai.CreateCompletion(ctx, prompt, input)
 		} else {
-			openai.CreateCompletionStream(ctx, openai.PrimingPrompt, input)
+			openai.CreateCompletionStream(ctx, prompt, input)
 		}
 
 		return nil
 	},
+}
+
+type patternConfig struct {
+	repo    string
+	pattern string
+}
+
+func loadPatternConfig() (cfg patternConfig, err error) {
+	// use viper to read the config file
+	// get the patterns repo path
+	cfg.repo = viper.GetString("patterns.repo")
+	if cfg.repo == "" {
+		return cfg, fmt.Errorf("patterns.repo is not set in the config file")
+	}
+
+	// get the default prompt
+	cfg.pattern = pattern // set to the pattern flag value
+	if cfg.pattern == "" {
+		cfg.pattern = viper.GetString("patterns.default")
+	}
+
+	if cfg.pattern == "" {
+		return cfg, fmt.Errorf("no pattern provided")
+	}
+
+	return
+}
+
+func (cfg patternConfig) getPrompt() (string, error) {
+	// read the pattern
+	prompt, err := os.ReadFile(filepath.Join(cfg.repo, cfg.pattern, "system.md"))
+	if err != nil {
+		return "", err
+	}
+
+	return string(prompt), nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -64,10 +112,11 @@ func addCommandPallete() {
 
 func init() {
 	// init viper config and register it with cobra
-	cobra.OnFinalize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.hiku.yaml)")
+	cobra.OnInitialize(initConfig)
 
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
 	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
+	rootCmd.Flags().StringVarP(&pattern, "pattern", "p", "", "pattern to use for completion")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	addCommandPallete()
@@ -115,13 +164,13 @@ func initConfig() {
 		cobra.CheckErr(err)
 
 		// Search config in home directory with name ".hiku" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
 		viper.SetConfigName("hiku")
+		viper.SetConfigType("yaml")
+
 		// Path to look for the config file in
 		// The order of paths listed is the order in which they will be searched
 		viper.AddConfigPath("/etc/hiku")
-		viper.AddConfigPath("$HOME/.config/hiku")
+		viper.AddConfigPath(filepath.Join(home, ".config/hiku"))
 		viper.AddConfigPath(".")
 	}
 

@@ -1,7 +1,6 @@
 /.vscode
 /tmp
-/dev
 
-# local test files
-connection.md
-summary.md
+# local test files and directories
+/dev
+/.config
