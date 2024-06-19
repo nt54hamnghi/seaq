@@ -15,14 +15,11 @@ import (
 
 // scrapeCmd represents the scrape command
 var scrapeCmd = &cobra.Command{
-	Use:     "scrape",
+	Use:     "scrape [url]",
 	Short:   "Scrape data with a given URL",
 	Aliases: []string{"s"},
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return fmt.Errorf("expecting 1 argument, got %d", len(args))
-		}
-
 		parsedUrl, err := url.Parse(args[0])
 		if err != nil {
 			return err
@@ -48,16 +45,4 @@ var scrapeCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(scrapeCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// scrapeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// scrapeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
+func init() {}

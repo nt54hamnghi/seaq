@@ -14,14 +14,11 @@ import (
 
 // captionCmd represents the caption command
 var captionCmd = &cobra.Command{
-	Use:     "caption",
+	Use:     "caption [url|videoId]",
 	Short:   "Get caption from a YouTube video",
 	Aliases: []string{"c", "cap"},
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return fmt.Errorf("expecting 1 argument, got %d", len(args))
-		}
-
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
@@ -40,6 +37,4 @@ var captionCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(captionCmd)
-}
+func init() {}

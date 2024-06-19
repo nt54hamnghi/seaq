@@ -17,6 +17,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "hiku",
 	Short: "A cli tool to make learning more fun",
+	Args:  cobra.NoArgs,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,9 +53,16 @@ func Execute() {
 	}
 }
 
+func addCommandPallete() {
+	rootCmd.AddCommand(captionCmd)
+	rootCmd.AddCommand(scrapeCmd)
+}
+
 func init() {
 	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	addCommandPallete()
 }
 
 // Read from stdin
