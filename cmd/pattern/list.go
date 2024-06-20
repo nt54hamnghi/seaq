@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package pattern
 
 import (
+	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -15,12 +16,7 @@ var listCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := WithName("")
-		if err != nil {
-			return err
-		}
-
-		pats, err := cfg.GetAvailablePatterns()
+		pats, err := config.Hiku.GetAvailablePatterns()
 		if err != nil {
 			return err
 		}
