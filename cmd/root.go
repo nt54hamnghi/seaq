@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/nt54hamnghi/hiku/cmd/pattern"
 	"github.com/nt54hamnghi/hiku/cmd/scrape"
 	"github.com/nt54hamnghi/hiku/pkg/openai"
@@ -20,7 +21,6 @@ var configFile string
 var patternName string
 var patternRepo string
 var verbose bool
-var Hiku *HikuConfig
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -42,7 +42,7 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 
-		prompt, err := Hiku.GetPrompt()
+		prompt, err := config.Hiku.GetPrompt()
 		if err != nil {
 			cmd.SilenceUsage = true
 			return err
@@ -104,7 +104,6 @@ func Execute() {
 }
 
 func addCommandPallete() {
-	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(scrape.ScrapeCmd)
 	rootCmd.AddCommand(pattern.PatternCmd)
 }
@@ -132,33 +131,33 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	Hiku = New()
+	config.Hiku = config.New()
 	if configFile != "" {
 		// Use config file from the flag.
-		Hiku.SetConfigFile(configFile)
+		config.Hiku.SetConfigFile(configFile)
 	} else {
 		// Find home directory.
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
 		// Search config in home directory with name ".hiku" (without extension).
-		Hiku.SetConfigName("hiku")
-		Hiku.SetConfigType("yaml")
+		config.Hiku.SetConfigName("hiku")
+		config.Hiku.SetConfigType("yaml")
 
 		// Path to look for the config file in
 		// The order of paths listed is the order in which they will be searched
-		Hiku.AddConfigPath("/etc/hiku")
-		Hiku.AddConfigPath(filepath.Join(home, ".config/hiku"))
-		Hiku.AddConfigPath(".")
+		config.Hiku.AddConfigPath("/etc/hiku")
+		config.Hiku.AddConfigPath(filepath.Join(home, ".config/hiku"))
+		config.Hiku.AddConfigPath(".")
 	}
 
 	// bind flags to viper
-	Hiku.BindPFlag("pattern.name", rootCmd.Flags().Lookup("pattern"))
-	Hiku.BindPFlag("pattern.repo", rootCmd.Flags().Lookup("repo"))
-	Hiku.AutomaticEnv() // read in environment variables that match
+	config.Hiku.BindPFlag("pattern.name", rootCmd.Flags().Lookup("pattern"))
+	config.Hiku.BindPFlag("pattern.repo", rootCmd.Flags().Lookup("repo"))
+	config.Hiku.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := Hiku.ReadInConfig(); err == nil && verbose {
-		fmt.Fprintln(os.Stderr, "Using config file:", Hiku.ConfigFileUsed())
+	if err := config.Hiku.ReadInConfig(); err == nil && verbose {
+		fmt.Fprintln(os.Stderr, "Using config file:", config.Hiku.ConfigFileUsed())
 	}
 }

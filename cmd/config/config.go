@@ -1,4 +1,4 @@
-package cmd
+package config
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/spf13/viper"
 )
+
+var Hiku *HikuConfig
 
 type HikuConfig struct {
 	*viper.Viper
@@ -59,7 +61,12 @@ func (hiku *HikuConfig) GetPrompt() (string, error) {
 }
 
 func (hiku *HikuConfig) GetAvailablePatterns() ([]string, error) {
-	dirs, err := os.ReadDir(hiku.Repo())
+	repo := hiku.Repo()
+	if repo == "" {
+		return nil, fmt.Errorf("repo is empty")
+	}
+
+	dirs, err := os.ReadDir(repo)
 	if err != nil {
 		return nil, err
 	}
