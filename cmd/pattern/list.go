@@ -9,10 +9,11 @@ import (
 
 // listCmd represents the list command
 var listCmd = &cobra.Command{
-	Use:     "list",
-	Short:   "List all available patterns",
-	Aliases: []string{"ls"},
-	Args:    cobra.NoArgs,
+	Use:          "list",
+	Short:        "List all available patterns",
+	Aliases:      []string{"ls"},
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := WithName("")
 		if err != nil {

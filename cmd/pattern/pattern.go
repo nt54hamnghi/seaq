@@ -9,10 +9,11 @@ import (
 
 // patternCmd represents the pattern command
 var PatternCmd = &cobra.Command{
-	Use:     "pattern",
-	Short:   "Manage patterns",
-	Aliases: []string{"pat"},
-	Args:    cobra.NoArgs,
+	Use:          "pattern",
+	Short:        "Manage patterns",
+	Aliases:      []string{"pat"},
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},

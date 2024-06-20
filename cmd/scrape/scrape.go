@@ -9,11 +9,12 @@ import (
 
 // ScrapeCmd represents the scrape command
 var ScrapeCmd = &cobra.Command{
-	Use:     "scrape",
-	Short:   "Scrape web data and output text",
-	Long:    ``,
-	Aliases: []string{"s"},
-	Args:    cobra.NoArgs,
+	Use:          "scrape",
+	Short:        "Scrape web data and output text",
+	Long:         ``,
+	Aliases:      []string{"s"},
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},

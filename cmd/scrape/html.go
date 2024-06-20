@@ -15,10 +15,11 @@ import (
 
 // htmlCmd represents the scrape command
 var htmlCmd = &cobra.Command{
-	Use:     "html [url]",
-	Short:   "Scrape HTML data with a given URL and convert it to markdown",
-	Aliases: []string{"p", "page"},
-	Args:    cobra.ExactArgs(1),
+	Use:          "html [url]",
+	Short:        "Scrape HTML data with a given URL and convert it to markdown",
+	Aliases:      []string{"p", "page", "web"},
+	Args:         cobra.ExactArgs(1),
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		parsedUrl, err := url.Parse(args[0])
 		if err != nil {
