@@ -85,6 +85,10 @@ func doRaw(
 	}
 	defer rawResp.Body.Close()
 
+	if rawResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", rawResp.StatusCode)
+	}
+
 	// read the response body
 	return io.ReadAll(rawResp.Body)
 
