@@ -4,8 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package pattern
 
 import (
-	"fmt"
-
+	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -15,8 +14,13 @@ var useCmd = &cobra.Command{
 	Short:        "Set a default pattern to use",
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("use called")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+		if err := config.Hiku.UsePattern(name); err != nil {
+			return err
+		}
+		config.Hiku.WriteConfig()
+		return nil
 	},
 }
 

@@ -1,12 +1,24 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/viper"
 )
+
+// region: --- errors
+
+var ErrEmptyPattern = errors.New("pattern name is empty")
+var ErrEmptyRepo = errors.New("repo is empty")
+
+func patternNotFound(name string) error {
+	return fmt.Errorf("pattern '%s' does not exist", name)
+}
+
+// endregion: --- errors
 
 var Hiku *HikuConfig
 
@@ -28,9 +40,24 @@ func (hiku *HikuConfig) Pattern() string {
 	return hiku.GetString("pattern.name")
 }
 
+func (hiku *HikuConfig) HasPattern(name string) bool {
+	pats, err := hiku.GetAvailablePatterns()
+	if err != nil {
+		return false
+	}
+
+	for _, p := range pats {
+		if p == name {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (hiku *HikuConfig) UsePattern(name string) error {
-	if name == "" {
-		return fmt.Errorf("pattern name is empty")
+	if !hiku.HasPattern(name) {
+		return patternNotFound(name)
 	}
 	hiku.Set("pattern.name", name)
 	return nil
@@ -39,12 +66,12 @@ func (hiku *HikuConfig) UsePattern(name string) error {
 func (hiku *HikuConfig) GetPrompt() (string, error) {
 	pat := hiku.Pattern()
 	if pat == "" {
-		return "", fmt.Errorf("pattern name is empty")
+		return "", ErrEmptyPattern
 	}
 
 	repo := hiku.Repo()
 	if repo == "" {
-		return "", fmt.Errorf("repo is empty")
+		return "", ErrEmptyRepo
 	}
 
 	path := filepath.Join(repo, pat, "system.md")
@@ -52,7 +79,7 @@ func (hiku *HikuConfig) GetPrompt() (string, error) {
 	prompt, err := os.ReadFile(path) // read the pattern
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("pattern %s does not exist", pat)
+			return "", patternNotFound(pat)
 		}
 		return "", err
 	}
@@ -63,7 +90,7 @@ func (hiku *HikuConfig) GetPrompt() (string, error) {
 func (hiku *HikuConfig) GetAvailablePatterns() ([]string, error) {
 	repo := hiku.Repo()
 	if repo == "" {
-		return nil, fmt.Errorf("repo is empty")
+		return nil, ErrEmptyRepo
 	}
 
 	dirs, err := os.ReadDir(repo)
