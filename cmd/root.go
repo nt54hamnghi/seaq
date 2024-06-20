@@ -18,15 +18,16 @@ import (
 )
 
 var cfgFile string
+var verbose bool
 var patternName string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "hiku",
-	Short: "A cli tool to make learning more fun",
-	Args:  cobra.NoArgs,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Use:          "hiku",
+	Short:        "A cli tool to make learning more fun",
+	Version:      "0.1.0",
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// get the value of the no-stream flag
 		noStream, err := cmd.Flags().GetBool("no-stream")
@@ -50,6 +51,10 @@ var rootCmd = &cobra.Command{
 		if err != nil && err.Error() == "interactive input is not supported" {
 			cmd.Help()
 			return nil
+		}
+
+		if input == "" {
+			return fmt.Errorf("piped input is empty")
 		}
 
 		ctx := context.Background()
@@ -114,6 +119,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "verbose output")
 	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
 	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use for completion")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
@@ -145,7 +151,7 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
+	if err := viper.ReadInConfig(); err == nil && verbose {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 }
