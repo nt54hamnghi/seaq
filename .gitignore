@@ -4,3 +4,5 @@
 # local test files and directories
 /dev
 /.config
+
+summary.md
