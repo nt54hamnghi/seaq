@@ -14,12 +14,13 @@ import (
 	"github.com/nt54hamnghi/hiku/cmd/scrape"
 	"github.com/nt54hamnghi/hiku/pkg/openai"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-var cfgFile string
-var verbose bool
+var configFile string
 var patternName string
+var patternRepo string
+var verbose bool
+var Hiku *HikuConfig
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -35,22 +36,16 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		cfg, err := pattern.WithName(patternName)
-		if err != nil {
-			cmd.SilenceUsage = true
-			return err
-		}
-
-		prompt, err := cfg.GetPrompt()
-		if err != nil {
-			cmd.SilenceUsage = true
-			return err
-		}
-
 		input, err := readStdin()
 		if err != nil && err.Error() == "interactive input is not supported" {
 			cmd.Help()
 			return nil
+		}
+
+		prompt, err := Hiku.GetPrompt()
+		if err != nil {
+			cmd.SilenceUsage = true
+			return err
 		}
 
 		if input == "" {
@@ -118,40 +113,52 @@ func init() {
 	// init viper config and register it with cobra
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "verbose output")
-	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
-	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use for completion")
+	// settings
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
+	// flags definition
+	// persistent flags are global and available to all commands
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "verbose output")
+
+	// local flags are only available to the root command
+	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
+	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use for completion")
+	rootCmd.Flags().StringVarP(&patternRepo, "repo", "r", "", "path to the pattern repository")
+
+	// add subcommands
 	addCommandPallete()
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if cfgFile != "" {
+	Hiku = New()
+	if configFile != "" {
 		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		Hiku.SetConfigFile(configFile)
 	} else {
 		// Find home directory.
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
 		// Search config in home directory with name ".hiku" (without extension).
-		viper.SetConfigName("hiku")
-		viper.SetConfigType("yaml")
+		Hiku.SetConfigName("hiku")
+		Hiku.SetConfigType("yaml")
 
 		// Path to look for the config file in
 		// The order of paths listed is the order in which they will be searched
-		viper.AddConfigPath("/etc/hiku")
-		viper.AddConfigPath(filepath.Join(home, ".config/hiku"))
-		viper.AddConfigPath(".")
+		Hiku.AddConfigPath("/etc/hiku")
+		Hiku.AddConfigPath(filepath.Join(home, ".config/hiku"))
+		Hiku.AddConfigPath(".")
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	// bind flags to viper
+	Hiku.BindPFlag("pattern.name", rootCmd.Flags().Lookup("pattern"))
+	Hiku.BindPFlag("pattern.repo", rootCmd.Flags().Lookup("repo"))
+	Hiku.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil && verbose {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	if err := Hiku.ReadInConfig(); err == nil && verbose {
+		fmt.Fprintln(os.Stderr, "Using config file:", Hiku.ConfigFileUsed())
 	}
 }
