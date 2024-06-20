@@ -12,7 +12,7 @@ var ScrapeCmd = &cobra.Command{
 	Use:          "scrape",
 	Short:        "Scrape web data and output text",
 	Long:         ``,
-	Aliases:      []string{"s"},
+	Aliases:      []string{"scr"},
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	Run: func(cmd *cobra.Command, args []string) {
