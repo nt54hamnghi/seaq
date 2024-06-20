@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -17,10 +18,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// region: --- errors
+
+var errInteractiveInput = fmt.Errorf("interactive input is not supported")
+
+// endregion: --- errors
+
+// region: --- flags
+
 var configFile string
 var patternName string
 var patternRepo string
 var verbose bool
+
+// endregion: --- flags
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -37,7 +48,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		input, err := readStdin()
-		if err != nil && err.Error() == "interactive input is not supported" {
+		if err != nil && errors.Is(err, errInteractiveInput) {
 			cmd.Help()
 			return nil
 		}
@@ -63,9 +74,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// Read from stdin
-// This function allow piping input to the command.
-// It'll call the fallback function if stdin is provided interactively.
+// readStdin reads from stdin if it's piped, otherwise it returns an error.
 func readStdin() (string, error) {
 	// get stat of stdin file descriptor
 	info, err := os.Stdin.Stat()
@@ -82,7 +91,7 @@ func readStdin() (string, error) {
 	// when input is interactive, `info.Mode()` will have `os.ModeCharDevice` set
 	// -> a bitwise AND with `os.ModeCharDevice` will return a non-zero value
 	if info.Mode()&os.ModeCharDevice != 0 {
-		return "", fmt.Errorf("interactive input is not supported")
+		return "", errInteractiveInput
 	}
 
 	// read from stdin
