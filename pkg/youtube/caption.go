@@ -32,27 +32,17 @@ const (
 
 // endregion: --- consts
 
-func WithVideoUrl(ctx context.Context, rawUrl string) (cap string, err error) {
-	query, found := strings.CutPrefix(rawUrl, YouTubeWatchUrl+"?")
-	if !found {
-		return "", ErrInValidYouTubeURL
-	}
-
-	// parse the query string
-	q, err := url.ParseQuery(query)
+func FetchCaption(ctx context.Context, src string) (cap string, err error) {
+	vid, err := extractVideoId(src)
 	if err != nil {
 		return
 	}
-
-	vid, ok := q["v"]
-	if !ok {
-		return "", ErrInValidYouTubeURL
-	}
-
-	return WithVideoId(ctx, vid[0])
+	return fetchCaptionWithVideoId(ctx, vid)
 }
 
-func WithVideoId(ctx context.Context, vid string) (cap string, err error) {
+type videoId = string
+
+func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err error) {
 	// get the raw HTML content of the YouTube video page
 	resp, err := http.Get(YouTubeWatchUrl + "?v=" + vid)
 	if err != nil {
@@ -76,13 +66,32 @@ func WithVideoId(ctx context.Context, vid string) (cap string, err error) {
 	}
 
 	return caption.getFullCaption(), nil
+}
 
+func extractVideoId(rawUrl string) (videoId, error) {
+	query, found := strings.CutPrefix(rawUrl, YouTubeWatchUrl+"?")
+	if !found {
+		return "", ErrInValidYouTubeURL
+	}
+
+	// parse the query string
+	q, err := url.ParseQuery(query)
+	if err != nil {
+		return "", err
+	}
+
+	vid, ok := q["v"]
+	if !ok || len(vid) == 0 {
+		return "", ErrInValidYouTubeURL
+	}
+
+	return vid[0], nil
 }
 
 // YouTube doesn't provide a public API for caption tracks.
 // This struct, its fields, and their meanings are reverse-engineered from a YouTube response.
 // Thus, they're subject to change without notice.
-type CaptionTrack struct {
+type captionTrack struct {
 	BaseURL            string `json:"baseUrl"`            // the URL to fetch the caption track
 	LanguageCode       string `json:"languageCode"`       // 2-letter language code
 	Kind               string `json:"kind,omitempty"`     // empty if user-added caption, "asr" if Automatic Speech Recognition, etc.
@@ -90,7 +99,7 @@ type CaptionTrack struct {
 }
 
 // extractCaptionTracks returns the list of caption tracks available for a YouTube video
-func extractCaptionTracks(body io.Reader) ([]CaptionTrack, error) {
+func extractCaptionTracks(body io.Reader) ([]captionTrack, error) {
 	// compile the regex and panic if the pattern is invalid
 	re := regexp.MustCompile(`"captionTracks":\s*(\[[^\]]+\])`)
 
@@ -131,7 +140,7 @@ func extractCaptionTracks(body io.Reader) ([]CaptionTrack, error) {
 		return nil, fmt.Errorf("caption tracks not found")
 	}
 
-	var captionTracks []CaptionTrack
+	var captionTracks []captionTrack
 	err := json.Unmarshal([]byte(match), &captionTracks)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal caption tracks: %w", err)
@@ -144,7 +153,7 @@ func extractCaptionTracks(body io.Reader) ([]CaptionTrack, error) {
 // processCaptionTracks add "&fmt=json3" to the base URL of each caption track
 // it also checks if the caption track has an English auto-translation
 // if true, add "&tlang=en" to the base URL of the caption track and set HasAutoTranslation to true
-func processCaptionTracks(captionTracks []CaptionTrack) {
+func processCaptionTracks(captionTracks []captionTrack) {
 	wg := sync.WaitGroup{}
 	for i := 0; i < len(captionTracks); i++ {
 		wg.Add(1)
@@ -177,14 +186,12 @@ func processCaptionTracks(captionTracks []CaptionTrack) {
 // Each event contains a list of segments, and each segment has a caption text.
 // It only supports English captions and prioritizes user-added caption
 // over ASR (Automatic Speech Recognition) caption.
-func fetchCaption(ctx context.Context, tracks []CaptionTrack) (caption, error) {
-	var caption caption
-
+func fetchCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 	if len(tracks) == 0 {
-		return caption, fmt.Errorf("caption tracks must not be empty")
+		return caption{}, fmt.Errorf("caption tracks must not be empty")
 	}
 
-	var ct *CaptionTrack
+	var ct *captionTrack
 
 	for _, t := range tracks {
 		if t.LanguageCode == "en" && (t.Kind == "asr" || t.Kind == "") {
@@ -197,19 +204,10 @@ func fetchCaption(ctx context.Context, tracks []CaptionTrack) (caption, error) {
 	}
 
 	if ct == nil {
-		return caption, fmt.Errorf("no English caption track found")
+		return caption{}, fmt.Errorf("no English caption track found")
 	}
 
-	res, err := util.GetRaw(ctx, ct.BaseURL, nil)
-	if err != nil {
-		return caption, err
-	}
-
-	if err := json.Unmarshal(res, &caption); err != nil {
-		return caption, err
-	}
-
-	return caption, nil
+	return util.Get[caption](ctx, ct.BaseURL, nil)
 }
 
 // YouTube doesn't provide a public API for caption tracks.
