@@ -5,13 +5,14 @@ package scrape
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/nt54hamnghi/hiku/pkg/youtube"
 	"github.com/spf13/cobra"
 )
+
+var metadata bool
 
 // captionCmd represents the caption command
 var captionCmd = &cobra.Command{
@@ -21,16 +22,22 @@ var captionCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		src := args[0]
+
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		caption, err := youtube.WithVideoUrl(ctx, args[0])
-		if err != nil && errors.Is(err, youtube.ErrInValidYouTubeURL) {
-			caption, err = youtube.WithVideoId(ctx, args[0])
-		}
-
+		caption, err := youtube.FetchCaption(ctx, src)
 		if err != nil {
 			return err
+		}
+
+		if metadata {
+			metadata, err := youtube.FetchMetadata(ctx, src)
+			if err != nil {
+				return err
+			}
+			fmt.Println(metadata)
 		}
 
 		fmt.Println(caption)
@@ -40,5 +47,5 @@ var captionCmd = &cobra.Command{
 }
 
 func init() {
-	captionCmd.Flags().BoolP("metadata", "m", false, "include metadata in the output")
+	captionCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
 }
