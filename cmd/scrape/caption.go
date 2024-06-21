@@ -5,6 +5,7 @@ package scrape
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -24,7 +25,7 @@ var captionCmd = &cobra.Command{
 		defer cancel()
 
 		caption, err := youtube.WithVideoUrl(ctx, args[0])
-		if err != nil && err.Error() == "invalid YouTube video URL" {
+		if err != nil && errors.Is(err, youtube.ErrInValidYouTubeURL) {
 			caption, err = youtube.WithVideoId(ctx, args[0])
 		}
 
@@ -38,4 +39,6 @@ var captionCmd = &cobra.Command{
 	},
 }
 
-func init() {}
+func init() {
+	captionCmd.Flags().BoolP("metadata", "m", false, "include metadata in the output")
+}

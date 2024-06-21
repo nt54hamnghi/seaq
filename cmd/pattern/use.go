@@ -4,6 +4,8 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package pattern
 
 import (
+	"fmt"
+
 	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +22,7 @@ var useCmd = &cobra.Command{
 			return err
 		}
 		config.Hiku.WriteConfig()
+		fmt.Printf("Successfully set the default pattern to '%s'\n", name)
 		return nil
 	},
 }
