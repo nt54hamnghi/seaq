@@ -3,6 +3,7 @@ package youtube
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -16,14 +17,25 @@ import (
 	"github.com/nt54hamnghi/hiku/pkg/util"
 )
 
+// region: --- errors
+
+var ErrInValidYouTubeURL = errors.New("invalid YouTube video URL")
+var ErrVideoIdNotFoundInURL = errors.New("YouTube URL does not contain video ID query parameter")
+
+// endregion: --- errors
+
+// region: --- consts
+
 const (
 	YouTubeWatchUrl = "https://www.youtube.com/watch"
 )
 
+// endregion: --- consts
+
 func WithVideoUrl(ctx context.Context, rawUrl string) (cap string, err error) {
 	query, found := strings.CutPrefix(rawUrl, YouTubeWatchUrl+"?")
 	if !found {
-		return "", fmt.Errorf("invalid YouTube video URL")
+		return "", ErrInValidYouTubeURL
 	}
 
 	// parse the query string
@@ -34,31 +46,30 @@ func WithVideoUrl(ctx context.Context, rawUrl string) (cap string, err error) {
 
 	vid, ok := q["v"]
 	if !ok {
-		return "", fmt.Errorf("YouTube URL does not contain video ID query parameter")
+		return "", ErrInValidYouTubeURL
 	}
 
 	return WithVideoId(ctx, vid[0])
 }
 
 func WithVideoId(ctx context.Context, vid string) (cap string, err error) {
-	rawUrl := YouTubeWatchUrl + "?v=" + vid
-
 	// get the raw HTML content of the YouTube video page
-	resp, err := http.Get(rawUrl)
+	resp, err := http.Get(YouTubeWatchUrl + "?v=" + vid)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
 
-	// the Raw HTML content contains a list of available caption tracks in JSON format
+	// the Raw HTML content contains a list of available caption tracks
 	captionTracks, err := extractCaptionTracks(resp.Body)
-	processCaptionTracks(captionTracks)
 	if err != nil {
 		return cap, fmt.Errorf("failed to extract caption tracks: %w", err)
 	}
+	processCaptionTracks(captionTracks)
 
 	// fetch the caption of the YouTube video
-	// only support English captions and prioritize user-added caption over ASR (Automatic Speech Recognition) caption
+	// only support English captions
+	// prioritize user-added caption over ASR (Automatic Speech Recognition) caption
 	caption, err := fetchCaption(ctx, captionTracks)
 	if err != nil {
 		return cap, fmt.Errorf("failed to fetch caption: %w", err)
