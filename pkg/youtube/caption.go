@@ -32,10 +32,14 @@ const (
 
 // endregion: --- consts
 
-func FetchCaption(ctx context.Context, src string) (cap string, err error) {
+func FetchCaption(ctx context.Context, src string) (string, error) {
 	vid, err := extractVideoId(src)
 	if err != nil {
-		return
+		if errors.Is(err, ErrInValidYouTubeURL) {
+			vid = src
+		} else {
+			return "", err
+		}
 	}
 	return fetchCaptionWithVideoId(ctx, vid)
 }

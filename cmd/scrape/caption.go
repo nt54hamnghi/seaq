@@ -6,6 +6,7 @@ package scrape
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/nt54hamnghi/hiku/pkg/youtube"
@@ -13,6 +14,13 @@ import (
 )
 
 var metadata bool
+
+type task = func(context.Context, string) (string, error)
+type result struct {
+	id   int
+	data string
+	err  error
+}
 
 // captionCmd represents the caption command
 var captionCmd = &cobra.Command{
@@ -27,20 +35,40 @@ var captionCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		caption, err := youtube.FetchCaption(ctx, src)
-		if err != nil {
-			return err
-		}
+		ch := make(chan result, 2)
+		wg := sync.WaitGroup{}
 
+		tasks := make([]task, 0, 2)
 		if metadata {
-			metadata, err := youtube.FetchMetadata(ctx, src)
-			if err != nil {
-				return err
-			}
-			fmt.Println(metadata)
+			tasks = append(tasks, youtube.FetchMetadata)
+		}
+		tasks = append(tasks, youtube.FetchCaption)
+
+		for i, f := range tasks {
+			wg.Add(1)
+			go func(id int, f task) {
+				defer wg.Done()
+				data, err := f(ctx, src)
+				ch <- result{id: i, data: data, err: err}
+			}(i, f)
 		}
 
-		fmt.Println(caption)
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
+
+		res := make([]string, 2)
+		for r := range ch {
+			if r.err != nil {
+				return r.err
+			}
+			res[r.id] = r.data
+		}
+
+		for _, r := range res {
+			fmt.Print(r)
+		}
 
 		return nil
 	},

@@ -17,15 +17,23 @@ var ErrYoutubeApiKeyNotSet = errors.New("YOUTUBE_API_KEY is not set")
 
 const YoutubeApiUrl = "https://youtube.googleapis.com/youtube/v3/videos"
 
-func FetchMetadata(ctx context.Context, src string) (*Snippet, error) {
+func FetchMetadata(ctx context.Context, src string) (string, error) {
 	vid, err := extractVideoId(src)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, ErrInValidYouTubeURL) {
+			vid = src
+		} else {
+			return "", err
+		}
 	}
-	return fetchMetadtaWithVideoId(ctx, vid)
+	snippet, err := fetchMetadtaWithVideoId(ctx, vid)
+	if err != nil {
+		return "", err
+	}
+	return snippet.String(), err
 }
 
-func fetchMetadtaWithVideoId(ctx context.Context, vid string) (*Snippet, error) {
+func fetchMetadtaWithVideoId(ctx context.Context, vid string) (*snippet, error) {
 	url, err := buildSnippetRequestUrl(vid)
 	if err != nil {
 		return nil, err
@@ -47,11 +55,11 @@ func fetchMetadtaWithVideoId(ctx context.Context, vid string) (*Snippet, error) 
 type youtubeVideoListResponse struct {
 	Items []struct {
 		ID      string  `json:"id"`
-		Snippet Snippet `json:"snippet"`
+		Snippet snippet `json:"snippet"`
 	} `json:"items"`
 }
 
-type Snippet struct {
+type snippet struct {
 	Title        string   `json:"title"`
 	ChannelTitle string   `json:"channelTitle"`
 	Description  string   `json:"description"`
@@ -59,7 +67,7 @@ type Snippet struct {
 }
 
 // Implement the String method
-func (s *Snippet) String() string {
+func (s *snippet) String() string {
 	return fmt.Sprintf(`
 ---
 Title: %s
