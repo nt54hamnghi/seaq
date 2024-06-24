@@ -17,7 +17,7 @@ import (
 var htmlCmd = &cobra.Command{
 	Use:          "html [url]",
 	Short:        "Scrape HTML data with a given URL and convert it to markdown",
-	Aliases:      []string{"p", "page", "web"},
+	Aliases:      []string{"w", "web"},
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
