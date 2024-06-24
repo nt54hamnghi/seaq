@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/nt54hamnghi/hiku/cmd/config"
+	"github.com/nt54hamnghi/hiku/cmd/model"
 	"github.com/nt54hamnghi/hiku/cmd/pattern"
 	"github.com/nt54hamnghi/hiku/cmd/scrape"
 	"github.com/nt54hamnghi/hiku/pkg/openai"
@@ -29,6 +30,7 @@ var errInteractiveInput = fmt.Errorf("interactive input is not supported")
 var configFile string
 var patternName string
 var patternRepo string
+var modelName string
 var verbose bool
 
 // endregion: --- flags
@@ -115,6 +117,7 @@ func Execute() {
 func addCommandPallete() {
 	rootCmd.AddCommand(scrape.ScrapeCmd)
 	rootCmd.AddCommand(pattern.PatternCmd)
+	rootCmd.AddCommand(model.ModelCmd)
 }
 
 func init() {
@@ -131,8 +134,9 @@ func init() {
 
 	// local flags are only available to the root command
 	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
-	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use for completion")
 	rootCmd.Flags().StringVarP(&patternRepo, "repo", "r", "", "path to the pattern repository")
+	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use")
+	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
 
 	// add subcommands
 	addCommandPallete()
@@ -161,8 +165,14 @@ func initConfig() {
 	}
 
 	// bind flags to viper
+
+	// -- pattern
 	config.Hiku.BindPFlag("pattern.name", rootCmd.Flags().Lookup("pattern"))
 	config.Hiku.BindPFlag("pattern.repo", rootCmd.Flags().Lookup("repo"))
+
+	// -- model
+	config.Hiku.BindPFlag("model.name", rootCmd.Flags().Lookup("model"))
+
 	config.Hiku.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.

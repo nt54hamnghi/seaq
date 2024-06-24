@@ -13,6 +13,17 @@ import (
 
 const OPENAI_API_KEY = "OPENAI_API_KEY"
 
+func Models() [6]string {
+	return [6]string{
+		openai.GPT4o,             // "gpt-4o"
+		openai.GPT4Turbo,         // "gpt-4-turbo"
+		openai.GPT4Turbo0125,     // "gpt-4-0125-preview"
+		openai.GPT4Turbo1106,     // "gpt-4-1106-preview"
+		openai.GPT3Dot5Turbo0125, // "gpt-3.5-turbo-0125"
+		openai.GPT3Dot5Turbo1106, // "gpt-3.5-turbo-1106"
+	}
+}
+
 func CreateCompletionStream(ctx context.Context, prompt string, content string) error {
 	apiKey := os.Getenv(OPENAI_API_KEY)
 	client := openai.NewClient(apiKey)
