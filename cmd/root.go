@@ -70,6 +70,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		// construct the model
+		if verbose {
+			fmt.Println("Using model:", config.Hiku.Model())
+		}
+
 		model, err := llm.New(config.Hiku.Model())
 		if err != nil {
 			return err

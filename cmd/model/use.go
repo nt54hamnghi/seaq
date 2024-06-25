@@ -6,6 +6,7 @@ package model
 import (
 	"fmt"
 
+	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -15,8 +16,14 @@ var useCmd = &cobra.Command{
 	Short:        "Set a default model to use",
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("model use called")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+		if err := config.Hiku.UseModel(name); err != nil {
+			return err
+		}
+		config.Hiku.WriteConfig()
+		fmt.Printf("Successfully set the default model to '%s'\n", name)
+		return nil
 	},
 }
 
