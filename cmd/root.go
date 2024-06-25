@@ -15,7 +15,8 @@ import (
 	"github.com/nt54hamnghi/hiku/cmd/model"
 	"github.com/nt54hamnghi/hiku/cmd/pattern"
 	"github.com/nt54hamnghi/hiku/cmd/scrape"
-	"github.com/nt54hamnghi/hiku/pkg/openai"
+	"github.com/nt54hamnghi/hiku/pkg/llm"
+
 	"github.com/spf13/cobra"
 )
 
@@ -49,27 +50,39 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
+		// read from stdin if it's piped
 		input, err := readStdin()
 		if err != nil && errors.Is(err, errInteractiveInput) {
 			cmd.Help()
 			return nil
 		}
 
+		// construct the prompt from pattern and scraped content
 		prompt, err := config.Hiku.GetPrompt()
 		if err != nil {
 			cmd.SilenceUsage = true
 			return err
 		}
 
+		// check if input is empty
 		if input == "" {
 			return fmt.Errorf("piped input is empty")
 		}
 
-		ctx := context.Background()
+		// construct the model
+		model, err := llm.New(config.Hiku.Model())
+		if err != nil {
+			return err
+		}
+
+		// run the completion
+		resp, err := llm.CreateCompletion(context.Background(), model, prompt, input, !noStream)
+		if err != nil {
+			return err
+		}
+
 		if noStream {
-			openai.CreateCompletion(ctx, prompt, input)
-		} else {
-			openai.CreateCompletionStream(ctx, prompt, input)
+			fmt.Println(resp)
 		}
 
 		return nil

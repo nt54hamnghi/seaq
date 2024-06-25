@@ -4,5 +4,6 @@
 # local test files and directories
 /dev
 /.config
+/.legacy
 
 summary.md

@@ -4,7 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package model
 
 import (
-	"github.com/nt54hamnghi/hiku/cmd/config"
+	"github.com/nt54hamnghi/hiku/pkg/llm"
 	"github.com/spf13/cobra"
 )
 
@@ -16,13 +16,13 @@ var listCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		models, err := config.Hiku.GetAvailableModels()
-		if err != nil {
-			return err
-		}
-
-		for _, p := range models {
-			cmd.Println(p)
+		for provider, models := range llm.Models {
+			cmd.Println(provider)
+			cmd.Println("--------------------")
+			for name := range models {
+				cmd.Println(name)
+			}
+			cmd.Println()
 		}
 
 		return nil
