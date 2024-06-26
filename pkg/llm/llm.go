@@ -3,9 +3,11 @@ package llm
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/anthropic"
+	"github.com/tmc/langchaingo/llms/googleai"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
@@ -23,6 +25,11 @@ const (
 	Claude3Opus    = "claude-3-opus-20240229"
 	Claude3Sonnet  = "claude-3-sonnet-20240229"
 	Claude3Haiku   = "claude-3-haiku-20240307"
+
+	// Google models
+	Gemini15Flash = "gemini-1.5-flash"
+	Gemini15Pro   = "gemini-1.5-pro"
+	Gemini1Pro    = "gemini-1.0-pro"
 )
 
 var Models = map[string]map[string]bool{
@@ -39,6 +46,13 @@ var Models = map[string]map[string]bool{
 		Claude3Opus:    true,
 		Claude3Sonnet:  true,
 		Claude3Haiku:   true,
+	},
+	"Google": {
+		Gemini15Flash: true,
+		Gemini15Pro:   true,
+		// FIXME: "gemini-1.0-pro" doesn't support system messages
+		// https://ai.google.dev/gemini-api/docs/models/gemini#gemini-1.0-pro
+		// Gemini1Pro:    true,
 	},
 }
 
@@ -63,7 +77,7 @@ func New(name string) (llms.Model, error) {
 
 	provider, model, ok := LookupModel(name)
 	if !ok {
-		return nil, fmt.Errorf("unknown model %s", name)
+		return nil, fmt.Errorf("unsupported model: %s", name)
 	}
 
 	switch provider {
@@ -71,6 +85,12 @@ func New(name string) (llms.Model, error) {
 		return openai.New(openai.WithModel(model))
 	case "Anthropic":
 		return anthropic.New(anthropic.WithModel(model))
+	case "Google":
+		return googleai.New(
+			context.Background(),
+			googleai.WithAPIKey(os.Getenv("GEMINI_API_KEY")),
+			googleai.WithDefaultModel(model),
+		)
 	default:
 		panic("unreachable")
 	}
