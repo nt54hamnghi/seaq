@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/nt54hamnghi/hiku/pkg/youtube"
 	"github.com/spf13/cobra"
 )
@@ -68,6 +69,13 @@ var captionCmd = &cobra.Command{
 
 		for _, r := range res {
 			fmt.Print(r)
+		}
+
+		if outputFile != "" {
+			content := fmt.Sprintf("%s\n%s", res[0], res[1])
+			if err := util.WriteFile(outputFile, content); err != nil {
+				return err
+			}
 		}
 
 		return nil

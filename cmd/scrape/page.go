@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/nt54hamnghi/hiku/pkg/scraper"
+	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -51,6 +52,12 @@ var pageCmd = &cobra.Command{
 		}
 
 		fmt.Println(content)
+
+		if outputFile != "" {
+			if err := util.WriteFile(outputFile, content); err != nil {
+				return err
+			}
+		}
 
 		return nil
 	},

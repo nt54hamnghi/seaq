@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var outputFile string
+
 // ScrapeCmd represents the scrape command
 var ScrapeCmd = &cobra.Command{
 	Use:          "scrape",
@@ -23,4 +25,8 @@ var ScrapeCmd = &cobra.Command{
 func init() {
 	ScrapeCmd.AddCommand(captionCmd)
 	ScrapeCmd.AddCommand(pageCmd)
+
+	// flags
+	// persistent flags
+	ScrapeCmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "", "output file")
 }

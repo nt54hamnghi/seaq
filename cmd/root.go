@@ -16,6 +16,7 @@ import (
 	"github.com/nt54hamnghi/hiku/cmd/pattern"
 	"github.com/nt54hamnghi/hiku/cmd/scrape"
 	"github.com/nt54hamnghi/hiku/pkg/llm"
+	"github.com/nt54hamnghi/hiku/pkg/util"
 
 	"github.com/spf13/cobra"
 )
@@ -29,6 +30,7 @@ var errInteractiveInput = fmt.Errorf("interactive input is not supported")
 // region: --- flags
 
 var configFile string
+var outputFile string
 var patternName string
 var patternRepo string
 var modelName string
@@ -87,6 +89,12 @@ var rootCmd = &cobra.Command{
 
 		if noStream {
 			fmt.Println(resp)
+		}
+
+		if outputFile != "" {
+			if err := util.WriteFile(outputFile, resp); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -151,6 +159,7 @@ func init() {
 
 	// local flags are only available to the root command
 	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
+	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file")
 	rootCmd.Flags().StringVarP(&patternRepo, "repo", "r", "", "path to the pattern repository")
 	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use")
 	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
