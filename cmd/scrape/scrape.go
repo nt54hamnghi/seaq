@@ -12,7 +12,7 @@ var ScrapeCmd = &cobra.Command{
 	Use:          "scrape",
 	Short:        "Scrape web data and output text",
 	Long:         ``,
-	Aliases:      []string{"s", "scr"},
+	Aliases:      []string{"scr", "s"},
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -22,5 +22,5 @@ var ScrapeCmd = &cobra.Command{
 
 func init() {
 	ScrapeCmd.AddCommand(captionCmd)
-	ScrapeCmd.AddCommand(htmlCmd)
+	ScrapeCmd.AddCommand(pageCmd)
 }

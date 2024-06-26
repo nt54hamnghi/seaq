@@ -26,7 +26,7 @@ type result struct {
 var captionCmd = &cobra.Command{
 	Use:          "caption [url|videoId]",
 	Short:        "Get caption from a YouTube video",
-	Aliases:      []string{"c", "cap"},
+	Aliases:      []string{"cap", "c"},
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
