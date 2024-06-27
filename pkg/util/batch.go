@@ -1,12 +1,26 @@
 package util
 
 import (
+	"math"
+	"runtime"
 	"sync"
 )
 
 type Job[O any] struct {
 	Id     int
 	Output O
+}
+
+// GetThreadCount calculates the number of threads for processing a given number of tasks.
+// If taskCount is less than or equal to 0, it returns 1.
+// If taskCount is less than the number of CPUs, it returns taskCount.
+// Otherwise, it returns the number of CPUs.
+func GetThreadCount(taskCount int) int {
+	if taskCount <= 0 {
+		return 1
+	}
+	numCpu := runtime.NumCPU()
+	return int(math.Min(float64(taskCount), float64(numCpu)))
 }
 
 // BatchProcess concurrently processes input data in batches.

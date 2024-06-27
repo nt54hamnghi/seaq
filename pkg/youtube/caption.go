@@ -6,11 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"net/url"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -240,7 +238,7 @@ type event struct {
 func (c *caption) getFullCaption() string {
 
 	events := c.Events
-	nThreads := getThreadCount(len(events))
+	nThreads := util.GetThreadCount(len(events))
 
 	res := util.BatchProcess(nThreads, events, func(es []event) string {
 		var res string
@@ -255,9 +253,4 @@ func (c *caption) getFullCaption() string {
 
 	return strings.Join(res, "")
 
-}
-
-func getThreadCount(taskCount int) int {
-	numCpu := runtime.NumCPU()
-	return int(math.Min(float64(taskCount), float64(numCpu)))
 }
