@@ -41,6 +41,10 @@ func BatchProcess[I, O any](
 	in []I, // input slice
 	op func([]I) O, // operation to apply to each batch
 ) []O {
+	if len(in) == 0 {
+		return []O{}
+	}
+
 	ch := make(chan Job[O], nThreads)
 	wg := &sync.WaitGroup{}
 
