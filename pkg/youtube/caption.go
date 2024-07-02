@@ -156,6 +156,38 @@ outerLoop:
 
 }
 
+// asJson3 adds "&fmt=json3" to the base URL of the caption track
+func (ct *captionTrack) asJson3() {
+	url := ct.BaseURL
+	if !strings.Contains(url, "?") {
+		url += "?"
+	}
+	url += "&fmt=json3"
+
+	ct.BaseURL = url
+}
+
+// hasTranslation checks if the caption track has an English auto-translation
+// if true, add "&tlang=en" to the base URL and set HasAutoTranslation to true
+func (ct *captionTrack) hasTranslation() bool {
+	url := ct.BaseURL
+	if !strings.Contains(url, "?") {
+		url += "?"
+	}
+	url += "&tlang=en"
+
+	resp, err := http.Get(url)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return false
+	}
+	defer resp.Body.Close()
+
+	ct.BaseURL = url
+	ct.HasAutoTranslation = true
+
+	return true
+}
+
 // processCaptionTracks add "&fmt=json3" to the base URL of each caption track
 // it also checks if the caption track has an English auto-translation
 // if true, add "&tlang=en" to the base URL of the caption track and set HasAutoTranslation to true
@@ -165,35 +197,14 @@ func processCaptionTracks(captionTracks []captionTrack) {
 		wg.Add(1)
 		c := &captionTracks[i]
 
-		rawUrl, err := url.Parse(c.BaseURL)
-		if err != nil {
-			continue // TODO: reconsider the error handling
-		}
-
-		query := rawUrl.Query()
-		query.Add("fmt", "json3")
-		rawUrl.RawQuery = query.Encode()
-
-		c.BaseURL = rawUrl.String()
+		c.asJson3()
 		if c.LanguageCode == "en" {
 			continue
 		}
 
 		go func() {
 			defer wg.Done()
-
-			// FIXME: expensive, can be optimized with http pool
-			query.Add("tlang", "en")
-			rawUrl.RawQuery = query.Encode()
-			resp, err := http.Get(rawUrl.String())
-
-			if err != nil || resp.StatusCode != http.StatusOK {
-				return
-			}
-			defer resp.Body.Close()
-
-			c.BaseURL = rawUrl.String()
-			c.HasAutoTranslation = true
+			c.hasTranslation()
 		}()
 	}
 	wg.Wait()
@@ -206,7 +217,7 @@ func processCaptionTracks(captionTracks []captionTrack) {
 // over ASR (Automatic Speech Recognition) caption.
 func fetchCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 	if len(tracks) == 0 {
-		return caption{}, fmt.Errorf("caption tracks must not be empty")
+		return caption{}, errors.New("caption tracks must not be empty")
 	}
 
 	var ct *captionTrack
@@ -222,7 +233,7 @@ func fetchCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 	}
 
 	if ct == nil {
-		return caption{}, fmt.Errorf("no English caption track found")
+		return caption{}, errors.New("no English caption track found")
 	}
 
 	return util.Get[caption](ctx, ct.BaseURL, nil)

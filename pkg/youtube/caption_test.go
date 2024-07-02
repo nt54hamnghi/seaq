@@ -1,6 +1,8 @@
 package youtube
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -125,7 +127,7 @@ func Ok(w http.ResponseWriter, r *http.Request) {
 func TestProcessCaptionTracks(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ok", Ok)
-	// mux.HandleFunc("/not-found", http.NotFound)
+	mux.HandleFunc("/not-found", http.NotFound)
 
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -148,5 +150,104 @@ func TestProcessCaptionTracks(t *testing.T) {
 			asserts.True(r.HasAutoTranslation)
 			asserts.True(strings.Contains(r.BaseURL, "tlang=en"))
 		}
+	}
+}
+
+func TestFetchCaption(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`
+		{
+			"events": [
+				{
+					"dDurationMs": 1249390,
+					"id": 1
+				}
+			]
+		}
+		`))
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	var testCases = []struct {
+		name         string
+		captionTrack []captionTrack
+		expected     caption
+	}{
+		{
+			name: "valid",
+			captionTrack: []captionTrack{
+				{
+					BaseURL:      server.URL + "?fmt=json3",
+					LanguageCode: "en",
+				},
+			},
+			expected: caption{Events: []event{
+				{DDurationMs: 1249390, ID: 1},
+			}},
+		},
+		{
+			name: "hasTranslation",
+			captionTrack: []captionTrack{
+				{
+					BaseURL:            server.URL + "?fmt=json3&tlang=en",
+					LanguageCode:       "en",
+					HasAutoTranslation: true,
+				},
+			},
+			expected: caption{Events: []event{
+				{DDurationMs: 1249390, ID: 1},
+			}},
+		},
+	}
+
+	asserts := assert.New(t)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := fetchCaption(context.TODO(), tc.captionTrack)
+			asserts.Nil(err)
+			asserts.Equal(c, tc.expected)
+		})
+	}
+}
+
+func TestFetchCaption_Error(t *testing.T) {
+	var testCases = []struct {
+		name         string
+		captionTrack []captionTrack
+		err          error
+	}{
+		{
+			name:         "empty",
+			captionTrack: []captionTrack{},
+			err:          errors.New("caption tracks must not be empty"),
+		},
+		{
+			name: "noEnglish",
+			captionTrack: []captionTrack{
+				{LanguageCode: "es"},
+				{LanguageCode: "en", Kind: "unknown"},
+			},
+			err: errors.New("no English caption track found"),
+		},
+		{
+			name: "noEnglishTranslation",
+			captionTrack: []captionTrack{
+				{LanguageCode: "es", HasAutoTranslation: false},
+			},
+			err: errors.New("no English caption track found"),
+		},
+	}
+
+	asserts := assert.New(t)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := fetchCaption(context.TODO(), tc.captionTrack)
+			asserts.Equal(err, tc.err)
+		})
 	}
 }

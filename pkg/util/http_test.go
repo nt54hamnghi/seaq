@@ -36,9 +36,7 @@ func (s *HttpSuite) SetupSuite() {
 		fmt.Fprintf(w, `{"message": %s}`, body)
 	})
 
-	mux.HandleFunc("/not-found", func(w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
-	})
+	mux.HandleFunc("/not-found", http.NotFound)
 
 	s.server = httptest.NewServer(mux)
 }
