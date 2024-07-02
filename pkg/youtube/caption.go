@@ -193,8 +193,8 @@ func (ct *captionTrack) hasTranslation() bool {
 // if true, add "&tlang=en" to the base URL of the caption track and set HasAutoTranslation to true
 func processCaptionTracks(captionTracks []captionTrack) {
 	wg := sync.WaitGroup{}
+
 	for i := 0; i < len(captionTracks); i++ {
-		wg.Add(1)
 		c := &captionTracks[i]
 
 		c.asJson3()
@@ -202,11 +202,13 @@ func processCaptionTracks(captionTracks []captionTrack) {
 			continue
 		}
 
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			c.hasTranslation()
 		}()
 	}
+
 	wg.Wait()
 }
 
