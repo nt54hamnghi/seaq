@@ -20,6 +20,8 @@ import (
 var ErrInValidYouTubeURL = errors.New("invalid YouTube video URL")
 var ErrVideoIdNotFoundInURL = errors.New("YouTube URL does not contain video ID query parameter")
 
+var ErrCaptionTracksNotFound = errors.New("caption tracks not found")
+
 // endregion: --- errors
 
 // region: --- consts
@@ -54,6 +56,7 @@ func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err 
 
 	// the Raw HTML content contains a list of available caption tracks
 	captionTracks, err := extractCaptionTracks(resp.Body)
+
 	if err != nil {
 		return cap, fmt.Errorf("failed to extract caption tracks: %w", err)
 	}
@@ -70,6 +73,7 @@ func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err 
 	return caption.getFullCaption(), nil
 }
 
+// extractVideoId returns the video ID of a YouTube watch URL
 func extractVideoId(rawUrl string) (videoId, error) {
 	query, found := strings.CutPrefix(rawUrl, YouTubeWatchUrl+"?")
 	if !found {
@@ -83,8 +87,8 @@ func extractVideoId(rawUrl string) (videoId, error) {
 	}
 
 	vid, ok := q["v"]
-	if !ok || len(vid) == 0 {
-		return "", ErrInValidYouTubeURL
+	if !ok || len(vid) == 0 || vid[0] == "" {
+		return "", ErrVideoIdNotFoundInURL
 	}
 
 	return vid[0], nil
@@ -110,22 +114,22 @@ func extractCaptionTracks(body io.Reader) ([]captionTrack, error) {
 	buf := make([]byte, 0, 1<<22) // a YouTube HTML is around 1.4MB, allocate 4MB to avoid resizing
 	tmp := make([]byte, 1<<18)    // each iteration reads 256KB
 
-	// read the body until the regex pattern is found
-	// this is to avoid reading the entire body ahead of time
+	// read until the regex pattern is found
+	// to avoid reading the entire body ahead of time
+outerLoop:
 	for {
-		// override the entire tmp buffer with bytes from the body
+		// override the entire tmp buffer
 		n, err := io.ReadFull(body, tmp)
-		if err != nil {
-			// break if EOF is reached
-			// as we've read all the bytes from the body
-			if err == io.EOF {
-				break
-			}
+
+		switch err {
+		case nil, io.ErrUnexpectedEOF:
+			// FIXME: expensive, can be optimized
+			buf = append(buf, tmp[:n]...)
+		case io.EOF:
+			break outerLoop
+		default:
 			return nil, err
 		}
-
-		// copy the bytes from temp to b
-		buf = append(buf, tmp[:n]...)
 
 		// the first element is the entire match
 		// the rest are the captured groups
@@ -139,13 +143,13 @@ func extractCaptionTracks(body io.Reader) ([]captionTrack, error) {
 	}
 
 	if !found {
-		return nil, fmt.Errorf("caption tracks not found")
+		return nil, ErrCaptionTracksNotFound
 	}
 
 	var captionTracks []captionTrack
 	err := json.Unmarshal([]byte(match), &captionTracks)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal caption tracks: %w", err)
+		return nil, fmt.Errorf("unmarshal error: %w", err)
 	}
 
 	return captionTracks, nil
@@ -160,23 +164,35 @@ func processCaptionTracks(captionTracks []captionTrack) {
 	for i := 0; i < len(captionTracks); i++ {
 		wg.Add(1)
 		c := &captionTracks[i]
-		c.BaseURL = c.BaseURL + "&fmt=json3"
+
+		rawUrl, err := url.Parse(c.BaseURL)
+		if err != nil {
+			continue // TODO: reconsider the error handling
+		}
+
+		query := rawUrl.Query()
+		query.Add("fmt", "json3")
+		rawUrl.RawQuery = query.Encode()
+
+		c.BaseURL = rawUrl.String()
+		if c.LanguageCode == "en" {
+			continue
+		}
 
 		go func() {
 			defer wg.Done()
 
-			if c.LanguageCode == "en" {
-				return
-			}
+			// FIXME: expensive, can be optimized with http pool
+			query.Add("tlang", "en")
+			rawUrl.RawQuery = query.Encode()
+			resp, err := http.Get(rawUrl.String())
 
-			url := c.BaseURL + "&tlang=en"
-			resp, err := http.Get(url)
 			if err != nil || resp.StatusCode != http.StatusOK {
 				return
 			}
 			defer resp.Body.Close()
 
-			c.BaseURL = url
+			c.BaseURL = rawUrl.String()
 			c.HasAutoTranslation = true
 		}()
 	}
