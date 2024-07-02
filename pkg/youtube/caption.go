@@ -54,6 +54,10 @@ func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err 
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("response status code: %d", resp.StatusCode)
+	}
+
 	// the Raw HTML content contains a list of available caption tracks
 	captionTracks, err := extractCaptionTracks(resp.Body)
 
