@@ -17,15 +17,8 @@ type Scraper interface {
 }
 
 // ContentScraper scrapes the main content of a webpage
-// It uses a waterfall approach to find the content:
-//
-// - It first tries to find the `main` tag
-//
-// - If not found, it tries to find the `article` tag
-//
-// - If not found, it tries to find the `section` tag
-//
-// - If none of the above are found, it returns an error
+// It uses a waterfall approach to find the content.
+// The search order is as follows: content id, main tag, article tag, section tag
 type ContentScraper struct{}
 
 func New() *ContentScraper {
@@ -46,22 +39,19 @@ func WithFullPage() *FullPageScraper {
 	return &FullPageScraper{}
 }
 
-type TagScraper struct {
-	Tag string
+type SelectorScraper struct {
+	selector string
 }
 
-func WithTag(tag string) (*TagScraper, error) {
-	if !supportedTags[tag] {
-		return nil, fmt.Errorf("tag '%s' is not supported", tag)
-	}
-	return &TagScraper{Tag: tag}, nil
+func WithSelector(selector string) (*SelectorScraper, error) {
+	return &SelectorScraper{selector: selector}, nil
 }
 
-func (s TagScraper) Scrape(doc *goquery.Document) ([]string, error) {
-	return findTag(s.Tag, doc)
+func (s SelectorScraper) Scrape(doc *goquery.Document) ([]string, error) {
+	return findSelector(s.selector, doc)
 }
 
-func Scrape(ctx context.Context, url string, scr Scraper) (string, error) {
+func ScrapeUrl(ctx context.Context, url string, scr Scraper) (string, error) {
 	htmlBytes, err := util.GetRaw(ctx, url, nil)
 	if err != nil {
 		return "", err
@@ -88,57 +78,21 @@ func Scrape(ctx context.Context, url string, scr Scraper) (string, error) {
 }
 
 func findContent(doc *goquery.Document) ([]string, error) {
-	if res, _ := findTag("main", doc); res != nil {
-		return res, nil
+	for _, tag := range []string{"#content", "main", "article", "section"} {
+		if res := doc.Find(tag); res.Length() != 0 {
+			return combine(res), nil
+		}
 	}
 
-	if res, _ := findTag("article", doc); res != nil {
-		return res, nil
-	}
-
-	return findTag("section", doc)
+	return nil, fmt.Errorf("no content found")
 }
 
-// List of valid HTML tags that typically contain text or are semantic
-var supportedTags = map[string]bool{
-	"p":          true,
-	"h1":         true,
-	"h2":         true,
-	"h3":         true,
-	"h4":         true,
-	"h5":         true,
-	"h6":         true,
-	"li":         true,
-	"span":       true,
-	"a":          true,
-	"blockquote": true,
-	"pre":        true,
-	"code":       true,
-	"strong":     true,
-	"em":         true,
-	"article":    true,
-	"section":    true,
-	"header":     true,
-	"footer":     true,
-	"aside":      true,
-	"main":       true,
-
-	// TODO: reconsider these tags
-	// "div":        true,
-	// "nav":        true,
-}
-
-func findTag(tag string, doc *goquery.Document) ([]string, error) {
-	if !supportedTags[tag] {
-		return nil, fmt.Errorf("tag '%s' is not supported", tag)
+func findSelector(selector string, doc *goquery.Document) ([]string, error) {
+	res := doc.Find(selector)
+	if res.Length() == 0 {
+		return nil, fmt.Errorf("selector '%s' not found", selector)
 	}
-
-	tags := doc.Find(tag)
-	if tags.Length() == 0 {
-		return nil, fmt.Errorf("tag '%s' not found", tag)
-	}
-
-	return combine(tags), nil
+	return combine(res), nil
 }
 
 func combine(selection *goquery.Selection) []string {

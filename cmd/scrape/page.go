@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var tag string
+var selector string
 var noFilter bool
 
 // pageCmd represents the scrape command
@@ -37,8 +37,8 @@ var pageCmd = &cobra.Command{
 
 		if noFilter {
 			scr = scraper.WithFullPage()
-		} else if tag != "" {
-			scr, err = scraper.WithTag(tag)
+		} else if selector != "" {
+			scr, err = scraper.WithSelector(selector)
 			if err != nil {
 				return err
 			}
@@ -46,7 +46,7 @@ var pageCmd = &cobra.Command{
 			scr = scraper.New()
 		}
 
-		content, err := scraper.Scrape(ctx, parsedUrl.String(), scr)
+		content, err := scraper.ScrapeUrl(ctx, parsedUrl.String(), scr)
 		if err != nil {
 			return err
 		}
@@ -64,6 +64,6 @@ var pageCmd = &cobra.Command{
 }
 
 func init() {
-	pageCmd.Flags().StringVarP(&tag, "tag", "t", "", "filter content by tag")
+	pageCmd.Flags().StringVarP(&selector, "selector", "s", "", "filter content by selector")
 	pageCmd.Flags().BoolVarP(&noFilter, "no-filter", "n", false, "do not filter content")
 }
