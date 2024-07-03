@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -90,7 +91,7 @@ func (s *HttpSuite) TestDo() {
 func (s *HttpSuite) TestDoRaw_Fail() {
 	url := s.server.URL
 	ctx := context.Background()
-	expectedErr := fmt.Errorf("unexpected status code: 404")
+	expectedErr := errors.New("unexpected status code: 404")
 	_, err := doRaw(ctx, http.MethodGet, url+"/not-found", nil, nil)
 
 	s.Equal(expectedErr, err)

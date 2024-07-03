@@ -3,6 +3,7 @@ package scraper
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -84,7 +85,7 @@ func findContent(doc *goquery.Document) ([]string, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("no content found")
+	return nil, errors.New("no content found")
 }
 
 func findSelector(selector string, doc *goquery.Document) ([]string, error) {

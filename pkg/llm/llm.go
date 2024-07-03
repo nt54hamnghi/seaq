@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -72,7 +73,7 @@ func LookupModel(name string) (provider string, model string, found bool) {
 
 func New(name string) (llms.Model, error) {
 	if name == "" {
-		return nil, fmt.Errorf("model name is empty")
+		return nil, errors.New("model name is empty")
 	}
 
 	provider, model, ok := LookupModel(name)
@@ -118,7 +119,7 @@ func CreateCompletion(ctx context.Context, llm llms.Model, prompt string, conten
 
 	choices := resp.Choices
 	if len(choices) < 1 {
-		return "", fmt.Errorf("empty response from model")
+		return "", errors.New("empty response from model")
 	}
 
 	return choices[0].Content, nil
