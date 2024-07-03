@@ -75,12 +75,12 @@ Description:
 
 }
 
-func buildSnippetRequestUrl(videoId string) (string, error) {
+func buildSnippetRequestUrl(vid videoId) (string, error) {
 	apiKey := os.Getenv("YOUTUBE_API_KEY")
 	if apiKey == "" {
 		return "", ErrYoutubeApiKeyNotSet
 	}
 
-	url := fmt.Sprintf("%s?part=snippet&id=%s&key=%s", YoutubeApiUrl, videoId, apiKey)
+	url := fmt.Sprintf("%s?part=snippet&id=%s&key=%s", YoutubeApiUrl, vid, apiKey)
 	return url, nil
 }

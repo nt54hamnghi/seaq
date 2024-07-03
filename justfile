@@ -8,7 +8,7 @@ dev:
 
 alias d := dev
 
-run:
-    @go run ./todo/main.go
+test:
+    @go test ./... -v
 
-alias r := run
+alias t := test
