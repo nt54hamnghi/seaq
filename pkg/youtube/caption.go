@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -17,8 +16,8 @@ import (
 
 // region: --- errors
 
-var ErrInValidYouTubeURL = errors.New("invalid YouTube video URL")
-var ErrVideoIdNotFoundInURL = errors.New("YouTube URL does not contain video ID query parameter")
+var ErrInValidYouTubeURL = errors.New("invalid YouTube url")
+var ErrVideoIdNotFoundInURL = errors.New("video id not found in YouTube url")
 
 var ErrCaptionTracksNotFound = errors.New("caption tracks not found")
 
@@ -33,18 +32,12 @@ const (
 // endregion: --- consts
 
 func FetchCaption(ctx context.Context, src string) (string, error) {
-	vid, err := extractVideoId(src)
+	vid, err := resolveVideoId(src)
 	if err != nil {
-		if errors.Is(err, ErrInValidYouTubeURL) {
-			vid = src
-		} else {
-			return "", err
-		}
+		return "", err
 	}
 	return fetchCaptionWithVideoId(ctx, vid)
 }
-
-type videoId = string
 
 func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err error) {
 	// get the raw HTML content of the YouTube video page
@@ -75,27 +68,6 @@ func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err 
 	}
 
 	return caption.getFullCaption(), nil
-}
-
-// extractVideoId returns the video ID of a YouTube watch URL
-func extractVideoId(rawUrl string) (videoId, error) {
-	query, found := strings.CutPrefix(rawUrl, YouTubeWatchUrl+"?")
-	if !found {
-		return "", ErrInValidYouTubeURL
-	}
-
-	// parse the query string
-	q, err := url.ParseQuery(query)
-	if err != nil {
-		return "", err
-	}
-
-	vid, ok := q["v"]
-	if !ok || len(vid) == 0 || vid[0] == "" {
-		return "", ErrVideoIdNotFoundInURL
-	}
-
-	return vid[0], nil
 }
 
 // YouTube doesn't provide a public API for caption tracks.
