@@ -16,9 +16,6 @@ import (
 
 // region: --- errors
 
-var ErrInValidYouTubeURL = errors.New("invalid YouTube url")
-var ErrVideoIdNotFoundInURL = errors.New("video id not found in YouTube url")
-
 var ErrCaptionTracksNotFound = errors.New("caption tracks not found")
 
 // endregion: --- errors
@@ -53,7 +50,6 @@ func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err 
 
 	// the Raw HTML content contains a list of available caption tracks
 	captionTracks, err := extractCaptionTracks(resp.Body)
-
 	if err != nil {
 		return cap, fmt.Errorf("failed to extract caption tracks: %w", err)
 	}
@@ -125,7 +121,7 @@ outerLoop:
 	var captionTracks []captionTrack
 	err := json.Unmarshal([]byte(match), &captionTracks)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal error: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal: %w", err)
 	}
 
 	return captionTracks, nil

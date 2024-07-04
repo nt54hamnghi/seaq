@@ -7,7 +7,11 @@ import (
 	"strings"
 )
 
-var ErrInvalidVideoId = errors.New("invalid video ID")
+var (
+	ErrInValidYouTubeURL    = errors.New("invalid YouTube url")
+	ErrInvalidVideoId       = errors.New("invalid video ID")
+	ErrVideoIdNotFoundInURL = errors.New("video id not found in YouTube url")
+)
 
 type videoId = string
 
