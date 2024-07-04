@@ -13,10 +13,9 @@ import (
 
 func TestExtractCaptionTracks(t *testing.T) {
 	tests := []struct {
-		name     string
-		body     string
-		expected []captionTrack
-		err      error
+		name string
+		body string
+		want []captionTrack
 	}{
 		{
 			name: "valid",
@@ -31,7 +30,7 @@ func TestExtractCaptionTracks(t *testing.T) {
 				]
 			}
 			`,
-			expected: []captionTrack{
+			want: []captionTrack{
 				{
 					BaseURL:      "https://www.example.com",
 					LanguageCode: "en",
@@ -39,6 +38,27 @@ func TestExtractCaptionTracks(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	asserts := assert.New(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := strings.NewReader(tt.body)
+			actual, err := extractCaptionTracks(body)
+
+			asserts.Nil(err)
+			asserts.Equal(actual, tt.want)
+		})
+	}
+}
+
+func TestExtractCaptionTracks_Fail(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		err  error
+	}{
 		{
 			name: "empty",
 			body: "",
@@ -51,13 +71,8 @@ func TestExtractCaptionTracks(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body := strings.NewReader(tt.body)
-			actual, err := extractCaptionTracks(body)
-
-			if err != nil {
-				asserts.Equal(err, tt.err)
-			} else {
-				asserts.Equal(actual, tt.expected)
-			}
+			_, err := extractCaptionTracks(body)
+			asserts.Equal(err, tt.err)
 		})
 	}
 }
@@ -156,7 +171,7 @@ func TestFetchCaption(t *testing.T) {
 	}
 }
 
-func TestFetchCaption_Error(t *testing.T) {
+func TestFetchCaption_Fail(t *testing.T) {
 	var testCases = []struct {
 		name         string
 		captionTrack []captionTrack
