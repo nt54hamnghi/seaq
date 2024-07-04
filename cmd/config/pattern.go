@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -11,12 +10,10 @@ import (
 
 // region: --- errors
 
-var ErrEmptyPattern = errors.New("pattern name is empty")
-var ErrEmptyRepo = errors.New("repo is empty")
-
-func patternNotFound(name string) error {
-	return fmt.Errorf("pattern '%s' does not exist", name)
-}
+var (
+	ErrEmptyPattern = errors.New("pattern name is empty")
+	ErrEmptyRepo    = errors.New("repo is empty")
+)
 
 // endregion: --- errors
 
@@ -51,7 +48,7 @@ func (hiku *HikuConfig) HasPattern(name string) bool {
 
 func (hiku *HikuConfig) UsePattern(name string) error {
 	if !hiku.HasPattern(name) {
-		return patternNotFound(name)
+		return &Unsupported{Type: "pattern", Key: name}
 	}
 	hiku.Set("pattern.name", name)
 	return nil
@@ -73,7 +70,7 @@ func (hiku *HikuConfig) GetPrompt() (string, error) {
 	prompt, err := os.ReadFile(path) // read the pattern
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", patternNotFound(pat)
+			return "", &Unsupported{Type: "pattern", Key: pat}
 		}
 		return "", err
 	}
