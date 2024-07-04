@@ -14,8 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var selector string
-var noFilter bool
+var (
+	selector string
+	noFilter bool
+)
 
 // pageCmd represents the scrape command
 var pageCmd = &cobra.Command{

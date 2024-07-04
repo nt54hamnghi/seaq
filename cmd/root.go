@@ -29,12 +29,14 @@ var errInteractiveInput = errors.New("interactive input is not supported")
 
 // region: --- flags
 
-var configFile string
-var outputFile string
-var patternName string
-var patternRepo string
-var modelName string
-var verbose bool
+var (
+	configFile  string
+	outputFile  string
+	patternName string
+	patternRepo string
+	modelName   string
+	verbose     bool
+)
 
 // endregion: --- flags
 
