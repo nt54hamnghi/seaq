@@ -290,7 +290,7 @@ func (c *caption) getFullCaption() string {
 	events := c.Events
 	nThreads := util.GetThreadCount(len(events))
 
-	res := util.BatchProcess(nThreads, events, func(es []event) string {
+	res := util.BatchReduce(nThreads, events, func(es []event) string {
 		var res string
 		for i := 0; i < len(es); i++ {
 			segs := es[i].Segs
@@ -301,7 +301,7 @@ func (c *caption) getFullCaption() string {
 				}
 			}
 		}
-		return res
+		return strings.TrimSpace(res)
 	})
 
 	return strings.Join(res, "")

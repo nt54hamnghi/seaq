@@ -1,0 +1,33 @@
+{
+	"captionTracks": [
+		{
+			"baseUrl": "https://www.youtube.com/api/timedtext?v=LG53Vxum0as\u0026ei=wSaHZt_GIZm3kucPzeebmAM\u0026caps=asr\u0026opi=112496729\u0026xoaf=5\u0026hl=en\u0026ip=0.0.0.0\u0026ipbits=0\u0026expire=1720158513\u0026sparams=ip,ipbits,expire,v,ei,caps,opi,xoaf\u0026signature=A98C2DF114194838286BF6C864D0327DEB488E54.065BDAC0BC5529EC22616E3CE0CDFB212A7CD51C\u0026key=yt8\u0026lang=en-US",
+			"languageCode": "en-US",
+			"hasAutoTranslation": false
+		},
+		{
+			"baseUrl": "https://www.youtube.com/api/timedtext?v=LG53Vxum0as\u0026ei=wSaHZt_GIZm3kucPzeebmAM\u0026caps=asr\u0026opi=112496729\u0026xoaf=5\u0026hl=en\u0026ip=0.0.0.0\u0026ipbits=0\u0026expire=1720158513\u0026sparams=ip,ipbits,expire,v,ei,caps,opi,xoaf\u0026signature=A98C2DF114194838286BF6C864D0327DEB488E54.065BDAC0BC5529EC22616E3CE0CDFB212A7CD51C\u0026key=yt8\u0026lang=es",
+			"languageCode": "es",
+			"hasAutoTranslation": false
+		},
+        
+
+
+		{
+			"baseUrl": "https://www.youtube.com/api/timedtext?v=LG53Vxum0as\u0026ei=VCaHZsSvIoqzkucP0L-G8Ac\u0026caps=asr\u0026opi=112496729\u0026xoaf=5\u0026hl=en\u0026ip=0.0.0.0\u0026ipbits=0\u0026expire=1720158404\u0026sparams=ip,ipbits,expire,v,ei,caps,opi,xoaf\u0026signature=1A7BAF409EFD6C75DF99F8CD2484792836BDEA4A.500ED94CE2CE96559F5BCE2F6CAA323906753CB5\u0026key=yt8\u0026lang=en-US",
+			"name": { "simpleText": "English (United States)" },
+			"vssId": ".en-US",
+			"languageCode": "en-US",
+			"isTranslatable": true,
+			"trackName": ""
+		},
+		{
+			"baseUrl": "https://www.youtube.com/api/timedtext?v=LG53Vxum0as\u0026ei=VCaHZsSvIoqzkucP0L-G8Ac\u0026caps=asr\u0026opi=112496729\u0026xoaf=5\u0026hl=en\u0026ip=0.0.0.0\u0026ipbits=0\u0026expire=1720158404\u0026sparams=ip,ipbits,expire,v,ei,caps,opi,xoaf\u0026signature=1A7BAF409EFD6C75DF99F8CD2484792836BDEA4A.500ED94CE2CE96559F5BCE2F6CAA323906753CB5\u0026key=yt8\u0026lang=es",
+			"name": { "simpleText": "Spanish" },
+			"vssId": ".es",
+			"languageCode": "es",
+			"isTranslatable": true,
+			"trackName": ""
+		}
+	]
+}

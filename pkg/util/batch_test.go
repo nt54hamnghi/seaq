@@ -30,7 +30,7 @@ func TestGetThreadCount(t *testing.T) {
 
 }
 
-func TestBatchProcess(t *testing.T) {
+func TestBatchReduce(t *testing.T) {
 
 	var testCases = []struct {
 		name     string
@@ -80,7 +80,7 @@ func TestBatchProcess(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			res := BatchProcess(tc.nThreads, tc.in, tc.op)
+			res := BatchReduce(tc.nThreads, tc.in, tc.op)
 			if len(tc.in) == 0 {
 				asserts.Empty(res)
 			} else {
