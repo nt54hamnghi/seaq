@@ -12,10 +12,11 @@ import (
 
 // useCmd represents the use command
 var useCmd = &cobra.Command{
-	Use:          "use",
-	Short:        "Set a default model to use",
-	Args:         cobra.ExactArgs(1),
-	SilenceUsage: true,
+	Use:               "use",
+	Short:             "Set a default model to use",
+	Args:              cobra.ExactArgs(1),
+	SilenceUsage:      true,
+	ValidArgsFunction: CompleteModelArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 		if err := config.Hiku.UseModel(name); err != nil {
@@ -26,5 +27,3 @@ var useCmd = &cobra.Command{
 		return nil
 	},
 }
-
-func init() {}

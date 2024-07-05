@@ -20,3 +20,14 @@ func (hiku *HikuConfig) UseModel(name string) error {
 	hiku.Set("model.name", name)
 	return nil
 }
+
+// ListModels returns a list of available models
+func (hiku *HikuConfig) ListModels() []string {
+	models := make([]string, 0, len(llm.Models))
+	for _, v := range llm.Models {
+		for m := range v {
+			models = append(models, m)
+		}
+	}
+	return models
+}

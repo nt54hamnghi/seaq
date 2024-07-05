@@ -159,6 +159,7 @@ func init() {
 
 	// register completion function
 	rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
+	rootCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
 
 	// add subcommands
 	rootCmd.AddCommand(

@@ -6,6 +6,7 @@ package model
 import (
 	"fmt"
 
+	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +23,12 @@ var ModelCmd = &cobra.Command{
 }
 
 func init() {
-	ModelCmd.AddCommand(useCmd)
-	ModelCmd.AddCommand(listCmd)
+	ModelCmd.AddCommand(
+		useCmd,
+		listCmd,
+	)
+}
+
+func CompleteModelArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return config.Hiku.ListModels(), cobra.ShellCompDirectiveNoFileComp
 }
