@@ -14,7 +14,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var metadata bool
+var (
+	metadata bool
+	start    string
+	end      string
+)
 
 type task = func(context.Context, string) (string, error)
 type result struct {
@@ -43,7 +47,30 @@ var captionCmd = &cobra.Command{
 		if metadata {
 			tasks = append(tasks, youtube.FetchMetadata)
 		}
-		tasks = append(tasks, youtube.FetchCaption)
+		tasks = append(tasks, func(ctx context.Context, s string) (string, error) {
+			var startTs, endTs *youtube.Timestamp
+
+			if start != "" {
+				s, err := youtube.ParseTimestamp(start)
+				if err != nil {
+					return "", fmt.Errorf("failed to parse start time: %w", err)
+				}
+				startTs = &s
+			}
+
+			if end != "" {
+				e, err := youtube.ParseTimestamp(end)
+				if err != nil {
+					return "", fmt.Errorf("failed to parse end time: %w", err)
+				}
+				endTs = &e
+			}
+
+			return youtube.FetchCaption(ctx, s,
+				youtube.WithStart(startTs),
+				youtube.WithEnd(endTs),
+			)
+		})
 
 		for i, f := range tasks {
 			wg.Add(1)
@@ -84,4 +111,6 @@ var captionCmd = &cobra.Command{
 
 func init() {
 	captionCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
+	captionCmd.Flags().StringVar(&start, "start", "", "start time")
+	captionCmd.Flags().StringVar(&end, "end", "", "end time")
 }
