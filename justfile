@@ -9,6 +9,6 @@ dev:
 alias d := dev
 
 test:
-    @go test ./... -v
+    @go test ./...
 
 alias t := test
