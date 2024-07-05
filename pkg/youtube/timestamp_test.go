@@ -12,32 +12,32 @@ func TestTimestamp_ToMsDuration(t *testing.T) {
 	testCases := []struct {
 		name      string
 		timestamp Timestamp
-		expected  int64
+		want      int64
 	}{
 		{
 			name:      "zero",
 			timestamp: Timestamp{},
-			expected:  0,
+			want:      0,
 		},
 		{
 			name:      "onlySecond",
 			timestamp: Timestamp{Second: 22},
-			expected:  (time.Second * 22).Milliseconds(),
+			want:      (time.Second * 22).Milliseconds(),
 		},
 		{
 			name:      "onlyMinute",
 			timestamp: Timestamp{Minute: 22},
-			expected:  (time.Minute * 22).Milliseconds(),
+			want:      (time.Minute * 22).Milliseconds(),
 		},
 		{
 			name:      "onlyHour",
 			timestamp: Timestamp{Hour: 22},
-			expected:  (time.Hour * 22).Milliseconds(),
+			want:      (time.Hour * 22).Milliseconds(),
 		},
 		{
 			name:      "combined",
 			timestamp: Timestamp{Hour: 22, Minute: 22, Second: 22},
-			expected:  80542000,
+			want:      80542000,
 		},
 	}
 
@@ -46,7 +46,7 @@ func TestTimestamp_ToMsDuration(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			msDuration := tt.timestamp.ToMsDuration()
-			asserts.Equal(tt.expected, msDuration)
+			asserts.Equal(tt.want, msDuration)
 		})
 	}
 }
@@ -55,17 +55,17 @@ func TestParseTimestamp(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
-		want  Timestamp
+		want  *Timestamp
 	}{
 		{
 			name:  "minute:second",
 			input: "11:11",
-			want:  Timestamp{Minute: 11, Second: 11},
+			want:  &Timestamp{Minute: 11, Second: 11},
 		},
 		{
 			name:  "hour:minute:second",
 			input: "23:59:59",
-			want:  Timestamp{Hour: 23, Minute: 59, Second: 59},
+			want:  &Timestamp{Hour: 23, Minute: 59, Second: 59},
 		},
 	}
 
@@ -75,7 +75,8 @@ func TestParseTimestamp(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ParseTimestamp(tt.input)
 			asserts.Nil(err)
-			asserts.Equal(tt.want, got)
+			asserts.NotNil(got)
+			asserts.Equal(*tt.want, *got)
 		})
 	}
 }

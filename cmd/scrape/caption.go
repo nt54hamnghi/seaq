@@ -48,22 +48,21 @@ var captionCmd = &cobra.Command{
 			tasks = append(tasks, youtube.FetchMetadata)
 		}
 		tasks = append(tasks, func(ctx context.Context, s string) (string, error) {
+			var err error
 			var startTs, endTs *youtube.Timestamp
 
 			if start != "" {
-				s, err := youtube.ParseTimestamp(start)
+				startTs, err = youtube.ParseTimestamp(start)
 				if err != nil {
 					return "", fmt.Errorf("failed to parse start time: %w", err)
 				}
-				startTs = &s
 			}
 
 			if end != "" {
-				e, err := youtube.ParseTimestamp(end)
+				endTs, err = youtube.ParseTimestamp(end)
 				if err != nil {
 					return "", fmt.Errorf("failed to parse end time: %w", err)
 				}
-				endTs = &e
 			}
 
 			return youtube.FetchCaption(ctx, s,
@@ -77,7 +76,7 @@ var captionCmd = &cobra.Command{
 			go func(id int, f task) {
 				defer wg.Done()
 				data, err := f(ctx, src)
-				ch <- result{id: i, data: data, err: err}
+				ch <- result{i, data, err}
 			}(i, f)
 		}
 
