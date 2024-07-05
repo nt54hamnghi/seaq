@@ -32,7 +32,7 @@ func (hiku *HikuConfig) Pattern() string {
 }
 
 func (hiku *HikuConfig) HasPattern(name string) bool {
-	pats, err := hiku.GetAvailablePatterns()
+	pats, err := hiku.ListPatterns()
 	if err != nil {
 		return false
 	}
@@ -78,7 +78,8 @@ func (hiku *HikuConfig) GetPrompt() (string, error) {
 	return string(prompt), nil
 }
 
-func (hiku *HikuConfig) GetAvailablePatterns() ([]string, error) {
+// ListPatterns returns a list of available patterns
+func (hiku *HikuConfig) ListPatterns() ([]string, error) {
 	repo := hiku.Repo()
 	if repo == "" {
 		return nil, ErrEmptyRepo

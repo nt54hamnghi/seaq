@@ -157,6 +157,9 @@ func init() {
 	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use")
 	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
 
+	// register completion function
+	rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
+
 	// add subcommands
 	rootCmd.AddCommand(
 		scrape.ScrapeCmd,

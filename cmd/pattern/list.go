@@ -16,7 +16,7 @@ var listCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		pats, err := config.Hiku.GetAvailablePatterns()
+		pats, err := config.Hiku.ListPatterns()
 		if err != nil {
 			return err
 		}
@@ -28,5 +28,3 @@ var listCmd = &cobra.Command{
 		return nil
 	},
 }
-
-func init() {}

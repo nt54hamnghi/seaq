@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package pattern
 
 import (
+	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +21,16 @@ var PatternCmd = &cobra.Command{
 }
 
 func init() {
-	PatternCmd.AddCommand(useCmd)
-	PatternCmd.AddCommand(listCmd)
+	PatternCmd.AddCommand(
+		useCmd,
+		listCmd,
+	)
+}
+
+func CompletePatternArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	patterns, err := config.Hiku.ListPatterns()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return patterns, cobra.ShellCompDirectiveNoFileComp
 }
