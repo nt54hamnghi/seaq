@@ -6,11 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
-	"net/url"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -19,8 +16,7 @@ import (
 
 // region: --- errors
 
-var ErrInValidYouTubeURL = errors.New("invalid YouTube video URL")
-var ErrVideoIdNotFoundInURL = errors.New("YouTube URL does not contain video ID query parameter")
+var ErrCaptionTracksNotFound = errors.New("caption tracks not found")
 
 // endregion: --- errors
 
@@ -32,27 +28,30 @@ const (
 
 // endregion: --- consts
 
-func FetchCaption(ctx context.Context, src string) (string, error) {
-	vid, err := extractVideoId(src)
-	if err != nil {
-		if errors.Is(err, ErrInValidYouTubeURL) {
-			vid = src
-		} else {
-			return "", err
-		}
+func FetchCaption(ctx context.Context, src string, options ...Option) (string, error) {
+	opt := &option{}
+	for _, of := range options {
+		of(opt)
 	}
-	return fetchCaptionWithVideoId(ctx, vid)
+
+	vid, err := resolveVideoId(src)
+	if err != nil {
+		return "", err
+	}
+	return fetchCaptionWithVideoId(ctx, vid, opt)
 }
 
-type videoId = string
-
-func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err error) {
+func fetchCaptionWithVideoId(ctx context.Context, vid videoId, opt *option) (cap string, err error) {
 	// get the raw HTML content of the YouTube video page
 	resp, err := http.Get(YouTubeWatchUrl + "?v=" + vid)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("response status code: %d", resp.StatusCode)
+	}
 
 	// the Raw HTML content contains a list of available caption tracks
 	captionTracks, err := extractCaptionTracks(resp.Body)
@@ -64,32 +63,16 @@ func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err 
 	// fetch the caption of the YouTube video
 	// only support English captions
 	// prioritize user-added caption over ASR (Automatic Speech Recognition) caption
-	caption, err := fetchCaption(ctx, captionTracks)
+	caption, err := loadCaption(ctx, captionTracks)
 	if err != nil {
 		return cap, fmt.Errorf("failed to fetch caption: %w", err)
 	}
 
+	if opt != nil {
+		caption.filter(opt)
+	}
+
 	return caption.getFullCaption(), nil
-}
-
-func extractVideoId(rawUrl string) (videoId, error) {
-	query, found := strings.CutPrefix(rawUrl, YouTubeWatchUrl+"?")
-	if !found {
-		return "", ErrInValidYouTubeURL
-	}
-
-	// parse the query string
-	q, err := url.ParseQuery(query)
-	if err != nil {
-		return "", err
-	}
-
-	vid, ok := q["v"]
-	if !ok || len(vid) == 0 {
-		return "", ErrInValidYouTubeURL
-	}
-
-	return vid[0], nil
 }
 
 // YouTube doesn't provide a public API for caption tracks.
@@ -112,22 +95,22 @@ func extractCaptionTracks(body io.Reader) ([]captionTrack, error) {
 	buf := make([]byte, 0, 1<<22) // a YouTube HTML is around 1.4MB, allocate 4MB to avoid resizing
 	tmp := make([]byte, 1<<18)    // each iteration reads 256KB
 
-	// read the body until the regex pattern is found
-	// this is to avoid reading the entire body ahead of time
+	// read until the regex pattern is found
+	// to avoid reading the entire body ahead of time
+outerLoop:
 	for {
-		// override the entire tmp buffer with bytes from the body
+		// override the entire tmp buffer
 		n, err := io.ReadFull(body, tmp)
-		if err != nil {
-			// break if EOF is reached
-			// as we've read all the bytes from the body
-			if err == io.EOF {
-				break
-			}
+
+		switch err {
+		case nil, io.ErrUnexpectedEOF:
+			// FIXME: expensive, can be optimized
+			buf = append(buf, tmp[:n]...)
+		case io.EOF:
+			break outerLoop
+		default:
 			return nil, err
 		}
-
-		// copy the bytes from temp to b
-		buf = append(buf, tmp[:n]...)
 
 		// the first element is the entire match
 		// the rest are the captured groups
@@ -141,17 +124,49 @@ func extractCaptionTracks(body io.Reader) ([]captionTrack, error) {
 	}
 
 	if !found {
-		return nil, fmt.Errorf("caption tracks not found")
+		return nil, ErrCaptionTracksNotFound
 	}
 
 	var captionTracks []captionTrack
 	err := json.Unmarshal([]byte(match), &captionTracks)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal caption tracks: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal: %w", err)
 	}
 
 	return captionTracks, nil
 
+}
+
+// asJson3 adds "&fmt=json3" to the base URL of the caption track
+func (ct *captionTrack) asJson3() {
+	url := ct.BaseURL
+	if !strings.Contains(url, "?") {
+		url += "?"
+	}
+	url += "&fmt=json3"
+
+	ct.BaseURL = url
+}
+
+// hasTranslation checks if the caption track has an English auto-translation
+// if true, add "&tlang=en" to the base URL and set HasAutoTranslation to true
+func (ct *captionTrack) hasTranslation() bool {
+	url := ct.BaseURL
+	if !strings.Contains(url, "?") {
+		url += "?"
+	}
+	url += "&tlang=en"
+
+	resp, err := http.Get(url)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return false
+	}
+	defer resp.Body.Close()
+
+	ct.BaseURL = url
+	ct.HasAutoTranslation = true
+
+	return true
 }
 
 // processCaptionTracks add "&fmt=json3" to the base URL of each caption track
@@ -159,40 +174,33 @@ func extractCaptionTracks(body io.Reader) ([]captionTrack, error) {
 // if true, add "&tlang=en" to the base URL of the caption track and set HasAutoTranslation to true
 func processCaptionTracks(captionTracks []captionTrack) {
 	wg := sync.WaitGroup{}
-	for i := 0; i < len(captionTracks); i++ {
-		wg.Add(1)
-		c := &captionTracks[i]
-		c.BaseURL = c.BaseURL + "&fmt=json3"
 
+	for i := 0; i < len(captionTracks); i++ {
+		c := &captionTracks[i]
+
+		c.asJson3()
+		if c.LanguageCode == "en" || c.LanguageCode == "en-US" {
+			continue
+		}
+
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
-			if c.LanguageCode == "en" {
-				return
-			}
-
-			url := c.BaseURL + "&tlang=en"
-			resp, err := http.Get(url)
-			if err != nil || resp.StatusCode != http.StatusOK {
-				return
-			}
-			defer resp.Body.Close()
-
-			c.BaseURL = url
-			c.HasAutoTranslation = true
+			c.hasTranslation()
 		}()
 	}
+
 	wg.Wait()
 }
 
-// fetchCaption returns the caption of a YouTube video.
+// loadCaption returns the caption of a YouTube video.
 // The returned caption is a list of events.
 // Each event contains a list of segments, and each segment has a caption text.
 // It only supports English captions and prioritizes user-added caption
 // over ASR (Automatic Speech Recognition) caption.
-func fetchCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
+func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 	if len(tracks) == 0 {
-		return caption{}, fmt.Errorf("caption tracks must not be empty")
+		return caption{}, errors.New("caption tracks must not be empty")
 	}
 
 	var ct *captionTrack
@@ -208,7 +216,7 @@ func fetchCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 	}
 
 	if ct == nil {
-		return caption{}, fmt.Errorf("no English caption track found")
+		return caption{}, errors.New("no English caption track found")
 	}
 
 	return util.Get[caption](ctx, ct.BaseURL, nil)
@@ -223,9 +231,9 @@ type caption struct {
 
 type event struct {
 	// duration of the caption event in milliseconds
-	DDurationMs int `json:"dDurationMs,omitempty"`
-	ID          int `json:"id,omitempty"`
-	TStartMs    int `json:"tStartMs"`
+	DDurationMs int64 `json:"dDurationMs,omitempty"`
+	ID          int   `json:"id,omitempty"`
+	TStartMs    int64 `json:"tStartMs"`
 	Segs        []struct {
 		// confidence of the ASR caption
 		AcAsrConf int `json:"acAsrConf"`
@@ -236,28 +244,84 @@ type event struct {
 	} `json:"segs,omitempty"`
 }
 
+func (c *caption) filter(opt *option) {
+	if opt.start != nil {
+		c.filterStart(opt.start)
+	}
+	if opt.end != nil {
+		c.filterEnd(opt.end)
+	}
+}
+
+func (c *caption) filterStart(start *Timestamp) {
+	if start == nil {
+		return
+	}
+
+	startMs := start.ToMsDuration()
+	newEvents := make([]event, 0, len(c.Events))
+	for _, e := range c.Events {
+		if e.TStartMs >= startMs {
+			newEvents = append(newEvents, e)
+		}
+	}
+
+	c.Events = newEvents
+}
+
+func (c *caption) filterEnd(end *Timestamp) {
+	if end == nil {
+		return
+	}
+
+	endMs := end.ToMsDuration()
+	newEvents := make([]event, 0, len(c.Events))
+	for _, e := range c.Events {
+		if e.TStartMs <= endMs {
+			newEvents = append(newEvents, e)
+		}
+	}
+
+	c.Events = newEvents
+}
+
 // getFullCaption returns the full caption text of a YouTube video.
 func (c *caption) getFullCaption() string {
-
 	events := c.Events
-	nThreads := getThreadCount(len(events))
+	nThreads := util.GetThreadCount(len(events))
 
-	res := util.BatchProcess(nThreads, events, func(es []event) string {
+	res := util.BatchReduce(nThreads, events, func(es []event) string {
 		var res string
 		for i := 0; i < len(es); i++ {
 			segs := es[i].Segs
 			for j := 0; j < len(segs); j++ {
-				res += segs[j].Utf8
+				txt := segs[j].Utf8
+				if txt != "" {
+					res += txt
+				}
 			}
 		}
-		return res
+		return strings.TrimSpace(res)
 	})
 
 	return strings.Join(res, "")
-
 }
 
-func getThreadCount(taskCount int) int {
-	numCpu := runtime.NumCPU()
-	return int(math.Min(float64(taskCount), float64(numCpu)))
+type Option func(*option)
+
+type option struct {
+	start *Timestamp
+	end   *Timestamp
+}
+
+func WithStart(start *Timestamp) Option {
+	return func(o *option) {
+		o.start = start
+	}
+}
+
+func WithEnd(end *Timestamp) Option {
+	return func(o *option) {
+		o.end = end
+	}
 }

@@ -18,13 +18,9 @@ var ErrYoutubeApiKeyNotSet = errors.New("YOUTUBE_API_KEY is not set")
 const YoutubeApiUrl = "https://youtube.googleapis.com/youtube/v3/videos"
 
 func FetchMetadata(ctx context.Context, src string) (string, error) {
-	vid, err := extractVideoId(src)
+	vid, err := resolveVideoId(src)
 	if err != nil {
-		if errors.Is(err, ErrInValidYouTubeURL) {
-			vid = src
-		} else {
-			return "", err
-		}
+		return "", err
 	}
 	snippet, err := fetchMetadtaWithVideoId(ctx, vid)
 	if err != nil {
@@ -79,12 +75,12 @@ Description:
 
 }
 
-func buildSnippetRequestUrl(videoId string) (string, error) {
+func buildSnippetRequestUrl(vid videoId) (string, error) {
 	apiKey := os.Getenv("YOUTUBE_API_KEY")
 	if apiKey == "" {
 		return "", ErrYoutubeApiKeyNotSet
 	}
 
-	url := fmt.Sprintf("%s?part=snippet&id=%s&key=%s", YoutubeApiUrl, videoId, apiKey)
+	url := fmt.Sprintf("%s?part=snippet&id=%s&key=%s", YoutubeApiUrl, vid, apiKey)
 	return url, nil
 }

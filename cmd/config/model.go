@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/nt54hamnghi/hiku/pkg/llm"
 )
 
@@ -17,12 +15,8 @@ func (hiku *HikuConfig) HasModel(name string) bool {
 
 func (hiku *HikuConfig) UseModel(name string) error {
 	if !hiku.HasModel(name) {
-		return fmt.Errorf("model '%s' does not exist", name)
+		return &Unsupported{Type: "model", Key: name}
 	}
 	hiku.Set("model.name", name)
 	return nil
 }
-
-// func (hiku *HikuConfig) GetAvailableModels() ([]string, error) {
-// 	panic("todo")
-// }

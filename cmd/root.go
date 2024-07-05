@@ -23,18 +23,20 @@ import (
 
 // region: --- errors
 
-var errInteractiveInput = fmt.Errorf("interactive input is not supported")
+var errInteractiveInput = errors.New("interactive input is not supported")
 
 // endregion: --- errors
 
 // region: --- flags
 
-var configFile string
-var outputFile string
-var patternName string
-var patternRepo string
-var modelName string
-var verbose bool
+var (
+	configFile  string
+	outputFile  string
+	patternName string
+	patternRepo string
+	modelName   string
+	verbose     bool
+)
 
 // endregion: --- flags
 
@@ -68,7 +70,7 @@ var rootCmd = &cobra.Command{
 
 		// check if input is empty
 		if input == "" {
-			return fmt.Errorf("piped input is empty")
+			return errors.New("piped input is empty")
 		}
 
 		// construct the model

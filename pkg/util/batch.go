@@ -1,6 +1,8 @@
 package util
 
 import (
+	"math"
+	"runtime"
 	"sync"
 )
 
@@ -9,7 +11,19 @@ type Job[O any] struct {
 	Output O
 }
 
-// BatchProcess concurrently processes input data in batches.
+// GetThreadCount calculates the number of threads for processing a given number of tasks.
+// If taskCount is less than or equal to 0, it returns 1.
+// If taskCount is less than the number of CPUs, it returns taskCount.
+// Otherwise, it returns the number of CPUs.
+func GetThreadCount(taskCount int) int {
+	if taskCount <= 0 {
+		return 1
+	}
+	numCpu := runtime.NumCPU()
+	return int(math.Min(float64(taskCount), float64(numCpu)))
+}
+
+// BatchReduce concurrently processes input data in batches.
 // It divides the input slice into smaller batches,
 // processes each batch in parallel using the specified operation, and then collects the results.
 //
@@ -22,11 +36,15 @@ type Job[O any] struct {
 // Returns:
 //   - A slice containing the results of applying the operation to each batch of the input slice.
 //     The order of results in the output slice corresponds to the order of the batches processed.
-func BatchProcess[I, O any](
+func BatchReduce[I, O any](
 	nThreads int, // number of threads
 	in []I, // input slice
 	op func([]I) O, // operation to apply to each batch
 ) []O {
+	if len(in) == 0 {
+		return []O{}
+	}
+
 	ch := make(chan Job[O], nThreads)
 	wg := &sync.WaitGroup{}
 
