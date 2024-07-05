@@ -208,3 +208,103 @@ func TestFetchCaption_Fail(t *testing.T) {
 		})
 	}
 }
+
+func Test_caption_filterStart(t *testing.T) {
+	testCases := []struct {
+		name   string
+		events []event
+		start  *Timestamp
+		want   []event
+	}{
+		{
+			name:   "empty",
+			events: []event{},
+			start:  &Timestamp{Second: 1},
+			want:   []event{},
+		},
+		{
+			name: "noStart",
+			events: []event{
+				{ID: 1, TStartMs: 0},
+			},
+			start: nil,
+			want: []event{
+				{ID: 1, TStartMs: 0},
+			},
+		},
+		{
+			name: "valid",
+			events: []event{
+				{ID: 1, TStartMs: 0},
+				{ID: 2, TStartMs: 1000},
+				{ID: 3, TStartMs: 2000},
+			},
+			start: &Timestamp{Second: 1},
+			want: []event{
+				{ID: 2, TStartMs: 1000},
+				{ID: 3, TStartMs: 2000},
+			},
+		},
+	}
+
+	asserts := assert.New(t)
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &caption{Events: tt.events}
+			c.filterStart(tt.start)
+
+			asserts.Equal(c.Events, tt.want)
+		})
+	}
+}
+
+func Test_caption_filterEnd(t *testing.T) {
+	testCases := []struct {
+		name   string
+		events []event
+		end    *Timestamp
+		want   []event
+	}{
+		{
+			name:   "empty",
+			events: []event{},
+			end:    &Timestamp{Second: 1},
+			want:   []event{},
+		},
+		{
+			name: "noStart",
+			events: []event{
+				{ID: 1, TStartMs: 0},
+			},
+			end: nil,
+			want: []event{
+				{ID: 1, TStartMs: 0},
+			},
+		},
+		{
+			name: "valid",
+			events: []event{
+				{ID: 1, TStartMs: 0},
+				{ID: 2, TStartMs: 1000},
+				{ID: 3, TStartMs: 10000},
+			},
+			end: &Timestamp{Second: 1},
+			want: []event{
+				{ID: 1, TStartMs: 0},
+				{ID: 2, TStartMs: 1000},
+			},
+		},
+	}
+
+	asserts := assert.New(t)
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &caption{Events: tt.events}
+			c.filterEnd(tt.end)
+
+			asserts.Equal(c.Events, tt.want)
+		})
+	}
+}

@@ -28,15 +28,20 @@ const (
 
 // endregion: --- consts
 
-func FetchCaption(ctx context.Context, src string) (string, error) {
+func FetchCaption(ctx context.Context, src string, options ...Option) (string, error) {
+	opt := &option{}
+	for _, of := range options {
+		of(opt)
+	}
+
 	vid, err := resolveVideoId(src)
 	if err != nil {
 		return "", err
 	}
-	return fetchCaptionWithVideoId(ctx, vid)
+	return fetchCaptionWithVideoId(ctx, vid, opt)
 }
 
-func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err error) {
+func fetchCaptionWithVideoId(ctx context.Context, vid videoId, opt *option) (cap string, err error) {
 	// get the raw HTML content of the YouTube video page
 	resp, err := http.Get(YouTubeWatchUrl + "?v=" + vid)
 	if err != nil {
@@ -61,6 +66,10 @@ func fetchCaptionWithVideoId(ctx context.Context, vid videoId) (cap string, err 
 	caption, err := fetchCaption(ctx, captionTracks)
 	if err != nil {
 		return cap, fmt.Errorf("failed to fetch caption: %w", err)
+	}
+
+	if opt != nil {
+		caption.filter(opt)
 	}
 
 	return caption.getFullCaption(), nil
@@ -170,7 +179,7 @@ func processCaptionTracks(captionTracks []captionTrack) {
 		c := &captionTracks[i]
 
 		c.asJson3()
-		if c.LanguageCode == "en" {
+		if c.LanguageCode == "en" || c.LanguageCode == "en-US" {
 			continue
 		}
 
@@ -222,9 +231,9 @@ type caption struct {
 
 type event struct {
 	// duration of the caption event in milliseconds
-	DDurationMs int `json:"dDurationMs,omitempty"`
-	ID          int `json:"id,omitempty"`
-	TStartMs    int `json:"tStartMs"`
+	DDurationMs int64 `json:"dDurationMs,omitempty"`
+	ID          int   `json:"id,omitempty"`
+	TStartMs    int64 `json:"tStartMs"`
 	Segs        []struct {
 		// confidence of the ASR caption
 		AcAsrConf int `json:"acAsrConf"`
@@ -235,9 +244,49 @@ type event struct {
 	} `json:"segs,omitempty"`
 }
 
+func (c *caption) filter(opt *option) {
+	if opt.start != nil {
+		c.filterStart(opt.start)
+	}
+	if opt.end != nil {
+		c.filterEnd(opt.end)
+	}
+}
+
+func (c *caption) filterStart(start *Timestamp) {
+	if start == nil {
+		return
+	}
+
+	startMs := start.ToMsDuration()
+	newEvents := make([]event, 0, len(c.Events))
+	for _, e := range c.Events {
+		if e.TStartMs >= startMs {
+			newEvents = append(newEvents, e)
+		}
+	}
+
+	c.Events = newEvents
+}
+
+func (c *caption) filterEnd(end *Timestamp) {
+	if end == nil {
+		return
+	}
+
+	endMs := end.ToMsDuration()
+	newEvents := make([]event, 0, len(c.Events))
+	for _, e := range c.Events {
+		if e.TStartMs <= endMs {
+			newEvents = append(newEvents, e)
+		}
+	}
+
+	c.Events = newEvents
+}
+
 // getFullCaption returns the full caption text of a YouTube video.
 func (c *caption) getFullCaption() string {
-
 	events := c.Events
 	nThreads := util.GetThreadCount(len(events))
 
@@ -246,12 +295,33 @@ func (c *caption) getFullCaption() string {
 		for i := 0; i < len(es); i++ {
 			segs := es[i].Segs
 			for j := 0; j < len(segs); j++ {
-				res += segs[j].Utf8
+				txt := segs[j].Utf8
+				if txt != "" {
+					res += txt
+				}
 			}
 		}
 		return res
 	})
 
 	return strings.Join(res, "")
+}
 
+type Option func(*option)
+
+type option struct {
+	start *Timestamp
+	end   *Timestamp
+}
+
+func WithStart(start *Timestamp) Option {
+	return func(o *option) {
+		o.start = start
+	}
+}
+
+func WithEnd(end *Timestamp) Option {
+	return func(o *option) {
+		o.end = end
+	}
 }
