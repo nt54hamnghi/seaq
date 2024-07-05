@@ -63,7 +63,7 @@ func fetchCaptionWithVideoId(ctx context.Context, vid videoId, opt *option) (cap
 	// fetch the caption of the YouTube video
 	// only support English captions
 	// prioritize user-added caption over ASR (Automatic Speech Recognition) caption
-	caption, err := fetchCaption(ctx, captionTracks)
+	caption, err := loadCaption(ctx, captionTracks)
 	if err != nil {
 		return cap, fmt.Errorf("failed to fetch caption: %w", err)
 	}
@@ -193,12 +193,12 @@ func processCaptionTracks(captionTracks []captionTrack) {
 	wg.Wait()
 }
 
-// fetchCaption returns the caption of a YouTube video.
+// loadCaption returns the caption of a YouTube video.
 // The returned caption is a list of events.
 // Each event contains a list of segments, and each segment has a caption text.
 // It only supports English captions and prioritizes user-added caption
 // over ASR (Automatic Speech Recognition) caption.
-func fetchCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
+func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 	if len(tracks) == 0 {
 		return caption{}, errors.New("caption tracks must not be empty")
 	}

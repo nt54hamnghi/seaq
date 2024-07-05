@@ -51,7 +51,7 @@ func TestTimestamp_ToMsDuration(t *testing.T) {
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestParseTimestamp(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -80,7 +80,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestParse_Fail(t *testing.T) {
+func TestParseTimestamp_Fail(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string

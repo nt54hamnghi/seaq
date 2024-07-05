@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExtractCaptionTracks(t *testing.T) {
+func Test_extractCaptionTracks(t *testing.T) {
 	tests := []struct {
 		name string
 		body string
@@ -53,7 +53,7 @@ func TestExtractCaptionTracks(t *testing.T) {
 	}
 }
 
-func TestExtractCaptionTracks_Fail(t *testing.T) {
+func Test_extractCaptionTracks_Fail(t *testing.T) {
 	tests := []struct {
 		name string
 		body string
@@ -81,7 +81,7 @@ func Ok(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func TestProcessCaptionTracks(t *testing.T) {
+func Test_processCaptionTracks(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ok", Ok)
 	mux.HandleFunc("/not-found", http.NotFound)
@@ -110,7 +110,7 @@ func TestProcessCaptionTracks(t *testing.T) {
 	}
 }
 
-func TestFetchCaption(t *testing.T) {
+func Test_loadCaption(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`
@@ -164,14 +164,14 @@ func TestFetchCaption(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			c, err := fetchCaption(context.TODO(), tc.captionTrack)
+			c, err := loadCaption(context.TODO(), tc.captionTrack)
 			asserts.Nil(err)
 			asserts.Equal(c, tc.expected)
 		})
 	}
 }
 
-func TestFetchCaption_Fail(t *testing.T) {
+func Test_loadCaption_Fail(t *testing.T) {
 	var testCases = []struct {
 		name         string
 		captionTrack []captionTrack
@@ -203,7 +203,7 @@ func TestFetchCaption_Fail(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := fetchCaption(context.TODO(), tc.captionTrack)
+			_, err := loadCaption(context.TODO(), tc.captionTrack)
 			asserts.Equal(err, tc.err)
 		})
 	}

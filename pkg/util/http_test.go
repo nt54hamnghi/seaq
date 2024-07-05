@@ -46,7 +46,7 @@ func (s *HttpSuite) TearDownSuite() {
 	s.server.Close()
 }
 
-func (s *HttpSuite) TestDo() {
+func (s *HttpSuite) Test_do() {
 
 	url := s.server.URL
 
@@ -88,7 +88,7 @@ func (s *HttpSuite) TestDo() {
 
 }
 
-func (s *HttpSuite) TestDoRaw_Fail() {
+func (s *HttpSuite) Test_doRaw_Fail() {
 	url := s.server.URL
 	ctx := context.Background()
 	expectedErr := errors.New("unexpected status code: 404")
@@ -97,7 +97,7 @@ func (s *HttpSuite) TestDoRaw_Fail() {
 	s.Equal(expectedErr, err)
 }
 
-func (s *HttpSuite) TestDoRaw() {
+func (s *HttpSuite) Test_doRaw() {
 	// replace the real URL with the mock server's URL
 	url := s.server.URL
 

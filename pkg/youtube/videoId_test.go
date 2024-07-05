@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResolveVideoId(t *testing.T) {
+func Test_resolveVideoId(t *testing.T) {
 	var testCases = []struct {
 		name string
 		src  string
@@ -27,7 +27,7 @@ func TestResolveVideoId(t *testing.T) {
 	}
 }
 
-func TestResolveVideoId_Fail(t *testing.T) {
+func Test_resolveVideoId_Fail(t *testing.T) {
 	var testCases = []struct {
 		name string
 		src  string
@@ -48,7 +48,7 @@ func TestResolveVideoId_Fail(t *testing.T) {
 	}
 }
 
-func TestExtractVideoId(t *testing.T) {
+func Test_extractVideoId(t *testing.T) {
 	var testCases = []struct {
 		name string
 		url  string
@@ -81,7 +81,7 @@ func TestExtractVideoId(t *testing.T) {
 		})
 	}
 }
-func TestExtractVideoId_Fail(t *testing.T) {
+func Test_extractVideoId_Fail(t *testing.T) {
 	var testCases = []struct {
 		name string
 		url  string
