@@ -141,18 +141,9 @@ func Execute() {
 	}
 }
 
-func addCommandPallete() {
-	rootCmd.AddCommand(scrape.ScrapeCmd)
-	rootCmd.AddCommand(pattern.PatternCmd)
-	rootCmd.AddCommand(model.ModelCmd)
-}
-
 func init() {
 	// init viper config and register it with cobra
 	cobra.OnInitialize(initConfig)
-
-	// settings
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	// flags definition
 	// persistent flags are global and available to all commands
@@ -167,7 +158,11 @@ func init() {
 	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
 
 	// add subcommands
-	addCommandPallete()
+	rootCmd.AddCommand(
+		scrape.ScrapeCmd,
+		pattern.PatternCmd,
+		model.ModelCmd,
+	)
 }
 
 // initConfig reads in config file and ENV variables if set.
