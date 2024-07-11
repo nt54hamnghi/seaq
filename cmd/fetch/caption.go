@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
 	"github.com/nt54hamnghi/hiku/pkg/util"
-	"github.com/nt54hamnghi/hiku/pkg/youtube"
 	"github.com/spf13/cobra"
 )
 

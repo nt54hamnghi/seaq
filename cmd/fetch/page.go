@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/nt54hamnghi/hiku/pkg/scraper"
+	"github.com/nt54hamnghi/hiku/pkg/loader/html"
 	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -35,20 +35,20 @@ var pageCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		var scr scraper.Scraper
+		var scr html.Scraper
 
 		if noFilter {
-			scr = scraper.WithFullPage()
+			scr = html.WithFullPage()
 		} else if selector != "" {
-			scr, err = scraper.WithSelector(selector)
+			scr, err = html.WithSelector(selector)
 			if err != nil {
 				return err
 			}
 		} else {
-			scr = scraper.New()
+			scr = html.New()
 		}
 
-		content, err := scraper.ScrapeUrl(ctx, parsedUrl.String(), scr)
+		content, err := html.ScrapeUrl(ctx, parsedUrl.String(), scr)
 		if err != nil {
 			return err
 		}
