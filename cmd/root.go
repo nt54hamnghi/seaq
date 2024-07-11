@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 
 	"github.com/nt54hamnghi/hiku/cmd/config"
+	"github.com/nt54hamnghi/hiku/cmd/fetch"
 	"github.com/nt54hamnghi/hiku/cmd/model"
 	"github.com/nt54hamnghi/hiku/cmd/pattern"
-	"github.com/nt54hamnghi/hiku/cmd/scrape"
 	"github.com/nt54hamnghi/hiku/pkg/llm"
 	"github.com/nt54hamnghi/hiku/pkg/util"
 
@@ -163,7 +163,7 @@ func init() {
 
 	// add subcommands
 	rootCmd.AddCommand(
-		scrape.ScrapeCmd,
+		fetch.FetchCmd,
 		pattern.PatternCmd,
 		model.ModelCmd,
 	)

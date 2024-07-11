@@ -1,7 +1,7 @@
 /*
 Copyright © 2024 Nghi Nguyen <hamnghi250699@gmail.com>
 */
-package scrape
+package fetch
 
 import (
 	"context"
@@ -22,8 +22,8 @@ var (
 // pageCmd represents the scrape command
 var pageCmd = &cobra.Command{
 	Use:          "page [url]",
-	Short:        "Scrape HTML data with a given URL and convert it to markdown",
-	Aliases:      []string{"web", "p", "w"},
+	Short:        "Fetch HTML from a URL and convert it to markdown",
+	Aliases:      []string{"pg", "p"},
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
