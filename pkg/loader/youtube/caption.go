@@ -12,6 +12,8 @@ import (
 	"sync"
 
 	"github.com/nt54hamnghi/hiku/pkg/util"
+	"github.com/nt54hamnghi/hiku/pkg/util/pool"
+	"github.com/tmc/langchaingo/schema"
 )
 
 // region: --- errors
@@ -27,21 +29,21 @@ const (
 )
 
 // endregion: --- consts
-
-func FetchCaption(ctx context.Context, src string, options ...Option) (string, error) {
-	opt := &option{}
-	for _, of := range options {
-		of(opt)
-	}
-
-	vid, err := resolveVideoId(src)
+func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *YouTubeLoader) (schema.Document, error) {
+	cap, err := fetchCaption(ctx, vid, opt)
 	if err != nil {
-		return "", err
+		return schema.Document{}, err
 	}
-	return fetchCaptionWithVideoId(ctx, vid, opt)
+	return schema.Document{
+		PageContent: cap,
+		Metadata: map[string]any{
+			"videoId": vid,
+			"type":    "caption",
+		},
+	}, nil
 }
 
-func fetchCaptionWithVideoId(ctx context.Context, vid videoId, opt *option) (cap string, err error) {
+func fetchCaption(ctx context.Context, vid videoId, opt *YouTubeLoader) (cap string, err error) {
 	// get the raw HTML content of the YouTube video page
 	resp, err := http.Get(YouTubeWatchUrl + "?v=" + vid)
 	if err != nil {
@@ -244,7 +246,7 @@ type event struct {
 	} `json:"segs,omitempty"`
 }
 
-func (c *caption) filter(opt *option) {
+func (c *caption) filter(opt *YouTubeLoader) {
 	if opt.start != nil {
 		c.filterStart(opt.start)
 	}
@@ -288,9 +290,9 @@ func (c *caption) filterEnd(end *Timestamp) {
 // getFullCaption returns the full caption text of a YouTube video.
 func (c *caption) getFullCaption() string {
 	events := c.Events
-	nThreads := util.GetThreadCount(len(events))
+	nThreads := pool.GetThreadCount(len(events))
 
-	res := util.BatchReduce(nThreads, events, func(es []event) string {
+	res := pool.BatchReduce(nThreads, events, func(es []event) string {
 		var res string
 		for i := 0; i < len(es); i++ {
 			segs := es[i].Segs
@@ -305,23 +307,4 @@ func (c *caption) getFullCaption() string {
 	})
 
 	return strings.Join(res, "")
-}
-
-type Option func(*option)
-
-type option struct {
-	start *Timestamp
-	end   *Timestamp
-}
-
-func WithStart(start *Timestamp) Option {
-	return func(o *option) {
-		o.start = start
-	}
-}
-
-func WithEnd(end *Timestamp) Option {
-	return func(o *option) {
-		o.end = end
-	}
 }

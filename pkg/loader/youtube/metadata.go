@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/nt54hamnghi/hiku/pkg/util"
+	"github.com/tmc/langchaingo/schema"
 )
 
 // region: --- errors
@@ -17,19 +18,22 @@ var ErrYoutubeApiKeyNotSet = errors.New("YOUTUBE_API_KEY is not set")
 
 const YoutubeApiUrl = "https://youtube.googleapis.com/youtube/v3/videos"
 
-func FetchMetadata(ctx context.Context, src string) (string, error) {
-	vid, err := resolveVideoId(src)
+func fetchMetadtaAsDocument(ctx context.Context, vid videoId) (schema.Document, error) {
+	snippet, err := fetchMetadta(ctx, vid)
 	if err != nil {
-		return "", err
+		return schema.Document{}, err
 	}
-	snippet, err := fetchMetadtaWithVideoId(ctx, vid)
-	if err != nil {
-		return "", err
-	}
-	return snippet.String(), err
+
+	return schema.Document{
+		PageContent: snippet.String(),
+		Metadata: map[string]interface{}{
+			"videoId": vid,
+			"type":    "metadata",
+		},
+	}, nil
 }
 
-func fetchMetadtaWithVideoId(ctx context.Context, vid string) (*snippet, error) {
+func fetchMetadta(ctx context.Context, vid string) (*snippet, error) {
 	url, err := buildSnippetRequestUrl(vid)
 	if err != nil {
 		return nil, err

@@ -6,7 +6,6 @@ package fetch
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
@@ -20,13 +19,6 @@ var (
 	end      string
 )
 
-type task = func(context.Context, string) (string, error)
-type result struct {
-	id   int
-	data string
-	err  error
-}
-
 // captionCmd represents the caption command
 var captionCmd = &cobra.Command{
 	Use:          "caption [url|videoId]",
@@ -36,69 +28,46 @@ var captionCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		src := args[0]
-
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		ch := make(chan result, 2)
-		wg := sync.WaitGroup{}
+		var err error
+		var startTs, endTs *youtube.Timestamp
 
-		tasks := make([]task, 0, 2)
-		if metadata {
-			tasks = append(tasks, youtube.FetchMetadata)
-		}
-		tasks = append(tasks, func(ctx context.Context, s string) (string, error) {
-			var err error
-			var startTs, endTs *youtube.Timestamp
-
-			if start != "" {
-				startTs, err = youtube.ParseTimestamp(start)
-				if err != nil {
-					return "", fmt.Errorf("failed to parse start time: %w", err)
-				}
+		if start != "" {
+			startTs, err = youtube.ParseTimestamp(start)
+			if err != nil {
+				return fmt.Errorf("failed to parse start time: %w", err)
 			}
+		}
 
-			if end != "" {
-				endTs, err = youtube.ParseTimestamp(end)
-				if err != nil {
-					return "", fmt.Errorf("failed to parse end time: %w", err)
-				}
+		if end != "" {
+			endTs, err = youtube.ParseTimestamp(end)
+			if err != nil {
+				return fmt.Errorf("failed to parse end time: %w", err)
 			}
-
-			return youtube.FetchCaption(ctx, s,
-				youtube.WithStart(startTs),
-				youtube.WithEnd(endTs),
-			)
-		})
-
-		for i, f := range tasks {
-			wg.Add(1)
-			go func(id int, f task) {
-				defer wg.Done()
-				data, err := f(ctx, src)
-				ch <- result{i, data, err}
-			}(i, f)
 		}
 
-		go func() {
-			wg.Wait()
-			close(ch)
-		}()
+		loader := youtube.NewYouTubeCaption(
+			youtube.WithSource(src),
+			youtube.WithMetadata(metadata),
+			youtube.WithStart(startTs),
+			youtube.WithEnd(endTs),
+		)
 
-		res := make([]string, 2)
-		for r := range ch {
-			if r.err != nil {
-				return r.err
-			}
-			res[r.id] = r.data
+		docs, err := loader.Load(ctx)
+		if err != nil {
+			return err
 		}
 
-		for _, r := range res {
-			fmt.Print(r)
+		content := ""
+		for _, doc := range docs {
+			content += fmt.Sprintf("%s\n", doc.PageContent)
 		}
+
+		fmt.Print(content)
 
 		if outputFile != "" {
-			content := fmt.Sprintf("%s\n%s", res[0], res[1])
 			if err := util.WriteFile(outputFile, content); err != nil {
 				return err
 			}
