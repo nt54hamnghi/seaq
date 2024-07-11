@@ -1,125 +1,77 @@
 package html
 
 import (
-	"bytes"
 	"context"
-	"errors"
-	"fmt"
-	"strings"
 
-	md "github.com/JohannesKaufmann/html-to-markdown"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/microcosm-cc/bluemonday"
-	"github.com/nt54hamnghi/hiku/pkg/util"
+	"github.com/tmc/langchaingo/schema"
+	"github.com/tmc/langchaingo/textsplitter"
 )
 
-type Scraper interface {
-	Scrape(*goquery.Document) ([]string, error)
-}
-
-// ContentScraper scrapes the main content of a webpage
-// It uses a waterfall approach to find the content.
-// The search order is as follows: content id, main tag, article tag, section tag
-type ContentScraper struct{}
-
-func New() *ContentScraper {
-	return &ContentScraper{}
-}
-
-func (s ContentScraper) Scrape(doc *goquery.Document) ([]string, error) {
-	return findContent(doc)
-}
-
-type FullPageScraper struct{}
-
-func (s FullPageScraper) Scrape(doc *goquery.Document) ([]string, error) {
-	return combine(doc.Selection.Contents()), nil
-}
-
-func WithFullPage() *FullPageScraper {
-	return &FullPageScraper{}
-}
-
-type SelectorScraper struct {
+type HtmlLoader struct {
+	url      string
 	selector string
+	auto     bool
 }
 
-func WithSelector(selector string) (*SelectorScraper, error) {
-	return &SelectorScraper{selector: selector}, nil
+type HtmlOption func(*HtmlLoader)
+
+func WithUrl(url string) HtmlOption {
+	return func(o *HtmlLoader) {
+		o.url = url
+	}
 }
 
-func (s SelectorScraper) Scrape(doc *goquery.Document) ([]string, error) {
-	return findSelector(s.selector, doc)
+func WithSelector(selector string) HtmlOption {
+	return func(o *HtmlLoader) {
+		o.selector = selector
+	}
 }
 
-func ScrapeUrl(ctx context.Context, url string, scr Scraper) (string, error) {
-	htmlBytes, err := util.GetRaw(ctx, url, nil)
+func WithAuto(auto bool) HtmlOption {
+	return func(o *HtmlLoader) {
+		o.auto = auto
+	}
+}
+
+func NewHtmlLoader(opts ...HtmlOption) *HtmlLoader {
+	loader := &HtmlLoader{}
+	for _, opt := range opts {
+		opt(loader)
+	}
+	return loader
+}
+
+// Load loads from a source and returns documents.
+func (h HtmlLoader) Load(ctx context.Context) ([]schema.Document, error) {
+	var s scraper
+	if h.selector != "" {
+		s = selectorScraper{selector: h.selector}
+	} else if h.auto {
+		s = autoScraper{}
+	} else {
+		s = pageScraper{}
+	}
+
+	page, err := scrapeUrl(ctx, h.url, s)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(htmlBytes))
+	return []schema.Document{
+		{
+			PageContent: page,
+			Metadata: map[string]any{
+				"url": h.url,
+			},
+		},
+	}, nil
+}
+
+// LoadAndSplit loads from a source and splits the documents using a text splitter.
+func (h HtmlLoader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
+	docs, err := h.Load(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	contents, err := scr.Scrape(doc)
-	if err != nil {
-		return "", err
-	}
-
-	html := strings.Join(contents, "\n")
-	markdown, err := html2md([]byte(html))
-	if err != nil {
-		return "", err
-	}
-
-	return string(markdown), nil
-
-}
-
-func findContent(doc *goquery.Document) ([]string, error) {
-	for _, tag := range []string{"#content", "main", "article", "section"} {
-		if res := doc.Find(tag); res.Length() != 0 {
-			return combine(res), nil
-		}
-	}
-
-	return nil, errors.New("no content found")
-}
-
-func findSelector(selector string, doc *goquery.Document) ([]string, error) {
-	res := doc.Find(selector)
-	if res.Length() == 0 {
-		return nil, fmt.Errorf("selector '%s' not found", selector)
-	}
-	return combine(res), nil
-}
-
-func combine(selection *goquery.Selection) []string {
-	res := make([]string, 0, selection.Length())
-	selection.Contents().Each(func(i int, s *goquery.Selection) {
-		html, err := s.Html()
-		if err != nil {
-			return
-		}
-		res = append(res, sanitizeHTML(html))
-	})
-	return res
-}
-
-func html2md(safeHTML []byte) ([]byte, error) {
-	converter := md.NewConverter("", true, nil)
-	// converter.Use(plugin.Table())
-
-	return converter.ConvertBytes(safeHTML)
-}
-
-func sanitizeHTML(html string) string {
-	policy := bluemonday.UGCPolicy()
-	policy.AllowAttrs("href").OnElements("a")
-	policy.RequireParseableURLs(true)
-	policy.RequireNoFollowOnFullyQualifiedLinks(true)
-
-	return policy.Sanitize(html)
+	return textsplitter.SplitDocuments(splitter, docs)
 }

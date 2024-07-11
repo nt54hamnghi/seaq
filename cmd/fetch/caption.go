@@ -55,17 +55,12 @@ var captionCmd = &cobra.Command{
 			youtube.WithEnd(endTs),
 		)
 
-		docs, err := loader.Load(ctx)
+		content, err := fetch(ctx, loader)
 		if err != nil {
 			return err
 		}
 
-		content := ""
-		for _, doc := range docs {
-			content += fmt.Sprintf("%s\n", doc.PageContent)
-		}
-
-		fmt.Print(content)
+		fmt.Println(content)
 
 		if outputFile != "" {
 			if err := util.WriteFile(outputFile, content); err != nil {

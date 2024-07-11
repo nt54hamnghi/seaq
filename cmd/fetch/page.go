@@ -16,7 +16,7 @@ import (
 
 var (
 	selector string
-	noFilter bool
+	auto     bool
 )
 
 // pageCmd represents the scrape command
@@ -35,20 +35,13 @@ var pageCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		var scr html.Scraper
+		loader := html.NewHtmlLoader(
+			html.WithUrl(parsedUrl.String()),
+			html.WithSelector(selector),
+			html.WithAuto(auto),
+		)
 
-		if noFilter {
-			scr = html.WithFullPage()
-		} else if selector != "" {
-			scr, err = html.WithSelector(selector)
-			if err != nil {
-				return err
-			}
-		} else {
-			scr = html.New()
-		}
-
-		content, err := html.ScrapeUrl(ctx, parsedUrl.String(), scr)
+		content, err := fetch(ctx, loader)
 		if err != nil {
 			return err
 		}
@@ -67,5 +60,5 @@ var pageCmd = &cobra.Command{
 
 func init() {
 	pageCmd.Flags().StringVarP(&selector, "selector", "s", "", "filter content by selector")
-	pageCmd.Flags().BoolVarP(&noFilter, "no-filter", "n", false, "do not filter content")
+	pageCmd.Flags().BoolVarP(&auto, "auto", "a", false, "automatically detect content")
 }

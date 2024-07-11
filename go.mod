@@ -14,10 +14,12 @@ require (
 	cloud.google.com/go/iam v1.1.7 // indirect
 	cloud.google.com/go/longrunning v0.5.7 // indirect
 	cloud.google.com/go/vertexai v0.10.0 // indirect
+	github.com/AssemblyAI/assemblyai-go-sdk v1.3.0 // indirect
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0 // indirect
 	github.com/PuerkitoBio/goquery v1.9.2 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -27,12 +29,15 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/generative-ai-go v0.14.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.4 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/klauspost/compress v1.17.6 // indirect
+	github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -78,6 +83,7 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	nhooyr.io/websocket v1.8.7 // indirect
 )
 
 require (
