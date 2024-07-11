@@ -48,7 +48,7 @@ var captionCmd = &cobra.Command{
 			}
 		}
 
-		loader := youtube.NewYouTubeCaption(
+		loader := youtube.NewYouTubeLoader(
 			youtube.WithSource(src),
 			youtube.WithMetadata(metadata),
 			youtube.WithStart(startTs),

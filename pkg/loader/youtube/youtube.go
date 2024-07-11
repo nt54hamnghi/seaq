@@ -41,7 +41,7 @@ func WithMetadata(includeMetadata bool) YoutubeLoaderOption {
 	}
 }
 
-func NewYouTubeCaption(opts ...YoutubeLoaderOption) *YouTubeLoader {
+func NewYouTubeLoader(opts ...YoutubeLoaderOption) *YouTubeLoader {
 	loader := &YouTubeLoader{}
 	for _, opt := range opts {
 		opt(loader)
