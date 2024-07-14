@@ -61,7 +61,8 @@ func (h HtmlLoader) Load(ctx context.Context) ([]schema.Document, error) {
 		{
 			PageContent: page,
 			Metadata: map[string]any{
-				"url": h.url,
+				"url":      h.url,
+				"selector": h.selector,
 			},
 		},
 	}, nil

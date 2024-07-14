@@ -39,6 +39,8 @@ func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *YouTubeLoader
 		Metadata: map[string]any{
 			"videoId": vid,
 			"type":    "caption",
+			"start":   opt.start,
+			"end":     opt.end,
 		},
 	}, nil
 }
