@@ -81,7 +81,7 @@ func TestParseTimestamp(t *testing.T) {
 	}
 }
 
-func TestParseTimestamp_Fail(t *testing.T) {
+func TestParseTimestamp_Error(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string

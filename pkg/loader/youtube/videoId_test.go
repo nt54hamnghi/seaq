@@ -27,7 +27,7 @@ func Test_resolveVideoId(t *testing.T) {
 	}
 }
 
-func Test_resolveVideoId_Fail(t *testing.T) {
+func Test_resolveVideoId_Error(t *testing.T) {
 	var testCases = []struct {
 		name string
 		src  string
@@ -81,7 +81,7 @@ func Test_extractVideoId(t *testing.T) {
 		})
 	}
 }
-func Test_extractVideoId_Fail(t *testing.T) {
+func Test_extractVideoId_Error(t *testing.T) {
 	var testCases = []struct {
 		name string
 		url  string

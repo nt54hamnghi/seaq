@@ -149,10 +149,10 @@ func (r *Response) ExpectContentType(contentType string) error {
 		return ErrNilResponse
 	}
 
-	actual := r.Header.Get("Content-Type")
-	actual, _, err := mime.ParseMediaType(actual)
-	if err != nil || actual != contentType {
-		return fmt.Errorf("unexpected content type: %s", actual)
+	actualContentType := r.Header.Get("Content-Type")
+	actualContentType, _, err := mime.ParseMediaType(actualContentType)
+	if err != nil || actualContentType != contentType {
+		return fmt.Errorf("unexpected content type: %s", actualContentType)
 	}
 
 	return nil

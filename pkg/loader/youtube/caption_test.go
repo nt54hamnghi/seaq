@@ -53,7 +53,7 @@ func Test_extractCaptionTracks(t *testing.T) {
 	}
 }
 
-func Test_extractCaptionTracks_Fail(t *testing.T) {
+func Test_extractCaptionTracks_Error(t *testing.T) {
 	tests := []struct {
 		name string
 		body string
@@ -171,7 +171,7 @@ func Test_loadCaption(t *testing.T) {
 	}
 }
 
-func Test_loadCaption_Fail(t *testing.T) {
+func Test_loadCaption_Error(t *testing.T) {
 	var testCases = []struct {
 		name         string
 		captionTrack []captionTrack
