@@ -10,7 +10,7 @@ import (
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/nt54hamnghi/hiku/pkg/util"
+	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
 )
 
 type scraper interface {
@@ -41,7 +41,16 @@ func (s selectorScraper) scrape(doc *goquery.Document) ([]string, error) {
 }
 
 func scrapeUrl(ctx context.Context, url string, scr scraper) (string, error) {
-	htmlBytes, err := util.GetRaw(ctx, url, nil)
+	resp, err := httpx.Get(ctx, url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if err := resp.ExpectContentType("text/html"); err != nil {
+		return "", err
+	}
+
+	htmlBytes, err := resp.Bytes()
 	if err != nil {
 		return "", err
 	}

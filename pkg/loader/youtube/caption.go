@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/nt54hamnghi/hiku/pkg/util"
+	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
 	"github.com/nt54hamnghi/hiku/pkg/util/pool"
 	"github.com/tmc/langchaingo/schema"
 )
@@ -46,16 +46,20 @@ func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *YouTubeLoader
 }
 
 func fetchCaption(ctx context.Context, vid videoId, opt *YouTubeLoader) (cap string, err error) {
-	// get the raw HTML content of the YouTube video page
-	resp, err := http.Get(YouTubeWatchUrl + "?v=" + vid)
+	resp, err := httpx.Get(ctx, YouTubeWatchUrl+"?v="+vid, nil)
 	if err != nil {
 		return
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("response status code: %d", resp.StatusCode)
+	if err = resp.ExpectStatusCode(http.StatusOK); err != nil {
+		return
 	}
+
+	if err = resp.ExpectContentType("text/html"); err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
 
 	// the Raw HTML content contains a list of available caption tracks
 	captionTracks, err := extractCaptionTracks(resp.Body)
@@ -223,7 +227,7 @@ func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 		return caption{}, errors.New("no English caption track found")
 	}
 
-	return util.Get[caption](ctx, ct.BaseURL, nil)
+	return httpx.GetAs[caption](ctx, ct.BaseURL, nil)
 }
 
 // YouTube doesn't provide a public API for caption tracks.
