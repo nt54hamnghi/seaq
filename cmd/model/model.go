@@ -4,8 +4,6 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package model
 
 import (
-	"fmt"
-
 	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/spf13/cobra"
 )
@@ -14,11 +12,11 @@ import (
 var ModelCmd = &cobra.Command{
 	Use:          "model",
 	Short:        "Manage models",
-	Aliases:      []string{"mdl"},
+	Aliases:      []string{"mdl", "m"},
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("model called")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Usage()
 	},
 }
 

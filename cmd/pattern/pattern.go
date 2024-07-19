@@ -12,11 +12,11 @@ import (
 var PatternCmd = &cobra.Command{
 	Use:          "pattern",
 	Short:        "Manage patterns",
-	Aliases:      []string{"pat"},
+	Aliases:      []string{"pat", "p"},
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Usage()
 	},
 }
 
