@@ -33,9 +33,9 @@ func Test_resolveVideoId_Error(t *testing.T) {
 		src  string
 		err  error
 	}{
-		{name: "tooShort", src: "short", err: ErrInvalidVideoId},
-		{name: "tooLong", src: "videoIdIsTooLong", err: ErrInvalidVideoId},
-		{name: "invalidChars", src: "!!!!!!!!!!!", err: ErrInvalidVideoId},
+		{name: "tooShort", src: "short", err: ErrInValidYouTubeURL},
+		{name: "tooLong", src: "looooooooong", err: ErrInValidYouTubeURL},
+		{name: "invalidChars", src: "!!!!!!!!!!!", err: ErrInValidYouTubeURL},
 	}
 
 	asserts := assert.New(t)
@@ -103,7 +103,22 @@ func Test_extractVideoId_Error(t *testing.T) {
 			err:  ErrVideoIdNotFoundInURL,
 		},
 		{
-			name: "invalid",
+			name: "videoIdTooShort",
+			url:  YouTubeWatchUrl + "?v=short",
+			err:  ErrInvalidVideoId,
+		},
+		{
+			name: "videoIdTooLong",
+			url:  YouTubeWatchUrl + "?v=looooooooong",
+			err:  ErrInvalidVideoId,
+		},
+		{
+			name: "invalidChars",
+			url:  YouTubeWatchUrl + "?v=!!!!!!!!!!!",
+			err:  ErrInvalidVideoId,
+		},
+		{
+			name: "invalidUrl",
 			url:  "https://www.google.com/watch?v=SL_YMm9C6tw&v=12345678910",
 			err:  ErrInValidYouTubeURL,
 		},

@@ -18,22 +18,11 @@ type videoId = string
 var videoIdRe = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
 
 func resolveVideoId(src string) (videoId, error) {
-	vid, err := extractVideoId(src)
-	if err != nil {
-		if !errors.Is(err, ErrInValidYouTubeURL) {
-			return "", err
-		}
-		if !checkVideoId(src) {
-			return "", ErrInvalidVideoId
-		}
+	if videoIdRe.MatchString(src) {
 		return src, nil
 	}
 
-	return vid, nil
-}
-
-func checkVideoId(vid string) bool {
-	return videoIdRe.MatchString(vid)
+	return extractVideoId(src)
 }
 
 // extractVideoId returns the video ID of a YouTube watch URL
@@ -52,6 +41,10 @@ func extractVideoId(rawUrl string) (videoId, error) {
 	vid, ok := q["v"]
 	if !ok || len(vid) == 0 || vid[0] == "" {
 		return "", ErrVideoIdNotFoundInURL
+	}
+
+	if !videoIdRe.MatchString(vid[0]) {
+		return "", ErrInvalidVideoId
 	}
 
 	return vid[0], nil
