@@ -101,10 +101,6 @@ type Response struct {
 func Into[T any](resp *Response) (T, error) {
 	var res T
 
-	if err := resp.ExpectSuccess(); err != nil {
-		return res, err
-	}
-
 	if err := resp.ExpectContentType("application/json"); err != nil {
 		return res, err
 	}
@@ -122,6 +118,15 @@ func Into[T any](resp *Response) (T, error) {
 	return res, nil
 }
 
+func (r *Response) String() (string, error) {
+	b, err := r.Bytes()
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
+}
+
 func (r *Response) Bytes() ([]byte, error) {
 	if err := r.ExpectSuccess(); err != nil {
 		return nil, ErrNilResponse
@@ -129,19 +134,6 @@ func (r *Response) Bytes() ([]byte, error) {
 
 	defer r.Body.Close()
 	return io.ReadAll(r.Body)
-}
-
-func (r *Response) String() (string, error) {
-	if err := r.ExpectSuccess(); err != nil {
-		return "", err
-	}
-
-	b, err := r.Bytes()
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
 }
 
 func (r *Response) ExpectContentType(contentType string) error {
