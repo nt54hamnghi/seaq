@@ -113,6 +113,7 @@ func Test_processCaptionTracks(t *testing.T) {
 func Test_loadCaption(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`
 		{
 			"events": [
