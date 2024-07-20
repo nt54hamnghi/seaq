@@ -17,7 +17,7 @@ type videoId = string
 
 var videoIdRe = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
 
-func resolveVideoId(src string) (videoId, error) {
+func ResolveVideoId(src string) (videoId, error) {
 	if videoIdRe.MatchString(src) {
 		return src, nil
 	}

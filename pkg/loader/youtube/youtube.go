@@ -9,7 +9,7 @@ import (
 )
 
 type YouTubeLoader struct {
-	source          string
+	videoId         string
 	start           *Timestamp
 	end             *Timestamp
 	includeMetadata bool
@@ -17,9 +17,9 @@ type YouTubeLoader struct {
 
 type YoutubeLoaderOption func(*YouTubeLoader)
 
-func WithSource(src string) YoutubeLoaderOption {
+func WithVideoId(src string) YoutubeLoaderOption {
 	return func(o *YouTubeLoader) {
-		o.source = src
+		o.videoId = src
 	}
 }
 
@@ -51,20 +51,15 @@ func NewYouTubeLoader(opts ...YoutubeLoaderOption) *YouTubeLoader {
 
 // Load loads from a source and returns documents.
 func (l YouTubeLoader) Load(ctx context.Context) ([]schema.Document, error) {
-	vid, err := resolveVideoId(l.source)
-	if err != nil {
-		return nil, err
-	}
-
 	tasks := []pool.Task[schema.Document]{
 		func() (schema.Document, error) {
-			return fetchCaptionAsDocument(ctx, vid, &l)
+			return fetchCaptionAsDocument(ctx, l.videoId, &l)
 		},
 	}
 
 	if l.includeMetadata {
 		tasks = append(tasks, func() (schema.Document, error) {
-			return fetchMetadtaAsDocument(ctx, vid)
+			return fetchMetadtaAsDocument(ctx, l.videoId)
 		})
 	}
 
