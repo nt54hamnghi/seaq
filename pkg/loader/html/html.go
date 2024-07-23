@@ -1,35 +1,46 @@
 package html
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
 type HtmlLoader struct {
-	url      string
-	selector string
-	auto     bool
+	url       string
+	selector  string
+	auto      bool
+	recursive bool
+	maxPages  int
 }
 
 type HtmlOption func(*HtmlLoader)
 
 func WithUrl(url string) HtmlOption {
-	return func(o *HtmlLoader) {
-		o.url = url
+	return func(l *HtmlLoader) {
+		l.url = url
 	}
 }
 
 func WithSelector(selector string) HtmlOption {
-	return func(o *HtmlLoader) {
-		o.selector = selector
+	return func(l *HtmlLoader) {
+		l.selector = selector
 	}
 }
 
 func WithAuto(auto bool) HtmlOption {
-	return func(o *HtmlLoader) {
-		o.auto = auto
+	return func(l *HtmlLoader) {
+		l.auto = auto
+	}
+}
+
+func WithRecursive(recursive bool, maxPages int) HtmlOption {
+	return func(l *HtmlLoader) {
+		l.recursive = recursive
+		l.maxPages = maxPages
 	}
 }
 
@@ -52,14 +63,35 @@ func (h HtmlLoader) Load(ctx context.Context) ([]schema.Document, error) {
 		s = pageScraper{}
 	}
 
-	page, err := scrapeUrl(ctx, h.url, s)
-	if err != nil {
-		return nil, err
+	var content string
+	var err error
+
+	if !h.recursive {
+		content, err = scrapeFromUrl(ctx, h.url, s)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		crw, err := newCrawler(h.url, h.maxPages)
+		if err != nil {
+			return nil, err
+		}
+
+		contentList, err := crw.crawl(s)
+		if err != nil {
+			return nil, err
+		}
+
+		var buf bytes.Buffer
+		enc := json.NewEncoder(&buf)
+		enc.SetIndent("", "  ")
+		enc.Encode(contentList)
+		content = buf.String()
 	}
 
 	return []schema.Document{
 		{
-			PageContent: page,
+			PageContent: content,
 			Metadata: map[string]any{
 				"url":      h.url,
 				"selector": h.selector,

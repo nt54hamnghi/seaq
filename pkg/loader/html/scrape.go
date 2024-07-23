@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
@@ -29,7 +30,7 @@ func (s autoScraper) scrape(doc *goquery.Document) ([]string, error) {
 type pageScraper struct{}
 
 func (s pageScraper) scrape(doc *goquery.Document) ([]string, error) {
-	return combine(doc.Selection.Contents()), nil
+	return collect(doc.Selection.Contents()), nil
 }
 
 type selectorScraper struct {
@@ -40,7 +41,7 @@ func (s selectorScraper) scrape(doc *goquery.Document) ([]string, error) {
 	return findSelector(s.selector, doc)
 }
 
-func scrapeUrl(ctx context.Context, url string, scr scraper) (string, error) {
+func scrapeFromUrl(ctx context.Context, url string, scr scraper) (string, error) {
 	resp, err := httpx.Get(ctx, url, nil)
 	if err != nil {
 		return "", err
@@ -55,7 +56,11 @@ func scrapeUrl(ctx context.Context, url string, scr scraper) (string, error) {
 		return "", err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(htmlBytes))
+	return scrapeFromReader(scr, bytes.NewReader(htmlBytes))
+}
+
+func scrapeFromReader(scr scraper, r io.Reader) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		return "", err
 	}
@@ -72,13 +77,12 @@ func scrapeUrl(ctx context.Context, url string, scr scraper) (string, error) {
 	}
 
 	return string(markdown), nil
-
 }
 
 func findContent(doc *goquery.Document) ([]string, error) {
 	for _, tag := range []string{"#content", "main", "article", "section"} {
 		if res := doc.Find(tag); res.Length() != 0 {
-			return combine(res), nil
+			return collect(res), nil
 		}
 	}
 
@@ -90,33 +94,34 @@ func findSelector(selector string, doc *goquery.Document) ([]string, error) {
 	if res.Length() == 0 {
 		return nil, fmt.Errorf("selector '%s' not found", selector)
 	}
-	return combine(res), nil
+	return collect(res), nil
 }
 
-func combine(selection *goquery.Selection) []string {
+func collect(selection *goquery.Selection) []string {
 	res := make([]string, 0, selection.Length())
 	selection.Contents().Each(func(i int, s *goquery.Selection) {
 		html, err := s.Html()
 		if err != nil {
 			return
 		}
-		res = append(res, sanitizeHTML(html))
+		res = append(res, string(html))
 	})
 	return res
 }
 
-func html2md(safeHTML []byte) ([]byte, error) {
+func html2md(rawHtml []byte) ([]byte, error) {
+	safeHtml := sanitizeHtml(rawHtml)
 	converter := md.NewConverter("", true, nil)
 	// converter.Use(plugin.Table())
 
-	return converter.ConvertBytes(safeHTML)
+	return converter.ConvertBytes(safeHtml)
 }
 
-func sanitizeHTML(html string) string {
+func sanitizeHtml(html []byte) []byte {
 	policy := bluemonday.UGCPolicy()
 	policy.AllowAttrs("href").OnElements("a")
 	policy.RequireParseableURLs(true)
 	policy.RequireNoFollowOnFullyQualifiedLinks(true)
 
-	return policy.Sanitize(html)
+	return policy.SanitizeBytes(html)
 }
