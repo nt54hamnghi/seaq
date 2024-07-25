@@ -22,12 +22,12 @@ type crawler struct {
 func newCrawler(dest string, maxPages int) (*crawler, error) {
 	url, err := url.ParseRequestURI(dest)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	etldPlusOne, err := publicsuffix.EffectiveTLDPlusOne(url.Hostname())
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	gl := glob.MustCompile(`https://*.` + glob.QuoteMeta(etldPlusOne) + `*`)

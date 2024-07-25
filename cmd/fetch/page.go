@@ -13,6 +13,7 @@ import (
 	"github.com/nt54hamnghi/hiku/pkg/loader/html"
 	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/spf13/cobra"
+	"github.com/tmc/langchaingo/documentloaders"
 )
 
 var (
@@ -43,12 +44,22 @@ var pageCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		loader := html.NewHtmlLoader(
+		var loader documentloaders.Loader
+
+		htmlLoader := html.NewHtmlLoader(
 			html.WithUrl(args[0]),
 			html.WithSelector(selector),
 			html.WithAuto(auto),
-			html.WithRecursive(recursive, maxPages),
 		)
+
+		if !recursive {
+			loader = htmlLoader
+		} else {
+			loader = html.NewRecursiveHtmlLoader(
+				html.WithHtmlLoader(htmlLoader),
+				html.WithMaxPages(maxPages),
+			)
+		}
 
 		content, err := fetch(ctx, loader)
 		if err != nil {
