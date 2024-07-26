@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -38,7 +40,7 @@ var pageCmd = &cobra.Command{
 			return errors.New("--max-pages can only be used with --recursive")
 		}
 
-		return nil
+		return validatePersistentFlags(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -61,20 +63,25 @@ var pageCmd = &cobra.Command{
 			)
 		}
 
-		content, err := fetch(ctx, loader)
-		if err != nil {
-			return err
-		}
+		var writer io.Writer
 
-		fmt.Println(content)
+		if outputFile == "" {
+			writer = os.Stdout
+		} else {
+			var err error
 
-		if outputFile != "" {
-			if err := util.WriteFile(outputFile, content); err != nil {
+			if force {
+				writer, err = util.NewOverwriteWriter(outputFile)
+			} else {
+				writer, err = util.NewFailExistingWriter(outputFile)
+			}
+
+			if err != nil {
 				return err
 			}
 		}
 
-		return nil
+		return fetchAndWrite(ctx, loader, writer)
 	},
 }
 

@@ -6,6 +6,8 @@ package fetch
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"time"
 
 	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
@@ -26,6 +28,7 @@ var captionCmd = &cobra.Command{
 	Aliases:      []string{"cap", "c"},
 	Args:         validateCaptionArgs,
 	SilenceUsage: true,
+	PreRunE:      validatePersistentFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vid := args[0]
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -55,20 +58,25 @@ var captionCmd = &cobra.Command{
 			youtube.WithEnd(endTs),
 		)
 
-		content, err := fetch(ctx, loader)
-		if err != nil {
-			return err
-		}
+		var writer io.Writer
 
-		fmt.Println(content)
+		if outputFile == "" {
+			writer = os.Stdout
+		} else {
+			var err error
 
-		if outputFile != "" {
-			if err := util.WriteFile(outputFile, content); err != nil {
+			if force {
+				writer, err = util.NewOverwriteWriter(outputFile)
+			} else {
+				writer, err = util.NewFailExistingWriter(outputFile)
+			}
+
+			if err != nil {
 				return err
 			}
 		}
 
-		return nil
+		return fetchAndWrite(ctx, loader, writer)
 	},
 }
 
