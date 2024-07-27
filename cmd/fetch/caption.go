@@ -6,12 +6,9 @@ package fetch
 import (
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"time"
 
 	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
-	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +25,7 @@ var captionCmd = &cobra.Command{
 	Aliases:      []string{"cap", "c"},
 	Args:         validateCaptionArgs,
 	SilenceUsage: true,
-	PreRunE:      validatePersistentFlags,
+	PreRunE:      output.Validate,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vid := args[0]
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -58,25 +55,13 @@ var captionCmd = &cobra.Command{
 			youtube.WithEnd(endTs),
 		)
 
-		var writer io.Writer
-
-		if outputFile == "" {
-			writer = os.Stdout
-		} else {
-			var err error
-
-			if force {
-				writer, err = util.NewOverwriteWriter(outputFile)
-			} else {
-				writer, err = util.NewFailExistingWriter(outputFile)
-			}
-
-			if err != nil {
-				return err
-			}
+		dest, err := output.Writer()
+		if err != nil {
+			return err
 		}
+		defer dest.Close()
 
-		return fetchAndWrite(ctx, loader, writer)
+		return fetchAndWrite(ctx, loader, dest)
 	},
 }
 
@@ -84,6 +69,8 @@ func init() {
 	captionCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
 	captionCmd.Flags().StringVar(&start, "start", "", "start time")
 	captionCmd.Flags().StringVar(&end, "end", "", "end time")
+
+	output.Init(captionCmd)
 }
 
 func validateCaptionArgs(cmd *cobra.Command, args []string) error {

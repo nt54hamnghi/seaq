@@ -7,13 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/nt54hamnghi/hiku/pkg/loader/html"
-	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/spf13/cobra"
 	"github.com/tmc/langchaingo/documentloaders"
 )
@@ -40,7 +37,7 @@ var pageCmd = &cobra.Command{
 			return errors.New("--max-pages can only be used with --recursive")
 		}
 
-		return validatePersistentFlags(cmd, args)
+		return output.Validate(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -63,25 +60,13 @@ var pageCmd = &cobra.Command{
 			)
 		}
 
-		var writer io.Writer
-
-		if outputFile == "" {
-			writer = os.Stdout
-		} else {
-			var err error
-
-			if force {
-				writer, err = util.NewOverwriteWriter(outputFile)
-			} else {
-				writer, err = util.NewFailExistingWriter(outputFile)
-			}
-
-			if err != nil {
-				return err
-			}
+		dest, err := output.Writer()
+		if err != nil {
+			return err
 		}
+		defer dest.Close()
 
-		return fetchAndWrite(ctx, loader, writer)
+		return fetchAndWrite(ctx, loader, dest)
 	},
 }
 
@@ -90,6 +75,8 @@ func init() {
 	pageCmd.Flags().BoolVarP(&auto, "auto", "a", false, "automatically detect content")
 	pageCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "recursively fetch content")
 	pageCmd.Flags().IntVarP(&maxPages, "max-pages", "m", 5, "maximum number of pages to fetch")
+
+	output.Init(pageCmd)
 }
 
 func validatePageArgs(cmd *cobra.Command, args []string) error {

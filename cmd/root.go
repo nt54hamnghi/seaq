@@ -13,10 +13,10 @@ import (
 
 	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/nt54hamnghi/hiku/cmd/fetch"
+	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
 	"github.com/nt54hamnghi/hiku/cmd/model"
 	"github.com/nt54hamnghi/hiku/cmd/pattern"
 	"github.com/nt54hamnghi/hiku/pkg/llm"
-	"github.com/nt54hamnghi/hiku/pkg/util"
 
 	"github.com/spf13/cobra"
 )
@@ -31,11 +31,12 @@ var errInteractiveInput = errors.New("interactive input is not supported")
 
 var (
 	configFile  string
-	outputFile  string
 	patternName string
 	patternRepo string
 	modelName   string
+	noStream    bool
 	verbose     bool
+	output      flagGroup.Output
 )
 
 // endregion: --- flags
@@ -47,13 +48,8 @@ var rootCmd = &cobra.Command{
 	Version:      "0.1.0",
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
+	PreRunE:      output.Validate,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// get the value of the no-stream flag
-		noStream, err := cmd.Flags().GetBool("no-stream")
-		if err != nil {
-			return err
-		}
-
 		// read from stdin if it's piped
 		input, err := readStdin()
 		if err != nil && errors.Is(err, errInteractiveInput) {
@@ -73,33 +69,29 @@ var rootCmd = &cobra.Command{
 			return errors.New("piped input is empty")
 		}
 
-		// construct the model
 		if verbose {
 			fmt.Println("Using model:", config.Hiku.Model())
 		}
 
+		// construct the model
 		model, err := llm.New(config.Hiku.Model())
 		if err != nil {
 			return err
 		}
 
-		// run the completion
-		resp, err := llm.CreateCompletion(context.Background(), model, prompt, input, !noStream)
+		dest, err := output.Writer()
 		if err != nil {
 			return err
 		}
+		defer dest.Close()
 
+		// run the completion
+		msgs := llm.PrepareMessages(prompt, input)
 		if noStream {
-			fmt.Println(resp)
+			return llm.CreateCompletion(context.Background(), model, msgs, dest)
+		} else {
+			return llm.CreateStreamCompletion(context.Background(), model, msgs, dest)
 		}
-
-		if outputFile != "" {
-			if err := util.WriteFile(outputFile, resp); err != nil {
-				return err
-			}
-		}
-
-		return nil
 	},
 }
 
@@ -151,11 +143,13 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "verbose output")
 
 	// local flags are only available to the root command
-	rootCmd.Flags().Bool("no-stream", false, "disable streaming mode")
-	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file")
+	rootCmd.Flags().BoolVar(&noStream, "no-stream", false, "disable streaming mode")
 	rootCmd.Flags().StringVarP(&patternRepo, "repo", "r", "", "path to the pattern repository")
 	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use")
 	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
+
+	// flag groups
+	output.Init(rootCmd)
 
 	// register completion function
 	rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)

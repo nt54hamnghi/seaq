@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/tmc/langchaingo/llms"
@@ -98,35 +99,53 @@ func New(name string) (llms.Model, error) {
 
 }
 
-func CreateCompletion(ctx context.Context, llm llms.Model, prompt string, content string, stream bool) (string, error) {
-	msgs := prepareMessages(prompt, content)
-
-	options := []llms.CallOption{}
-
-	if stream {
-		streamFunc := func(ctx context.Context, chunk []byte) error {
-			fmt.Print(string(chunk))
-			return nil
-		}
-
-		options = append(options, llms.WithStreamingFunc(streamFunc))
-	}
-
-	resp, err := llm.GenerateContent(ctx, msgs, options...)
+func CreateCompletion(
+	ctx context.Context,
+	llm llms.Model,
+	msgs []llms.MessageContent,
+	writer io.Writer,
+) error {
+	resp, err := llm.GenerateContent(ctx, msgs)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	choices := resp.Choices
-	if len(choices) < 1 {
-		return "", errors.New("empty response from model")
+	if len(resp.Choices) == 0 {
+		return errors.New("empty response from model")
 	}
 
-	return choices[0].Content, nil
+	_, err = io.WriteString(writer, resp.Choices[0].Content)
+
+	return err
+}
+
+func CreateStreamCompletion(
+	ctx context.Context,
+	llm llms.Model,
+	msgs []llms.MessageContent,
+	writer io.Writer,
+) error {
+	streamFunc := func(ctx context.Context, chunk []byte) error {
+		_, err := writer.Write(chunk)
+		return err
+	}
+
+	resp, err := llm.GenerateContent(ctx, msgs,
+		llms.WithStreamingFunc(streamFunc),
+	)
+	if err != nil {
+		return err
+	}
+
+	if len(resp.Choices) == 0 {
+		return errors.New("empty response from model")
+	}
+
+	return err
 
 }
 
-func prepareMessages(prompt string, content string) []llms.MessageContent {
+func PrepareMessages(prompt string, content string) []llms.MessageContent {
 	return []llms.MessageContent{
 		{
 			Role:  llms.ChatMessageTypeSystem,

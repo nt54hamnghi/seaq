@@ -5,17 +5,16 @@ package fetch
 
 import (
 	"context"
-	"errors"
 	"io"
 	"strings"
 
+	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
 	"github.com/spf13/cobra"
 	"github.com/tmc/langchaingo/documentloaders"
 )
 
 var (
-	outputFile string
-	force      bool
+	output flagGroup.Output
 )
 
 // FetchCmd represents the scrape command
@@ -34,21 +33,6 @@ var FetchCmd = &cobra.Command{
 func init() {
 	FetchCmd.AddCommand(captionCmd)
 	FetchCmd.AddCommand(pageCmd)
-
-	// persistent flags
-	FetchCmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "", "output file")
-	FetchCmd.PersistentFlags().BoolVarP(&force, "force", "f", false, "overwrite output file if it exists")
-}
-
-func validatePersistentFlags(cmd *cobra.Command, _ []string) error {
-	outputFileSet := cmd.Flags().Changed("output")
-	forceSet := cmd.Flags().Changed("force")
-
-	if forceSet && (!outputFileSet || outputFile == "") {
-		return errors.New("--force can only be used with --output")
-	}
-
-	return nil
 }
 
 // fetch loads documents using the Loader and concatenates their content.
