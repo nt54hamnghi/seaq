@@ -17,6 +17,7 @@ import (
 	"github.com/nt54hamnghi/hiku/cmd/model"
 	"github.com/nt54hamnghi/hiku/cmd/pattern"
 	"github.com/nt54hamnghi/hiku/pkg/llm"
+	"github.com/nt54hamnghi/hiku/pkg/util"
 
 	"github.com/spf13/cobra"
 )
@@ -50,11 +51,13 @@ var rootCmd = &cobra.Command{
 	SilenceUsage: true,
 	PreRunE:      output.Validate,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// read from stdin if it's piped
-		input, err := readStdin()
-		if err != nil && errors.Is(err, errInteractiveInput) {
-			cmd.Help()
-			return nil
+		input, err := readInput()
+		if err != nil {
+			if errors.Is(err, errInteractiveInput) {
+				cmd.Help()
+				return nil
+			}
+			return err
 		}
 
 		// construct the prompt from pattern and scraped content
@@ -62,11 +65,6 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			cmd.SilenceUsage = true
 			return err
-		}
-
-		// check if input is empty
-		if input == "" {
-			return errors.New("piped input is empty")
 		}
 
 		if verbose {
@@ -86,7 +84,7 @@ var rootCmd = &cobra.Command{
 		defer dest.Close()
 
 		// run the completion
-		msgs := llm.PrepareMessages(prompt, input)
+		msgs := llm.PrepareMessages(prompt, string(input))
 		if noStream {
 			return llm.CreateCompletion(context.Background(), model, msgs, dest)
 		} else {
@@ -95,30 +93,25 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// readStdin reads from stdin if it's piped, otherwise it returns an error.
-func readStdin() (string, error) {
-	// get stat of stdin file descriptor
-	info, err := os.Stdin.Stat()
+func readInput() (string, error) {
+	isPiped, err := util.StdinIsPiped()
 	if err != nil {
 		return "", err
 	}
 
-	// Check if input is piped or interactive
-	//
-	// `info.Mode()` returns the file mode bits
-	// `os.ModeCharDevice` is a file mode bit for a character device
-	// when input is piped, `info.Mode()` will NOT have `os.ModeCharDevice` set
-	// -> a bitwise AND with `os.ModeCharDevice` will return 0
-	// when input is interactive, `info.Mode()` will have `os.ModeCharDevice` set
-	// -> a bitwise AND with `os.ModeCharDevice` will return a non-zero value
-	if info.Mode()&os.ModeCharDevice != 0 {
+	if !isPiped {
 		return "", errInteractiveInput
 	}
 
-	// read from stdin
+	// read from stdin if it's piped
 	input, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return "", err
+	}
+
+	// check if input is empty
+	if len(input) == 0 {
+		return "", errors.New("input is empty")
 	}
 
 	return string(input), nil

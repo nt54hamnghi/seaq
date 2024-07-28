@@ -20,9 +20,9 @@ func (o *Output) Writer() (io.WriteCloser, error) {
 	}
 
 	if o.Force {
-		return util.NewOverwriteWriter(o.File)
+		return util.NewTruncateFileWriter(o.File)
 	} else {
-		return util.NewFailExistingWriter(o.File)
+		return util.NewCreateOnlyFileWriter(o.File)
 	}
 }
 
