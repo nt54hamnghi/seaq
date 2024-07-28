@@ -49,7 +49,7 @@ var rootCmd = &cobra.Command{
 	Version:      "0.1.0",
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	PreRunE:      output.Validate,
+	PreRunE:      flagGroup.ValidateGroups(&output),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		input, err := readInput()
 		if err != nil {
@@ -142,7 +142,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
 
 	// flag groups
-	output.Init(rootCmd)
+	flagGroup.InitGroups(rootCmd, &output)
 
 	// register completion function
 	rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)

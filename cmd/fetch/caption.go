@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
 	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +26,7 @@ var captionCmd = &cobra.Command{
 	Aliases:      []string{"cap", "c"},
 	Args:         validateCaptionArgs,
 	SilenceUsage: true,
-	PreRunE:      output.Validate,
+	PreRunE:      flagGroup.ValidateGroups(&output),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vid := args[0]
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -70,7 +71,7 @@ func init() {
 	captionCmd.Flags().StringVar(&start, "start", "", "start time")
 	captionCmd.Flags().StringVar(&end, "end", "", "end time")
 
-	output.Init(captionCmd)
+	flagGroup.InitGroups(captionCmd, &output)
 }
 
 func validateCaptionArgs(cmd *cobra.Command, args []string) error {

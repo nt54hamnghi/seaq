@@ -10,16 +10,40 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
 	"github.com/nt54hamnghi/hiku/pkg/loader/html"
 	"github.com/spf13/cobra"
 	"github.com/tmc/langchaingo/documentloaders"
 )
 
+// region: --- flag groups
+
+type recursive struct {
+	Recursive bool
+	MaxPages  int
+}
+
+func (r *recursive) Init(cmd *cobra.Command) {
+	pageCmd.Flags().BoolVarP(&r.Recursive, "recursive", "r", false, "recursively fetch content")
+	pageCmd.Flags().IntVarP(&r.MaxPages, "max-pages", "m", 5, "maximum number of pages to fetch")
+}
+
+func (r *recursive) Validate(cmd *cobra.Command, args []string) error {
+	maxPagesSet := cmd.Flags().Changed("max-pages")
+	recursiveSet := cmd.Flags().Changed("recursive")
+
+	if maxPagesSet && (!recursiveSet || !r.Recursive) {
+		return errors.New("--max-pages can only be used with --recursive")
+	}
+	return nil
+}
+
+// endregion: --- flag groups
+
 var (
-	selector  string
-	auto      bool
-	recursive bool
-	maxPages  int
+	selector string
+	auto     bool
+	rc       recursive
 )
 
 // pageCmd represents the scrape command
@@ -29,16 +53,7 @@ var pageCmd = &cobra.Command{
 	Aliases:      []string{"pg", "p"},
 	Args:         validatePageArgs,
 	SilenceUsage: true,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		maxPagesSet := cmd.Flags().Changed("max-pages")
-		recursiveSet := cmd.Flags().Changed("recursive")
-
-		if maxPagesSet && (!recursiveSet || !recursive) {
-			return errors.New("--max-pages can only be used with --recursive")
-		}
-
-		return output.Validate(cmd, args)
-	},
+	PreRunE:      flagGroup.ValidateGroups(&rc, &output),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -51,12 +66,12 @@ var pageCmd = &cobra.Command{
 			html.WithAuto(auto),
 		)
 
-		if !recursive {
+		if !rc.Recursive {
 			loader = htmlLoader
 		} else {
 			loader = html.NewRecursiveHtmlLoader(
 				html.WithHtmlLoader(htmlLoader),
-				html.WithMaxPages(maxPages),
+				html.WithMaxPages(rc.MaxPages),
 			)
 		}
 
@@ -73,10 +88,8 @@ var pageCmd = &cobra.Command{
 func init() {
 	pageCmd.Flags().StringVarP(&selector, "selector", "s", "", "filter content by selector")
 	pageCmd.Flags().BoolVarP(&auto, "auto", "a", false, "automatically detect content")
-	pageCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "recursively fetch content")
-	pageCmd.Flags().IntVarP(&maxPages, "max-pages", "m", 5, "maximum number of pages to fetch")
 
-	output.Init(pageCmd)
+	flagGroup.InitGroups(pageCmd, &rc, &output)
 }
 
 func validatePageArgs(cmd *cobra.Command, args []string) error {
