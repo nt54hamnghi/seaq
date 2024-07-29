@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
+	"github.com/nt54hamnghi/hiku/pkg/env"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/anthropic"
 	"github.com/tmc/langchaingo/llms/googleai"
@@ -84,13 +84,31 @@ func New(name string) (llms.Model, error) {
 
 	switch provider {
 	case "OpenAI":
-		return openai.New(openai.WithModel(model))
+		apiKey, err := env.OpenAIAPIKey()
+		if err != nil {
+			return nil, err
+		}
+		return openai.New(
+			openai.WithModel(model),
+			openai.WithToken(apiKey),
+		)
 	case "Anthropic":
-		return anthropic.New(anthropic.WithModel(model))
+		apiKey, err := env.AnthropicAPIKey()
+		if err != nil {
+			return nil, err
+		}
+		return anthropic.New(
+			anthropic.WithModel(model),
+			anthropic.WithToken(apiKey),
+		)
 	case "Google":
+		apiKey, err := env.GeminiAPIKey()
+		if err != nil {
+			return nil, err
+		}
 		return googleai.New(
 			context.Background(),
-			googleai.WithAPIKey(os.Getenv("GEMINI_API_KEY")),
+			googleai.WithAPIKey(apiKey),
 			googleai.WithDefaultModel(model),
 		)
 	default:

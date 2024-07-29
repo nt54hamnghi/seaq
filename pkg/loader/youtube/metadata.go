@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
+	"github.com/nt54hamnghi/hiku/pkg/env"
 	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
 	"github.com/tmc/langchaingo/schema"
 )
@@ -80,9 +80,9 @@ Description:
 }
 
 func buildSnippetRequestUrl(vid videoId) (string, error) {
-	apiKey := os.Getenv("YOUTUBE_API_KEY")
-	if apiKey == "" {
-		return "", ErrYoutubeApiKeyNotSet
+	apiKey, err := env.YoutubeAPIKey()
+	if err != nil {
+		return "", err
 	}
 
 	url := fmt.Sprintf("%s?part=snippet&id=%s&key=%s", YoutubeApiUrl, vid, apiKey)
