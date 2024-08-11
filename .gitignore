@@ -1,9 +1,19 @@
+# IDE-specific files
 /.vscode
+
+# Temporary files and directories
 /tmp
 
-# local test files and directories
+# Local development and testing
 /dev
+/chroma
 /.config
 /.legacy
 
-summary.md
+# Build output
+/summary.md
+
+# All .env files
+*.env
+
+# Miscellaneous system files
