@@ -7,10 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/nt54hamnghi/hiku/cmd/chat"
 	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/nt54hamnghi/hiku/cmd/fetch"
 	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
@@ -21,12 +21,6 @@ import (
 
 	"github.com/spf13/cobra"
 )
-
-// region: --- errors
-
-var errInteractiveInput = errors.New("interactive input is not supported")
-
-// endregion: --- errors
 
 // region: --- flags
 
@@ -51,9 +45,9 @@ var rootCmd = &cobra.Command{
 	SilenceUsage: true,
 	PreRunE:      flagGroup.ValidateGroups(&output),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		input, err := readInput()
+		input, err := util.ReadPipedStdin()
 		if err != nil {
-			if errors.Is(err, errInteractiveInput) {
+			if errors.Is(err, util.ErrInteractiveInput) {
 				cmd.Help()
 				return nil
 			}
@@ -93,30 +87,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func readInput() (string, error) {
-	isPiped, err := util.StdinIsPiped()
-	if err != nil {
-		return "", err
-	}
-
-	if !isPiped {
-		return "", errInteractiveInput
-	}
-
-	// read from stdin if it's piped
-	input, err := io.ReadAll(os.Stdin)
-	if err != nil {
-		return "", err
-	}
-
-	// check if input is empty
-	if len(input) == 0 {
-		return "", errors.New("input is empty")
-	}
-
-	return string(input), nil
-}
-
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -150,6 +120,7 @@ func init() {
 
 	// add subcommands
 	rootCmd.AddCommand(
+		chat.ChatCmd,
 		fetch.FetchCmd,
 		pattern.PatternCmd,
 		model.ModelCmd,
