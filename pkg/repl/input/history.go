@@ -28,26 +28,25 @@ func (h *history) append(input string) *history {
 	return h
 }
 
-func (h *history) next() *string {
-	if len(h.inputs) == 0 {
-		return nil
+func (h *history) next() string {
+	// at latest history entry or ready for new input
+	if h.cursor >= len(h.inputs)-1 {
+		return ""
 	}
 
-	if h.cursor < len(h.inputs)-1 {
-		h.cursor++
-	}
-
-	return &h.inputs[h.cursor]
+	h.cursor++
+	return h.inputs[h.cursor]
 }
 
-func (h *history) previous() *string {
+func (h *history) previous() string {
+	// at earliest history entry
 	if len(h.inputs) == 0 {
-		return nil
+		return ""
 	}
 
 	if h.cursor > 0 {
 		h.cursor--
 	}
 
-	return &h.inputs[h.cursor]
+	return h.inputs[h.cursor]
 }

@@ -29,16 +29,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyUp:
-			if input := m.previous(); input != nil {
-				m.SetValue(*input)
-				m.CursorEnd()
-			}
+			m.SetValue(m.previous())
+			m.CursorEnd()
 			return m, nil
 		case tea.KeyDown:
-			if input := m.next(); input != nil {
-				m.SetValue(*input)
-				m.CursorEnd()
-			}
+			m.SetValue(m.next())
+			m.CursorEnd()
 			return m, nil
 		}
 	}
