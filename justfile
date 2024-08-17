@@ -12,3 +12,9 @@ test:
     @go test ./...
 
 alias t := test
+
+up:
+    @docker compose -f compose.dev.yml up -d
+
+down:
+    @docker compose -f compose.dev.yml down

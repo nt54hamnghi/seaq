@@ -9,6 +9,7 @@
 /chroma
 /.config
 /.legacy
+debug.log
 
 # Build output
 /summary.md

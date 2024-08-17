@@ -1,0 +1,6 @@
+services:
+    chroma-core:
+        container_name: chroma-core
+        image: 'ghcr.io/chroma-core/chroma:0.5.0'
+        ports:
+            - '7645:8000'

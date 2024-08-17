@@ -1,23 +1,27 @@
 package repl
 
 import (
+	"context"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-)
-
-const (
-	prefix = "> "
+	"github.com/nt54hamnghi/hiku/pkg/rag"
+	"github.com/tmc/langchaingo/vectorstores"
 )
 
 type ChatMsg struct {
 	Prompt string
 	Answer string
+	Error  error
 }
 
 // FIXME: use pointer receiver since a chat message can be large
 func (c ChatMsg) String() string {
-	return prefix + c.Prompt + "\n" + c.Answer
+	if c.Error != nil {
+		return c.Error.Error() + "\n"
+	}
+
+	return c.Answer + "\n"
 }
 
 func JoinChatMsg(chat []ChatMsg) string {
@@ -31,13 +35,41 @@ func JoinChatMsg(chat []ChatMsg) string {
 	return sb.String()
 }
 
-func SendChatMsg(prompt string) tea.Cmd {
+func SendChatMsg(prompt string, store *rag.DocumentStore) tea.Cmd {
 	return func() tea.Msg {
-		// TODO: make request to API
+		results, err := store.SimilaritySearch(context.TODO(), prompt, 2, vectorstores.WithScoreThreshold(0.7))
+		if err != nil {
+			return ChatMsg{
+				Prompt: prompt,
+				Error:  err,
+			}
+		}
+
+		answer := "Nothing found"
+		if len(results) >= 1 {
+			answer = results[0].PageContent
+		}
+
+		// TODO: forward data to LLM models
 
 		return ChatMsg{
 			Prompt: prompt,
-			Answer: prompt, // echo for now
+			Answer: answer,
 		}
 	}
 }
+
+// func Debug_SendChatMsg(prompt string, store *rag.DocumentStore) tea.Cmd {
+// 	return func() tea.Msg {
+
+// 		answer := ""
+// 		for i := 0; i < 100; i++ {
+// 			answer += fmt.Sprintf("%d\n", i)
+// 		}
+
+// 		return ChatMsg{
+// 			Prompt: prompt,
+// 			Answer: answer,
+// 		}
+// 	}
+// }

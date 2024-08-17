@@ -4,12 +4,16 @@ Copyright © 2024 Nghi Nguyen
 package chat
 
 import (
+	"context"
 	"errors"
+	"strings"
+	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/nt54hamnghi/hiku/pkg/repl"
 	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/spf13/cobra"
+	"github.com/tmc/langchaingo/documentloaders"
+	"github.com/tmc/langchaingo/textsplitter"
 )
 
 // ChatCmd represents the chat command
@@ -17,7 +21,7 @@ var ChatCmd = &cobra.Command{
 	Use:   "chat",
 	Short: "Open a chat session",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_, err := util.ReadPipedStdin()
+		input, err := util.ReadPipedStdin()
 		if err != nil {
 			if errors.Is(err, util.ErrInteractiveInput) {
 				cmd.Help()
@@ -26,11 +30,23 @@ var ChatCmd = &cobra.Command{
 			return err
 		}
 
-		p := tea.NewProgram(repl.New())
-		if _, err := p.Run(); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		reader := strings.NewReader(input)
+		loader := documentloaders.NewText(reader)
+		docs, err := loader.LoadAndSplit(
+			ctx,
+			textsplitter.NewRecursiveCharacter(
+				textsplitter.WithChunkSize(1000),
+				textsplitter.WithChunkOverlap(100),
+			),
+		)
+		if err != nil {
 			return err
 		}
-		return nil
+
+		return repl.Run(ctx, docs)
 	},
 }
 
