@@ -1,8 +1,21 @@
 package input
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+const (
+	promptInput = "> "
+	promptcolor = lipgloss.Color("#66b3ff")
+	promptValue = "What's in your mind?"
+)
+
+var (
+	promptStyle = lipgloss.NewStyle().Foreground(promptcolor)
 )
 
 type Model struct {
@@ -11,8 +24,15 @@ type Model struct {
 }
 
 func New() Model {
+	// create & configure model
+	model := textinput.New()
+	model.Focus()
+	model.Placeholder = promptValue
+	model.Prompt = promptStyle.Render(promptInput)
+	model.CharLimit = 128
+
 	return Model{
-		Model:   textinput.New(),
+		Model:   model,
 		history: newHistory(),
 	}
 }
@@ -43,7 +63,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
+	if !m.Focused() {
+		return ""
+	}
 	return m.Model.View()
+}
+
+func (m Model) AsString() string {
+	return fmt.Sprintf("%s%s", promptStyle.Render(promptInput), m.Value())
 }
 
 func (m *Model) Append(value string) {

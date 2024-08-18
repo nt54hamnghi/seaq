@@ -1,35 +1,12 @@
 package rag
 
 import (
-	"context"
-
 	chroma_go "github.com/amikos-tech/chroma-go/types"
 	"github.com/nt54hamnghi/hiku/pkg/env"
-	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/vectorstores/chroma"
 )
 
-type DocumentStore struct {
-	*chroma.Store
-	Docs []schema.Document
-}
-
-func NewStoreWithDocuments(ctx context.Context, docs []schema.Document) (*DocumentStore, error) {
-	store, err := NewStore()
-	if err != nil {
-		return nil, err
-	}
-
-	store.Docs = docs
-	_, err = store.AddDocuments(ctx, docs)
-	if err != nil {
-		return nil, err
-	}
-
-	return store, nil
-}
-
-func NewStore() (*DocumentStore, error) {
+func NewChromaStore() (*chroma.Store, error) {
 	chromaUrl, err := env.ChromaURL()
 	if err != nil {
 		return nil, err
@@ -53,5 +30,5 @@ func NewStore() (*DocumentStore, error) {
 		return nil, err
 	}
 
-	return &DocumentStore{Store: &store}, nil
+	return &store, nil
 }

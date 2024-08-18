@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nt54hamnghi/hiku/cmd/config"
+	"github.com/nt54hamnghi/hiku/pkg/llm"
 	"github.com/nt54hamnghi/hiku/pkg/repl"
 	"github.com/nt54hamnghi/hiku/pkg/util"
 	"github.com/spf13/cobra"
@@ -33,6 +35,7 @@ var ChatCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
+		// load the document
 		reader := strings.NewReader(input)
 		loader := documentloaders.NewText(reader)
 		docs, err := loader.LoadAndSplit(
@@ -46,7 +49,23 @@ var ChatCmd = &cobra.Command{
 			return err
 		}
 
-		return repl.Run(ctx, docs)
+		// construct model
+		model, err := llm.New(config.Hiku.Model())
+		if err != nil {
+			return err
+		}
+
+		// initialize repl
+		repl, err := repl.NewRepl(docs,
+			repl.WithContext(ctx),
+			repl.WithModel(model),
+			repl.WithDefaultStore(),
+		)
+		if err != nil {
+			return err
+		}
+
+		return repl.Run()
 	},
 }
 
