@@ -119,11 +119,11 @@ func New(name string) (llms.Model, error) {
 
 func CreateCompletion(
 	ctx context.Context,
-	llm llms.Model,
-	msgs []llms.MessageContent,
+	model llms.Model,
 	writer io.Writer,
+	msgs []llms.MessageContent,
 ) error {
-	resp, err := llm.GenerateContent(ctx, msgs)
+	resp, err := model.GenerateContent(ctx, msgs)
 	if err != nil {
 		return err
 	}
@@ -134,21 +134,21 @@ func CreateCompletion(
 
 	_, err = io.WriteString(writer, resp.Choices[0].Content)
 
-	return err
+	return nil
 }
 
 func CreateStreamCompletion(
 	ctx context.Context,
-	llm llms.Model,
-	msgs []llms.MessageContent,
+	model llms.Model,
 	writer io.Writer,
+	msgs []llms.MessageContent,
 ) error {
 	streamFunc := func(ctx context.Context, chunk []byte) error {
 		_, err := writer.Write(chunk)
 		return err
 	}
 
-	resp, err := llm.GenerateContent(ctx, msgs,
+	resp, err := model.GenerateContent(ctx, msgs,
 		llms.WithStreamingFunc(streamFunc),
 	)
 	if err != nil {
@@ -159,7 +159,7 @@ func CreateStreamCompletion(
 		return errors.New("empty response from model")
 	}
 
-	return err
+	return nil
 
 }
 

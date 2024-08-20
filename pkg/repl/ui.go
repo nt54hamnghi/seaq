@@ -3,9 +3,9 @@ package repl
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/nt54hamnghi/hiku/pkg/rag"
@@ -23,11 +23,11 @@ type UiComponents struct {
 
 type Repl struct {
 	UiComponents
-	model llms.Model               // Language model
-	store vectorstores.VectorStore // Data store
-	chat  []ChatMsg                // Chat history
-	error error                    // Critical error
-	ctx   context.Context
+	engine *Engine                  // Language model engine
+	store  vectorstores.VectorStore // Data store
+	chat   Chat                     // Chat history
+	error  error                    // Critical error
+	ctx    context.Context
 }
 
 type ReplOption func(*Repl) error
@@ -51,7 +51,7 @@ func WithDefaultStore() ReplOption {
 
 func WithModel(model llms.Model) ReplOption {
 	return func(r *Repl) error {
-		r.model = model
+		r.engine.Model = model
 		return nil
 	}
 }
@@ -61,6 +61,18 @@ func WithContext(ctx context.Context) ReplOption {
 		r.ctx = ctx
 		return nil
 	}
+}
+
+type ReplError struct {
+	inner error
+}
+
+func (e ReplError) Error() string {
+	return e.inner.Error()
+}
+
+func NewReplError(err error) ReplError {
+	return ReplError{inner: err}
 }
 
 func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
@@ -77,7 +89,12 @@ func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 				glamour.WithWordWrap(100),
 			),
 		},
-		chat: make([]ChatMsg, 0),
+		engine: &Engine{
+			stream: make(chan StreamMsg),
+		},
+		chat: Chat{
+			chat: make([]llms.MessageContent, 0),
+		},
 	}
 
 	// apply options, if any
@@ -96,7 +113,7 @@ func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 
 	// refuse to proceed without a model
 	// TODO: might want to use a default model
-	if repl.model == nil {
+	if repl.engine.Model == nil {
 		return nil, errors.New("no model provided")
 	}
 
@@ -118,10 +135,13 @@ func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 }
 
 func (r Repl) Init() tea.Cmd {
-	return tea.ClearScreen
+	return tea.Batch(
+		tea.ClearScreen,
+		textinput.Blink,
+	)
 }
 
-func (r Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmds     []tea.Cmd
 		inputCmd tea.Cmd
@@ -135,6 +155,7 @@ func (r Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		// TODO: reset renderer size
 		r.prompt.Width = msg.Width / 3 * 2
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -151,23 +172,41 @@ func (r Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					input := r.prompt.AsString()
 					r.prompt.Append(rawInput)
 					r.prompt.Blur()
+
 					cmds = append(
 						cmds,
 						tea.Println(input),
-						SendChatMsg(rawInput, r.model, r.store),
+						r.engine.SendMessage(r.ctx, rawInput, &r.chat, r.store),
+						r.engine.AwaitNext(),
 					)
 				}
 			}
 		}
-	case ChatMsg:
-		r.chat = append(r.chat, msg)
-		output := r.renderer.RenderContent(msg.Answer)
+	case StreamMsg:
+		if msg.last {
+			output := r.renderer.RenderContent(r.engine.buffer)
+			r.chat.Append(newResponseMsg(output))
+			r.engine.buffer = ""
+			r.prompt.Focus()
+
+			return r, tea.Sequence(
+				tea.Println(output),
+				textinput.Blink,
+			)
+		} else {
+			cmds = append(cmds, r.engine.AwaitNext())
+		}
+	case ChatError:
+		output := r.renderer.RenderError(msg.Error())
+		r.chat.Append(newResponseMsg(output))
 		r.prompt.Focus()
+
 		cmds = append(
 			cmds,
 			tea.Println(output),
+			textinput.Blink,
 		)
-	case ErrMsg: // critical error
+	case ReplError:
 		r.error = msg
 		return r, tea.Quit
 	}
@@ -177,13 +216,23 @@ func (r Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (r Repl) View() string {
 	if r.error != nil {
-		return fmt.Sprintf("Error: %v\n", r.error)
+		return r.renderer.RenderError(r.error.Error())
+	}
+
+	if len(r.engine.buffer) != 0 {
+		return r.renderer.RenderContent(r.engine.buffer)
 	}
 
 	return r.prompt.View() + "\n"
 }
 
 func (r *Repl) Run() error {
+	// f, err := tea.LogToFile("debug.log", "debug")
+	// if err != nil {
+	// 	return err
+	// }
+	// defer f.Close()
+
 	p := tea.NewProgram(r,
 		tea.WithMouseCellMotion(),
 	)
@@ -193,16 +242,4 @@ func (r *Repl) Run() error {
 	}
 
 	return nil
-}
-
-type ErrMsg struct {
-	error
-}
-
-func (e ErrMsg) Error() string {
-	return e.error.Error()
-}
-
-func (e ErrMsg) Unwrap() error {
-	return e.error
 }

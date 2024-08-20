@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/nt54hamnghi/hiku/cmd/chat"
 	"github.com/nt54hamnghi/hiku/cmd/config"
@@ -78,11 +79,14 @@ var rootCmd = &cobra.Command{
 		defer dest.Close()
 
 		// run the completion
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
 		msgs := llm.PrepareMessages(prompt, string(input))
+
 		if noStream {
-			return llm.CreateCompletion(context.Background(), model, msgs, dest)
+			return llm.CreateCompletion(ctx, model, dest, msgs)
 		} else {
-			return llm.CreateStreamCompletion(context.Background(), model, msgs, dest)
+			return llm.CreateStreamCompletion(ctx, model, dest, msgs)
 		}
 	},
 }

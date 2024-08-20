@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/nt54hamnghi/hiku/pkg/llm"
@@ -32,8 +31,7 @@ var ChatCmd = &cobra.Command{
 			return err
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+		ctx := context.Background()
 
 		// load the document
 		reader := strings.NewReader(input)
@@ -41,7 +39,7 @@ var ChatCmd = &cobra.Command{
 		docs, err := loader.LoadAndSplit(
 			ctx,
 			textsplitter.NewRecursiveCharacter(
-				textsplitter.WithChunkSize(1000),
+				textsplitter.WithChunkSize(750),
 				textsplitter.WithChunkOverlap(100),
 			),
 		)

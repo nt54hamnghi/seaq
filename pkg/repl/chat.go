@@ -1,14 +1,13 @@
 package repl
 
 import (
-	"bytes"
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nt54hamnghi/hiku/pkg/llm"
 	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/vectorstores"
 )
 
@@ -24,86 +23,156 @@ Query:
 Instructions:
 1. First, analyze the context thoroughly.
 2. Attempt to answer the query using only the information provided in the context.
-3. If the context is insufficient:
+3. Keep your response concise and directly relevant to the query.
+4. If the context is insufficient:
    a. Provide as much information as you can from the context.
-   b. Supplement with your general knowledge, and ONLY be explicit if you do so.
-4. Keep your response concise and directly relevant to the query.
+   b. Supplement with your general knowledge, and be explicit if you do so.
+5. If the context is empty or irrelevant, answer the query to the best of your ability.
+6. Suggest other concepts/ideas that could be related to the query or context, and be explicit if you do so.
+7. Ensure your response is fluent and coherent and avoid simply listing facts.
 `
 
-type ChatMsg struct {
-	Prompt string
-	Answer string
-	Error  error
+// region: --- helpers
+
+// TODO: use langchaingo built-in template functions
+func constructPrompt(question string, tempate string, docs []schema.Document) string {
+	context := ""
+	for _, d := range docs {
+		context += d.PageContent + "\n"
+	}
+	return fmt.Sprintf(tempate, context, question)
 }
 
-// FIXME: use pointer receiver since a chat message can be large
-func (c ChatMsg) String() string {
-	if c.Error != nil {
-		return c.Error.Error()
+func newPromptMsg(prompt string) llms.MessageContent {
+	return llms.MessageContent{
+		Role:  llms.ChatMessageTypeHuman,
+		Parts: []llms.ContentPart{llms.TextContent{Text: prompt}},
+	}
+}
+
+func newResponseMsg(response string) llms.MessageContent {
+	return llms.MessageContent{
+		Role:  llms.ChatMessageTypeAI,
+		Parts: []llms.ContentPart{llms.TextContent{Text: response}},
+	}
+}
+
+// endregion: --- helpers
+
+// recoverable error during chat
+type ChatError struct {
+	inner error
+}
+
+func (e ChatError) Error() string {
+	return e.inner.Error()
+}
+
+func NewChatError(err error) ChatError {
+	return ChatError{inner: err}
+}
+
+// region: --- Chat
+
+type Chat struct {
+	chat []llms.MessageContent
+}
+
+func (ch *Chat) Append(msg llms.MessageContent) {
+	ch.chat = append(ch.chat, msg)
+}
+
+func (ch Chat) Len() int {
+	return len(ch.chat)
+}
+
+func (ch Chat) GetContents() []llms.MessageContent {
+	return ch.chat
+}
+
+// endregion: --- Chat
+
+// region: --- Engine
+
+type StreamMsg struct {
+	content string
+	last    bool
+}
+
+type Engine struct {
+	llms.Model
+	stream chan StreamMsg
+	buffer string
+}
+
+// TODO: Change name
+func (e *Engine) startCompletion(ctx context.Context, msgs []llms.MessageContent) error {
+	defer func() {
+		e.stream <- StreamMsg{
+			content: "",
+			last:    true,
+		}
+	}()
+
+	streamFunc := func(ctx context.Context, chunk []byte) error {
+		e.stream <- StreamMsg{
+			content: string(chunk),
+			last:    false,
+		}
+		return nil
 	}
 
-	return c.Answer
-}
+	resp, err := e.GenerateContent(ctx, msgs,
+		llms.WithStreamingFunc(streamFunc),
+	)
 
-func JoinChatMsg(chat []ChatMsg) string {
-	var sb strings.Builder
-
-	for _, c := range chat {
-		sb.WriteString(c.String())
-		sb.WriteString("\n\n")
+	if err != nil {
+		return err
 	}
 
-	return sb.String()
+	if len(resp.Choices) == 0 {
+		return errors.New("empty response from model")
+	}
+
+	return nil
 }
 
-func SendChatMsg(question string, model llms.Model, store vectorstores.VectorStore) tea.Cmd {
+func (e *Engine) AwaitNext() tea.Cmd {
 	return func() tea.Msg {
-		ctx := context.TODO()
+		output := <-e.stream
+		e.buffer += output.content
+		return output
+	}
+}
 
+func (e *Engine) SendMessage(ctx context.Context, question string, chat *Chat, store vectorstores.VectorStore) tea.Cmd {
+	return func() tea.Msg {
 		retrievedDocs, err := store.SimilaritySearch(
-			ctx, question, 3,
+			ctx, question, 10,
 			vectorstores.WithScoreThreshold(0.7),
 		)
 		if err != nil {
-			return ChatMsg{
-				Prompt: question,
-				Error:  err,
-			}
+			return NewChatError(err)
 		}
 
-		context := ""
-		for _, d := range retrievedDocs {
-			context += d.PageContent + "\n"
+		prompt := constructPrompt(question, template, retrievedDocs)
+		chat.Append(newPromptMsg(prompt))
+
+		err = e.startCompletion(ctx, chat.GetContents())
+		if err != nil {
+			return NewChatError(err)
 		}
 
-		var buf bytes.Buffer
-		prompt := fmt.Sprintf(template, context, question)
+		chat.chat[chat.Len()-1] = newPromptMsg(question)
 
-		llm.CreateStreamCompletion(ctx, model, []llms.MessageContent{
-			{
-				Role:  llms.ChatMessageTypeHuman,
-				Parts: []llms.ContentPart{llms.TextContent{Text: prompt}},
-			},
-		}, &buf)
-
-		return ChatMsg{
-			Prompt: question,
-			Answer: buf.String(),
-		}
+		return nil
 	}
 }
 
-func Debug_SendChatMsg(prompt string, store vectorstores.VectorStore) tea.Cmd {
-	return func() tea.Msg {
+// endregion: --- Engine
 
-		// answer := ""
-		// for i := 0; i < 100; i++ {
-		// 	answer += fmt.Sprintf("%d\n", i)
-		// }
-
-		return ChatMsg{
-			Prompt: prompt,
-			Answer: prompt,
-		}
-	}
-}
+// func (ch *Chat) Debug_Query(ctx context.Context, question string, model llms.Model, store vectorstores.VectorStore) tea.Cmd {
+// 	return func() tea.Msg {
+// 		return NewResponseChatMsg(question)
+// 	}
+// }
