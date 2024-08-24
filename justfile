@@ -18,3 +18,6 @@ up:
 
 down:
     @docker compose -f compose.dev.yml down
+
+restart:
+    @docker compose -f compose.dev.yml restart

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/nt54hamnghi/hiku/cmd/chat"
@@ -46,6 +45,8 @@ var rootCmd = &cobra.Command{
 	SilenceUsage: true,
 	PreRunE:      flagGroup.ValidateGroups(&output),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		hiku := config.Hiku
+
 		input, err := util.ReadPipedStdin()
 		if err != nil {
 			if errors.Is(err, util.ErrInteractiveInput) {
@@ -56,18 +57,18 @@ var rootCmd = &cobra.Command{
 		}
 
 		// construct the prompt from pattern and scraped content
-		prompt, err := config.Hiku.GetPrompt()
+		prompt, err := hiku.GetPrompt()
 		if err != nil {
 			cmd.SilenceUsage = true
 			return err
 		}
 
 		if verbose {
-			fmt.Println("Using model:", config.Hiku.Model())
+			fmt.Println("Using model:", hiku.Model())
 		}
 
 		// construct the model
-		model, err := llm.New(config.Hiku.Model())
+		model, err := llm.New(hiku.Model())
 		if err != nil {
 			return err
 		}
@@ -102,7 +103,9 @@ func Execute() {
 
 func init() {
 	// init viper config and register it with cobra
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(func() {
+		cobra.CheckErr(initConfig())
+	})
 
 	// flags definition
 	// persistent flags are global and available to all commands
@@ -132,40 +135,39 @@ func init() {
 }
 
 // initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	config.Hiku = config.New()
+func initConfig() error {
+	// bind the global HikuConfig to a local variable
+	hiku := config.Hiku
+
+	// set the config file if provided otherwise search for it
 	if configFile != "" {
-		// Use config file from the flag.
-		config.Hiku.SetConfigFile(configFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".hiku" (without extension).
-		config.Hiku.SetConfigName("hiku")
-		config.Hiku.SetConfigType("yaml")
-
-		// Path to look for the config file in
-		// The order of paths listed is the order in which they will be searched
-		config.Hiku.AddConfigPath("/etc/hiku")
-		config.Hiku.AddConfigPath(filepath.Join(home, ".config/hiku"))
-		config.Hiku.AddConfigPath(".")
+		hiku.SetConfigFile(configFile)
+	} else if err := hiku.SearchConfigFile(); err != nil {
+		return err
 	}
 
 	// bind flags to viper
+	flgs := rootCmd.Flags()
+	if err := hiku.BindPFlag("pattern.name", flgs.Lookup("pattern")); err != nil {
+		return err
+	}
+	if err := hiku.BindPFlag("pattern.repo", flgs.Lookup("repo")); err != nil {
+		return err
+	}
+	if err := hiku.BindPFlag("model.name", flgs.Lookup("model")); err != nil {
+		return err
+	}
 
-	// -- pattern
-	config.Hiku.BindPFlag("pattern.name", rootCmd.Flags().Lookup("pattern"))
-	config.Hiku.BindPFlag("pattern.repo", rootCmd.Flags().Lookup("repo"))
-
-	// -- model
-	config.Hiku.BindPFlag("model.name", rootCmd.Flags().Lookup("model"))
-
-	config.Hiku.AutomaticEnv() // read in environment variables that match
+	// read in the config file and environment variables
+	hiku.AutomaticEnv()
 
 	// If a config file is found, read it in.
-	if err := config.Hiku.ReadInConfig(); err == nil && verbose {
-		fmt.Fprintln(os.Stderr, "Using config file:", config.Hiku.ConfigFileUsed())
+	if err := hiku.ReadInConfig(); err != nil {
+		return err
 	}
+	if verbose {
+		fmt.Fprintln(os.Stderr, "Using config file:", hiku.ConfigFileUsed())
+	}
+
+	return nil
 }

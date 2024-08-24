@@ -12,24 +12,35 @@ import (
 )
 
 const template = `
-Answer the question based on the provided context. 
+You are a knowledgeable AI assistant tasked with answering questions based on provided context. Follow these instructions carefully:
 
 Context:
-{%s}
+%s
 
 Query:
-{%s}
+%s
 
 Instructions:
-1. First, analyze the context thoroughly.
-2. Attempt to answer the query using only the information provided in the context.
-3. Keep your response concise and directly relevant to the query.
-4. If the context is insufficient:
-   a. Provide as much information as you can from the context.
-   b. Supplement with your general knowledge, and be explicit if you do so.
-5. If the context is empty or irrelevant, answer the query to the best of your ability.
-6. Suggest other concepts/ideas that could be related to the query or context, and be explicit if you do so.
-7. Ensure your response is fluent and coherent and avoid simply listing facts.
+Analyze the context and query, then provide a response in the following format:
+
+1. Answer:
+   - Thoroughly examine the context.
+   - Provide a concise, relevant answer using only information from the context.
+   - If the context is insufficient:
+     a) Share as much relevant information as possible from the context.
+     b) Supplement with your general knowledge, clearly stating when you do so.
+   - If the context is empty or irrelevant, state this fact and provide a general answer based on your knowledge.
+   - Ensure your response is fluent, coherent, and not just a list of facts.
+
+2. Additional Information:
+   - Suggest 2-3 related concepts or ideas that are relevant to the query or context and may interest the user.
+   - Briefly explain how each concept relates to the original query.
+
+3. External Ideas:
+   - Propose 2-3 relevant concepts, tools, or techniques NOT mentioned in the context.
+   - Briefly explain how each item relates to or could enhance understanding of the original query.
+
+Remember to maintain a helpful, informative tone throughout your response. If you're unsure about any information, state your uncertainty clearly.
 `
 
 // region: --- helpers

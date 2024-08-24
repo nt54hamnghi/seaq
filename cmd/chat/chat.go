@@ -6,9 +6,11 @@ package chat
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/nt54hamnghi/hiku/cmd/config"
+	"github.com/nt54hamnghi/hiku/cmd/model"
 	"github.com/nt54hamnghi/hiku/pkg/llm"
 	"github.com/nt54hamnghi/hiku/pkg/repl"
 	"github.com/nt54hamnghi/hiku/pkg/util"
@@ -17,11 +19,17 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
+var (
+	modelName string
+)
+
 // ChatCmd represents the chat command
 var ChatCmd = &cobra.Command{
 	Use:   "chat",
 	Short: "Open a chat session",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		hiku := config.Hiku
+
 		input, err := util.ReadPipedStdin()
 		if err != nil {
 			if errors.Is(err, util.ErrInteractiveInput) {
@@ -47,8 +55,16 @@ var ChatCmd = &cobra.Command{
 			return err
 		}
 
+		verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+		if verbose {
+			fmt.Println("Using model:", modelName)
+		}
+
 		// construct model
-		model, err := llm.New(config.Hiku.Model())
+		model, err := llm.New(hiku.Model())
 		if err != nil {
 			return err
 		}
@@ -67,4 +83,10 @@ var ChatCmd = &cobra.Command{
 	},
 }
 
-func init() {}
+func init() {
+	ChatCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
+	ChatCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
+
+	err := config.Hiku.BindPFlag("model.name", ChatCmd.Flags().Lookup("model"))
+	cobra.CheckErr(err)
+}
