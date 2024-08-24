@@ -1,16 +1,34 @@
 package renderer
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 )
 
 const (
 	helpColor    = lipgloss.Color("#aaaaaa")
-	errorColor   = lipgloss.Color("#cc3333")
-	warningColor = lipgloss.Color("#ffcc00")
-	successColor = lipgloss.Color("#46b946")
+	errorColor   = lipgloss.Color("#f38ba8")
+	warningColor = lipgloss.Color("#f9e2af")
+	successColor = lipgloss.Color("#89b4fa")
+
+	errorPrefix   = "Error:"
+	warningPrefix = "Warning:"
+	successPrefix = "Success:"
 )
+
+// region: --- helpers
+
+func renderMessage(msg string, style lipgloss.Style, prefix string) string {
+	if prefix == "" {
+		prefix = "Message:"
+	}
+	msg = fmt.Sprintf("\n%s %s\n", prefix, msg)
+	return style.Render(msg)
+}
+
+// endregion: --- helpers
 
 type Renderer struct {
 	content *glamour.TermRenderer
@@ -35,33 +53,39 @@ func New(options ...glamour.TermRendererOption) *Renderer {
 	}
 }
 
-func (r *Renderer) RenderContent(in string) string {
-	out, _ := r.content.Render(in)
+func (r *Renderer) RenderContent(content string) string {
+	out, _ := r.content.Render(content)
 
 	return out
 }
 
-func (r *Renderer) RenderSuccess(in string) string {
-	return r.success.Render(in)
+func (r *Renderer) RenderSuccess(msg string) string {
+	return renderMessage(msg, r.success, successPrefix)
 }
 
-func (r *Renderer) RenderWarning(in string) string {
-	return r.warning.Render(in)
+func (r *Renderer) RenderWarning(msg string) string {
+	return renderMessage(msg, r.warning, warningPrefix)
 }
 
-func (r *Renderer) RenderError(in string) string {
-	return r.error.Render(in)
+func (r *Renderer) RenderError(msg string) string {
+	return renderMessage(msg, r.error, errorPrefix)
 }
 
-func (r *Renderer) RenderHelp(in string) string {
-	return r.help.Render(in)
+func (r *Renderer) RenderHelp(msg string) string {
+	return r.help.Render(msg)
 }
 
-// func (r *Renderer) RenderHelpMessage() string {
-// 	help := "**Help**\n"
-// 	help += "- `↑`/`↓` : navigate in history\n"
-// 	help += "- `ctrl+l`: clear terminal but keep discussion history\n"
-// 	help += "- `ctrl+c`: exit or interrupt command execution\n"
+func (r *Renderer) RenderHelpMessage() string {
+	help := "**Help**\n"
+	help += "\n"
+	help += "Keyboard shortcuts:\n"
+	help += "- `↑`/`↓` : navigate in history\n"
+	help += "- `ctrl+c`/`esc`: exit or interrupt command execution\n"
+	help += "- `ctrl+h`: show help message\n"
+	help += "\n"
+	// help += "- `ctrl+l`: clear terminal but keep discussion history\n"
+	help += "Commands:\n"
+	help += "- `:q` or `:quit`: exit the program\n"
 
-// 	return help
-// }
+	return r.RenderContent(help)
+}

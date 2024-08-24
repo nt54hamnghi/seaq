@@ -137,6 +137,7 @@ func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 func (r Repl) Init() tea.Cmd {
 	return tea.Batch(
 		tea.ClearScreen,
+		tea.Println(r.renderer.RenderHelpMessage()),
 		textinput.Blink,
 	)
 }
@@ -161,9 +162,15 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return r, tea.Quit
+		case tea.KeyCtrlH:
+			cmds = append(
+				cmds,
+				tea.Println(r.renderer.RenderHelpMessage()),
+				textinput.Blink,
+			)
 		case tea.KeyEnter:
 			switch strings.ToLower(r.prompt.Value()) {
-			case "exit", "bye":
+			case ":q", ":quit":
 				return r, tea.Quit
 			default:
 				rawInput := r.prompt.Value()

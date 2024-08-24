@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	promptInput = "> "
-	promptcolor = lipgloss.Color("#66b3ff")
-	promptValue = "What's in your mind?"
+	promptIcon        = "> "
+	promptcolor       = lipgloss.Color("#66b3ff")
+	promptPlaceHolder = "What's in your mind?"
 )
 
 var (
@@ -27,8 +27,8 @@ func New() Model {
 	// create & configure model
 	model := textinput.New()
 	model.Focus()
-	model.Placeholder = promptValue
-	model.Prompt = promptStyle.Render(promptInput)
+	model.Placeholder = promptPlaceHolder
+	model.Prompt = promptStyle.Render(promptIcon)
 	model.CharLimit = 128
 
 	return Model{
@@ -70,7 +70,7 @@ func (m Model) View() string {
 }
 
 func (m Model) AsString() string {
-	return fmt.Sprintf("%s%s", promptStyle.Render(promptInput), m.Value())
+	return fmt.Sprintf("%s%s", promptStyle.Render(promptIcon), m.Value())
 }
 
 func (m *Model) Append(value string) {
