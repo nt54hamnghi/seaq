@@ -13,6 +13,15 @@ test:
 
 alias t := test
 
+completion:
+    @go run main.go completion zsh > "_hiku"
+    @sudo mv _hiku /usr/share/zsh/site-functions/
+
+install: completion
+    @go install .
+
+alias i := install
+
 up:
     @docker compose -f compose.dev.yml up -d
 
