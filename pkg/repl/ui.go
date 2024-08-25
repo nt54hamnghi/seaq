@@ -5,24 +5,27 @@ import (
 	"errors"
 	"strings"
 
+	spin "github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/nt54hamnghi/hiku/pkg/rag"
 	"github.com/nt54hamnghi/hiku/pkg/repl/input"
 	"github.com/nt54hamnghi/hiku/pkg/repl/renderer"
+	"github.com/nt54hamnghi/hiku/pkg/repl/spinner"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/vectorstores"
 )
 
-type UiComponents struct {
+type components struct {
 	prompt   input.Model
 	renderer *renderer.Renderer
+	spinner  *spinner.Spinner
 }
 
 type Repl struct {
-	UiComponents
+	components
 	engine *Engine                  // Language model engine
 	store  vectorstores.VectorStore // Data store
 	chat   Chat                     // Chat history
@@ -82,12 +85,13 @@ func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 
 	// initialize the repl
 	repl := Repl{
-		UiComponents: UiComponents{
+		components: components{
 			prompt: input.New(),
 			renderer: renderer.New(
 				glamour.WithAutoStyle(),
 				glamour.WithWordWrap(100),
 			),
+			spinner: spinner.New(),
 		},
 		engine: &Engine{
 			stream: make(chan StreamMsg),
@@ -144,8 +148,9 @@ func (r Repl) Init() tea.Cmd {
 
 func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
-		cmds     []tea.Cmd
-		inputCmd tea.Cmd
+		cmds       []tea.Cmd
+		inputCmd   tea.Cmd
+		spinnerCmd tea.Cmd
 	)
 
 	model, inputCmd := r.prompt.Update(msg)
@@ -158,6 +163,11 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		// TODO: reset renderer size
 		r.prompt.Width = msg.Width / 3 * 2
+	case spin.TickMsg:
+		if r.spinner.Running() {
+			r.spinner.Model, spinnerCmd = r.spinner.Update(msg)
+			cmds = append(cmds, spinnerCmd)
+		}
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
@@ -176,6 +186,8 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				rawInput := r.prompt.Value()
 
 				if rawInput != "" {
+					r.spinner.Start()
+
 					input := r.prompt.AsString()
 					r.prompt.Append(rawInput)
 					r.prompt.Blur()
@@ -183,6 +195,7 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(
 						cmds,
 						tea.Println(input),
+						r.spinner.Tick, // advance spinner
 						r.engine.SendMessage(r.ctx, rawInput, &r.chat, r.store),
 						r.engine.AwaitNext(),
 					)
@@ -201,6 +214,8 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				textinput.Blink,
 			)
 		} else {
+			// TODO: spinner should be stopped after the first message
+			r.spinner.Stop()
 			cmds = append(cmds, r.engine.AwaitNext())
 		}
 	case ChatError:
@@ -224,6 +239,10 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (r Repl) View() string {
 	if r.error != nil {
 		return r.renderer.RenderError(r.error.Error())
+	}
+
+	if r.spinner.Running() {
+		return r.renderer.RenderContent(r.spinner.View() + "\n")
 	}
 
 	if len(r.engine.buffer) != 0 {

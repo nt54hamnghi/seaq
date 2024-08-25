@@ -21,26 +21,31 @@ Query:
 %s
 
 Instructions:
-Analyze the context and query, then provide a response in the following format:
+Analyze the context and query, then provide a response in Markdown format with the following sections:
 
 1. Answer:
-   - Thoroughly examine the context.
-   - Provide a concise, relevant answer using only information from the context.
-   - If the context is insufficient:
-     a) Share as much relevant information as possible from the context.
-     b) Supplement with your general knowledge, clearly stating when you do so.
-   - If the context is empty or irrelevant, state this fact and provide a general answer based on your knowledge.
-   - Ensure your response is fluent, coherent, and not just a list of facts.
+	- Thoroughly examine the context.
+	- Provide a SHORT AND CONCISE answer using only the provided context.
+	- If the context is insufficient:
+		- Include as much relevant information as possible from the context.
+		- Supplement with your knowledge, clearly stating when you do so.
+	- If the context is empty or irrelevant:
+		- Clearly state so and provide an answer based on your knowledge.
+	- Ensure your response is fluent, coherent, and not just a list of facts.
 
 2. Additional Information:
-   - Suggest 2-3 related concepts or ideas that are relevant to the query or context and may interest the user.
-   - Briefly explain how each concept relates to the original query.
+	- Suggest 1-2 related concepts or ideas that are related to the query or context and may interest the user.
+	- Briefly explain how each concept relates to the original query.
 
-3. External Ideas:
-   - Propose 2-3 relevant concepts, tools, or techniques NOT mentioned in the context.
-   - Briefly explain how each item relates to or could enhance understanding of the original query.
 
-Remember to maintain a helpful, informative tone throughout your response. If you're unsure about any information, state your uncertainty clearly.
+3. Relevant Ideas:
+   - If the context includes terms that are unclear or insufficiently explained, provide a brief explanation with your own knowledge.
+     - For instance, if the context mentions NAT gateways, explain what NAT is and how it pertains to networking.
+     - The explanation can extend beyond the immediate context.
+   - Suggest 1-2 additional ideas related to the query that were not explicitly mentioned in the context.
+
+Remember to maintain a helpful, informative tone throughout your response. 
+If you're unsure about any information, state your uncertainty clearly.
 `
 
 // region: --- helpers
