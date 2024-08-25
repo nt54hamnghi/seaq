@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -16,6 +17,8 @@ const (
 	errorPrefix   = "Error:"
 	warningPrefix = "Warning:"
 	successPrefix = "Success:"
+
+	DefaultStyle = styles.DarkStyle
 )
 
 // region: --- helpers

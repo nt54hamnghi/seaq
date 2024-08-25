@@ -88,7 +88,8 @@ func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 		components: components{
 			prompt: input.New(),
 			renderer: renderer.New(
-				glamour.WithAutoStyle(),
+				// glamour.WithAutoStyle(),
+				glamour.WithStandardStyle(renderer.DefaultStyle),
 				glamour.WithWordWrap(100),
 			),
 			spinner: spinner.New(),
@@ -161,8 +162,19 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		// TODO: reset renderer size
-		r.prompt.Width = msg.Width / 3 * 2
+		w := msg.Width / 3 * 2
+
+		r.renderer = renderer.New(
+			// glamour.WithAutoStyle(), // bug: this leaks style string to the input field
+			glamour.WithStandardStyle(renderer.DefaultStyle),
+			glamour.WithWordWrap(w),
+		)
+
+		r.prompt.Width = w
+		r.prompt.SetValue("")
+		r.prompt.Reset()
+
+		return r, nil
 	case spin.TickMsg:
 		if r.spinner.Running() {
 			r.spinner.Model, spinnerCmd = r.spinner.Update(msg)
