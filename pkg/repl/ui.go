@@ -18,53 +18,7 @@ import (
 	"github.com/tmc/langchaingo/vectorstores"
 )
 
-type components struct {
-	prompt   input.Model
-	renderer *renderer.Renderer
-	spinner  *spinner.Spinner
-}
-
-type Repl struct {
-	components
-	engine *Engine                  // Language model engine
-	store  vectorstores.VectorStore // Data store
-	chat   Chat                     // Chat history
-	error  error                    // Critical error
-	ctx    context.Context
-}
-
-type ReplOption func(*Repl) error
-
-func WithStore(store vectorstores.VectorStore) ReplOption {
-	return func(r *Repl) error {
-		r.store = store
-		return nil
-	}
-}
-
-func WithDefaultStore() ReplOption {
-	return func(r *Repl) (err error) {
-		r.store, err = rag.NewChromaStore()
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-func WithModel(model llms.Model) ReplOption {
-	return func(r *Repl) error {
-		r.engine.Model = model
-		return nil
-	}
-}
-
-func WithContext(ctx context.Context) ReplOption {
-	return func(r *Repl) error {
-		r.ctx = ctx
-		return nil
-	}
-}
+// region: --- errors
 
 type ReplError struct {
 	inner error
@@ -78,6 +32,59 @@ func NewReplError(err error) ReplError {
 	return ReplError{inner: err}
 }
 
+// endregion: --- errors
+
+type components struct {
+	prompt   input.Model
+	renderer *renderer.Renderer
+	spinner  *spinner.Spinner
+}
+
+type resources struct {
+	model llms.Model
+	store vectorstores.VectorStore
+}
+
+type Repl struct {
+	components
+	resources
+	chain *Chain
+	error error // Critical error
+	ctx   context.Context
+}
+
+type ReplOption func(*Repl) error
+
+func WithDefaultStore() ReplOption {
+	return func(r *Repl) (err error) {
+		if r.store, err = rag.NewChromaStore(); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func WithStore(store vectorstores.VectorStore) ReplOption {
+	return func(r *Repl) error {
+		r.store = store
+		return nil
+	}
+}
+
+func WithModel(model llms.Model) ReplOption {
+	return func(r *Repl) error {
+		r.model = model
+		return nil
+	}
+}
+
+func WithContext(ctx context.Context) ReplOption {
+	return func(r *Repl) error {
+		r.ctx = ctx
+		return nil
+	}
+}
+
 func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 	if len(docs) == 0 {
 		return nil, errors.New("no documents to load")
@@ -88,53 +95,40 @@ func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 		components: components{
 			prompt: input.New(),
 			renderer: renderer.New(
-				// glamour.WithAutoStyle(),
 				glamour.WithStandardStyle(renderer.DefaultStyle),
 				glamour.WithWordWrap(100),
 			),
 			spinner: spinner.New(),
 		},
-		engine: &Engine{
-			stream: make(chan StreamMsg),
-		},
-		chat: Chat{
-			chat: make([]llms.MessageContent, 0),
-		},
 	}
 
 	// apply options, if any
+	// return as soon as an error is encountered
 	for _, opt := range opts {
-		err := opt(&repl)
-		// return as soon as an error is encountered
-		if err != nil {
+		if err := opt(&repl); err != nil {
 			return nil, err
 		}
 	}
 
-	// set the default context if not provided
 	if repl.ctx == nil {
-		repl.ctx = context.Background()
+		return nil, errors.New("context is nil")
 	}
 
-	// refuse to proceed without a model
-	// TODO: might want to use a default model
-	if repl.engine.Model == nil {
-		return nil, errors.New("no model provided")
+	if repl.model == nil {
+		return nil, errors.New("model is nil")
 	}
 
-	// set the default store if not provided
 	if repl.store == nil {
-		err := WithDefaultStore()(&repl)
-		if err != nil {
-			return nil, err
-		}
+		return nil, errors.New("store is nil")
 	}
 
 	// add documents to the store
-	_, err := repl.store.AddDocuments(repl.ctx, docs)
-	if err != nil {
+	if _, err := repl.store.AddDocuments(repl.ctx, docs); err != nil {
 		return nil, err
 	}
+
+	// initialize the chain
+	repl.chain = NewChain(repl.model, repl.store)
 
 	return &repl, nil
 }
@@ -193,6 +187,9 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			switch strings.ToLower(r.prompt.Value()) {
 			case ":q", ":quit":
+				// if cb := r.chain.Memory.(*memory.ConversationBuffer); cb != nil {
+				// 	log.Println(cb.ChatHistory.Messages(context.Background()))
+				// }
 				return r, tea.Quit
 			default:
 				rawInput := r.prompt.Value()
@@ -208,17 +205,16 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						cmds,
 						tea.Println(input),
 						r.spinner.Tick, // advance spinner
-						r.engine.SendMessage(r.ctx, rawInput, &r.chat, r.store),
-						r.engine.AwaitNext(),
+						r.chain.SendMessage(r.ctx, rawInput),
+						r.chain.AwaitNext(),
 					)
 				}
 			}
 		}
 	case StreamMsg:
 		if msg.last {
-			output := r.renderer.RenderContent(r.engine.buffer)
-			r.chat.Append(newResponseMsg(output))
-			r.engine.buffer = ""
+			output := r.renderer.RenderContent(r.chain.buffer)
+			r.chain.buffer = ""
 			r.prompt.Focus()
 
 			return r, tea.Sequence(
@@ -228,11 +224,10 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			// TODO: spinner should be stopped after the first message
 			r.spinner.Stop()
-			cmds = append(cmds, r.engine.AwaitNext())
+			cmds = append(cmds, r.chain.AwaitNext())
 		}
 	case ChatError:
 		output := r.renderer.RenderError(msg.Error())
-		r.chat.Append(newResponseMsg(output))
 		r.prompt.Focus()
 
 		cmds = append(
@@ -257,8 +252,8 @@ func (r Repl) View() string {
 		return r.renderer.RenderContent(r.spinner.View() + "\n")
 	}
 
-	if len(r.engine.buffer) != 0 {
-		return r.renderer.RenderContent(r.engine.buffer)
+	if len(r.chain.buffer) != 0 {
+		return r.renderer.RenderContent(r.chain.buffer)
 	}
 
 	return r.prompt.View() + "\n"
