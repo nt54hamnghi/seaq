@@ -56,7 +56,7 @@ func retry[T any](n int, delay time.Duration, f retryFunc[T]) (T, error) {
 
 // endregion: --- helpers
 
-func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *YouTubeLoader) (schema.Document, error) {
+func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *youtubeFilter) (schema.Document, error) {
 	cap, err := fetchCaption(ctx, vid, opt)
 	if err != nil {
 		return schema.Document{}, err
@@ -72,7 +72,7 @@ func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *YouTubeLoader
 	}, nil
 }
 
-func fetchCaption(ctx context.Context, vid videoId, opt *YouTubeLoader) (cap string, err error) {
+func fetchCaption(ctx context.Context, vid videoId, opt *youtubeFilter) (cap string, err error) {
 	// load caption tracks by sending a GET request to the YouTube watch URL
 	captionTracks, err := loadCaptionTracks(ctx, vid)
 	if err != nil {
@@ -302,7 +302,7 @@ type event struct {
 	} `json:"segs,omitempty"`
 }
 
-func (c *caption) filter(opt *YouTubeLoader) {
+func (c *caption) filter(opt *youtubeFilter) {
 	if opt.start != nil {
 		c.filterStart(opt.start)
 	}

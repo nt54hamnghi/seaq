@@ -8,10 +8,14 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
+type youtubeFilter struct {
+	start *Timestamp
+	end   *Timestamp
+}
+
 type YouTubeLoader struct {
+	youtubeFilter
 	videoId         string
-	start           *Timestamp
-	end             *Timestamp
 	includeMetadata bool
 }
 
@@ -53,7 +57,7 @@ func NewYouTubeLoader(opts ...YoutubeLoaderOption) *YouTubeLoader {
 func (l YouTubeLoader) Load(ctx context.Context) ([]schema.Document, error) {
 	tasks := []pool.Task[schema.Document]{
 		func() (schema.Document, error) {
-			return fetchCaptionAsDocument(ctx, l.videoId, &l)
+			return fetchCaptionAsDocument(ctx, l.videoId, &l.youtubeFilter)
 		},
 	}
 
