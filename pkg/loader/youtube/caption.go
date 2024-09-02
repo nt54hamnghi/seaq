@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
 	"github.com/nt54hamnghi/hiku/pkg/util/pool"
@@ -29,6 +31,31 @@ const (
 )
 
 // endregion: --- consts
+
+// region: --- helpers
+
+// TESTME
+type retryFunc[T any] func() (T, error)
+
+func retry[T any](n int, delay time.Duration, f retryFunc[T]) (T, error) {
+	var (
+		result T
+		err    error
+	)
+
+	for i := 0; i < n; i++ {
+		result, err = f()
+		if err == nil {
+			return result, nil
+		}
+		time.Sleep(delay)
+	}
+
+	return result, err
+}
+
+// endregion: --- helpers
+
 func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *YouTubeLoader) (schema.Document, error) {
 	cap, err := fetchCaption(ctx, vid, opt)
 	if err != nil {
@@ -46,27 +73,11 @@ func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *YouTubeLoader
 }
 
 func fetchCaption(ctx context.Context, vid videoId, opt *YouTubeLoader) (cap string, err error) {
-	resp, err := httpx.Get(ctx, YouTubeWatchUrl+"?v="+vid, nil)
+	// load caption tracks by sending a GET request to the YouTube watch URL
+	captionTracks, err := loadCaptionTracks(ctx, vid)
 	if err != nil {
-		return
+		return cap, fmt.Errorf("failed to fetch caption tracks: %w", err)
 	}
-
-	if err = resp.ExpectStatusCode(http.StatusOK); err != nil {
-		return
-	}
-
-	if err = resp.ExpectContentType("text/html"); err != nil {
-		return
-	}
-
-	defer resp.Body.Close()
-
-	// the Raw HTML content contains a list of available caption tracks
-	captionTracks, err := extractCaptionTracks(resp.Body)
-	if err != nil {
-		return cap, fmt.Errorf("failed to extract caption tracks: %w", err)
-	}
-	processCaptionTracks(captionTracks)
 
 	// fetch the caption of the YouTube video
 	// only support English captions
@@ -91,6 +102,45 @@ type captionTrack struct {
 	LanguageCode       string `json:"languageCode"`       // 2-letter language code
 	Kind               string `json:"kind,omitempty"`     // empty if user-added caption, "asr" if Automatic Speech Recognition, etc.
 	HasAutoTranslation bool   `json:"hasAutoTranslation"` // added property to check if the caption track has an English auto-translation
+}
+
+// TESTME
+func loadCaptionTracks(ctx context.Context, vid videoId) ([]captionTrack, error) {
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	url := YouTubeWatchUrl + "?v=" + vid
+	client := &http.Client{Jar: jar}
+
+	captionTracks, err := retry(2, 100*time.Millisecond, func() ([]captionTrack, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		// check if the response is successful
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+
+		// the Raw HTML content contains a list of available caption tracks
+		return extractCaptionTracks(resp.Body)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	processCaptionTracks(captionTracks)
+	return captionTracks, nil
 }
 
 // extractCaptionTracks returns the list of caption tracks available for a YouTube video
