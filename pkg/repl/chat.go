@@ -111,7 +111,9 @@ func (c *Chain) run(ctx context.Context, question string) error {
 		return nil
 	}
 
-	resp, err := chains.Run(ctx, c, question, chains.WithStreamingFunc(streamFunc))
+	resp, err := chains.Run(ctx, c, question,
+		chains.WithStreamingFunc(streamFunc),
+	)
 	if err != nil {
 		return err
 	}

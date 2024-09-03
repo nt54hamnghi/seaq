@@ -93,12 +93,9 @@ func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
 	// initialize the repl
 	repl := Repl{
 		components: components{
-			prompt: input.New(),
-			renderer: renderer.New(
-				glamour.WithStandardStyle(renderer.DefaultStyle),
-				glamour.WithWordWrap(100),
-			),
-			spinner: spinner.New(),
+			prompt:   input.New(),
+			renderer: renderer.Default(),
+			spinner:  spinner.New(),
 		},
 	}
 

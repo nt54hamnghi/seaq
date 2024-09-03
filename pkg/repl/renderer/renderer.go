@@ -56,6 +56,13 @@ func New(options ...glamour.TermRendererOption) *Renderer {
 	}
 }
 
+func Default() *Renderer {
+	return New(
+		glamour.WithStandardStyle(DefaultStyle),
+		glamour.WithWordWrap(100),
+	)
+}
+
 func (r *Renderer) RenderContent(content string) string {
 	out, _ := r.content.Render(content)
 
