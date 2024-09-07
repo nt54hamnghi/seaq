@@ -2,6 +2,7 @@ package youtube
 
 import (
 	"context"
+	"slices"
 
 	"github.com/nt54hamnghi/hiku/pkg/util/pool"
 	"github.com/tmc/langchaingo/schema"
@@ -55,19 +56,20 @@ func NewYouTubeLoader(opts ...YoutubeLoaderOption) *YouTubeLoader {
 
 // Load loads from a source and returns documents.
 func (l YouTubeLoader) Load(ctx context.Context) ([]schema.Document, error) {
-	tasks := []pool.Task[schema.Document]{
-		func() (schema.Document, error) {
-			return fetchCaptionAsDocument(ctx, l.videoId, &l.youtubeFilter)
+	tasks := []pool.Task[[]schema.Document]{
+		func() ([]schema.Document, error) {
+			return fetchCaptionAsDocuments(ctx, l.videoId, &l.youtubeFilter)
 		},
 	}
 
 	if l.includeMetadata {
-		tasks = append(tasks, func() (schema.Document, error) {
-			return fetchMetadtaAsDocument(ctx, l.videoId)
+		tasks = append(tasks, func() ([]schema.Document, error) {
+			doc, err := fetchMetadtaAsDocument(ctx, l.videoId)
+			return []schema.Document{doc}, err
 		})
 	}
 
-	docs := make([]schema.Document, 0, 2)
+	docs := make([][]schema.Document, 0, 2)
 
 	for _, r := range pool.OrderedGo(tasks) {
 		if r.Err != nil {
@@ -76,7 +78,7 @@ func (l YouTubeLoader) Load(ctx context.Context) ([]schema.Document, error) {
 		docs = append(docs, r.Output)
 	}
 
-	return docs, nil
+	return slices.Concat(docs...), nil
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.

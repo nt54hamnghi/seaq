@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -56,56 +57,53 @@ func retry[T any](n int, delay time.Duration, f retryFunc[T]) (T, error) {
 
 // endregion: --- helpers
 
-func fetchCaptionAsDocument(ctx context.Context, vid videoId, opt *youtubeFilter) (schema.Document, error) {
-	cap, err := fetchCaption(ctx, vid, opt)
+func fetchCaptionAsDocuments(ctx context.Context, vid videoId, filter *youtubeFilter) ([]schema.Document, error) {
+	// fetch available caption tracks from a YouTube video ID
+	tracks, err := loadCaptionTracks(ctx, vid)
 	if err != nil {
-		return schema.Document{}, err
+		return nil, fmt.Errorf("failed to fetch available caption tracks: %w", err)
 	}
-	return schema.Document{
-		PageContent: cap,
-		Metadata: map[string]any{
-			"videoId": vid,
-			"type":    "caption",
-			"start":   opt.start,
-			"end":     opt.end,
-		},
-	}, nil
-}
 
-func fetchCaption(ctx context.Context, vid videoId, opt *youtubeFilter) (cap string, err error) {
-	// load caption tracks by sending a GET request to the YouTube watch URL
-	captionTracks, err := loadCaptionTracks(ctx, vid)
+	// fetch caption from the available caption tracks
+	caption, err := loadCaption(ctx, tracks)
 	if err != nil {
-		return cap, fmt.Errorf("failed to fetch caption tracks: %w", err)
+		return nil, fmt.Errorf("failed to fetch caption: %w", err)
 	}
 
-	// fetch the caption of the YouTube video
-	// only support English captions
-	// prioritize user-added caption over ASR (Automatic Speech Recognition) caption
-	caption, err := loadCaption(ctx, captionTracks)
-	if err != nil {
-		return cap, fmt.Errorf("failed to fetch caption: %w", err)
+	// filter the caption based on the start and end time
+	if filter != nil {
+		caption.filter(filter)
 	}
 
-	if opt != nil {
-		caption.filter(opt)
-	}
-
+	// convert the caption to a list of documents
+	// TODO: add video ID to the metadata
 	return caption.getFullCaption(), nil
 }
 
-// YouTube doesn't provide a public API for caption tracks.
-// This struct, its fields, and their meanings are reverse-engineered from a YouTube response.
-// Thus, they're subject to change without notice.
+// captionTrack represents metadata for a single caption track.
+// It contains information about the track's location, language, type, and available translation.
 type captionTrack struct {
-	BaseURL            string `json:"baseUrl"`            // the URL to fetch the caption track
+
+	// NOTE:
+	// YouTube doesn't provide a public API for caption tracks.
+	// This struct is reverse-engineered from a YouTube response.
+	// Thus, they're subject to change without notice.
+
+	BaseURL            string `json:"baseUrl"`            // URL to fetch the caption track
 	LanguageCode       string `json:"languageCode"`       // 2-letter language code
 	Kind               string `json:"kind,omitempty"`     // empty if user-added caption, "asr" if Automatic Speech Recognition, etc.
 	HasAutoTranslation bool   `json:"hasAutoTranslation"` // added property to check if the caption track has an English auto-translation
 }
 
 // TESTME
+
+// loadCaptionTracks fetches the HTML content and extracts the available caption tracks.
 func loadCaptionTracks(ctx context.Context, vid videoId) ([]captionTrack, error) {
+
+	// NOTE:
+	// A GET request to a YouTube watch URL returns an HTML page that
+	// contains a list of available caption tracks, stored in a JSON object.
+
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err
@@ -143,7 +141,8 @@ func loadCaptionTracks(ctx context.Context, vid videoId) ([]captionTrack, error)
 	return captionTracks, nil
 }
 
-// extractCaptionTracks returns the list of caption tracks available for a YouTube video
+// extractCaptionTracks read the HTML body
+// and returns the list of caption tracks available for a YouTube video
 func extractCaptionTracks(body io.Reader) ([]captionTrack, error) {
 	// compile the regex and panic if the pattern is invalid
 	re := regexp.MustCompile(`"captionTracks":\s*(\[[^\]]+\])`)
@@ -237,6 +236,7 @@ func processCaptionTracks(captionTracks []captionTrack) {
 		c := &captionTracks[i]
 
 		c.asJson3()
+		// if en or en-US caption track is found, skip the auto-translation check
 		if c.LanguageCode == "en" || c.LanguageCode == "en-US" {
 			continue
 		}
@@ -251,9 +251,7 @@ func processCaptionTracks(captionTracks []captionTrack) {
 	wg.Wait()
 }
 
-// loadCaption returns the caption of a YouTube video.
-// The returned caption is a list of events.
-// Each event contains a list of segments, and each segment has a caption text.
+// loadCaption returns the caption of a YouTube video from a list of available caption tracks.
 // It only supports English captions and prioritizes user-added caption
 // over ASR (Automatic Speech Recognition) caption.
 func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
@@ -267,7 +265,8 @@ func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 		if t.LanguageCode == "en" && (t.Kind == "asr" || t.Kind == "") {
 			ct = &t
 			break
-		} else if t.HasAutoTranslation {
+		}
+		if t.HasAutoTranslation {
 			ct = &t
 			break
 		}
@@ -280,26 +279,60 @@ func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 	return httpx.GetAs[caption](ctx, ct.BaseURL, nil)
 }
 
-// YouTube doesn't provide a public API for caption tracks.
-// This struct, its fields, and their meanings are reverse-engineered from a YouTube response.
-// Thus, they're subject to change without notice.
+// caption represents a collection of caption events.
 type caption struct {
+
+	// NOTE:
+	// YouTube doesn't provide a public API for caption tracks.
+	// This struct is reverse-engineered from a YouTube response.
+	// Thus, they're subject to change without notice.
+
 	Events []event `json:"events"`
 }
 
+// event represents a single caption event containing multiple segments.
+// It includes timing information and a list of segments.
 type event struct {
-	// duration of the caption event in milliseconds
-	DDurationMs int64 `json:"dDurationMs,omitempty"`
-	ID          int   `json:"id,omitempty"`
-	TStartMs    int64 `json:"tStartMs"`
-	Segs        []struct {
-		// confidence of the ASR caption
-		AcAsrConf int `json:"acAsrConf"`
-		// caption text in UTF-8
-		Utf8 string `json:"utf8"`
-		// timestamp offset in milliseconds from TStartMs
-		TOffsetMs int `json:"tOffsetMs,omitempty"`
-	} `json:"segs,omitempty"`
+	ID          int       `json:"id,omitempty"`
+	TStartMs    int64     `json:"tStartMs"`
+	DDurationMs int64     `json:"dDurationMs,omitempty"` // duration of the caption event in milliseconds
+	Segs        []segment `json:"segs,omitempty"`
+}
+
+type segment struct {
+	AcAsrConf int    `json:"acAsrConf"` // confidence of the ASR caption
+	Utf8      string `json:"utf8"`      // caption text in UTF-8
+}
+
+func (e event) toDocument() (schema.Document, error) {
+	if len(e.Segs) == 0 {
+		return schema.Document{}, errors.New("no segments found")
+	}
+
+	doc := schema.Document{
+		Metadata: map[string]any{
+			"startMs":    e.TStartMs,
+			"durationMs": e.DDurationMs,
+			"type":       "caption",
+		},
+	}
+
+	// return early if there's only one segment
+	// to avoid unnecessary allocations for the strings.Builder
+	if len(e.Segs) == 1 {
+		doc.PageContent = e.Segs[0].Utf8
+		return doc, nil
+	}
+
+	var content strings.Builder
+	for _, seg := range e.Segs {
+		if seg.Utf8 != "" {
+			content.WriteString(seg.Utf8)
+		}
+	}
+
+	doc.PageContent = content.String()
+	return doc, nil
 }
 
 func (c *caption) filter(opt *youtubeFilter) {
@@ -344,23 +377,19 @@ func (c *caption) filterEnd(end *Timestamp) {
 }
 
 // getFullCaption returns the full caption text of a YouTube video.
-func (c *caption) getFullCaption() string {
+func (c *caption) getFullCaption() []schema.Document {
 	events := c.Events
 	nThreads := pool.GetThreadCount(len(events))
 
-	res := pool.BatchReduce(nThreads, events, func(es []event) string {
-		var res string
-		for i := 0; i < len(es); i++ {
-			segs := es[i].Segs
-			for j := 0; j < len(segs); j++ {
-				txt := segs[j].Utf8
-				if txt != "" {
-					res += txt
-				}
+	res := pool.BatchReduce(nThreads, events, func(es []event) []schema.Document {
+		res := make([]schema.Document, 0, len(es))
+		for _, e := range es {
+			if d, err := e.toDocument(); err == nil {
+				res = append(res, d)
 			}
 		}
-		return strings.TrimSpace(res)
+		return res
 	})
 
-	return strings.Join(res, "")
+	return slices.Concat(res...)
 }

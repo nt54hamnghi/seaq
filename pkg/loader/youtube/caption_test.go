@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tmc/langchaingo/schema"
 )
 
 func Test_extractCaptionTracks(t *testing.T) {
@@ -306,6 +307,76 @@ func Test_caption_filterEnd(t *testing.T) {
 			c.filterEnd(tt.end)
 
 			asserts.Equal(c.Events, tt.want)
+		})
+	}
+}
+
+func Test_event_toDocument(t *testing.T) {
+	testCases := []struct {
+		name  string
+		event event
+		want  schema.Document
+	}{
+		{
+			name: "valid",
+			event: event{
+				Segs: []segment{
+					{Utf8: "hello"},
+					{Utf8: " world"},
+				},
+				TStartMs:    240,
+				DDurationMs: 4880,
+			},
+		},
+		{
+			name: "withEmptySegment",
+			event: event{
+				Segs: []segment{
+					{Utf8: "hello"},
+					{Utf8: ""},
+					{Utf8: " world"},
+				},
+				TStartMs:    240,
+				DDurationMs: 4880,
+			},
+		},
+	}
+
+	asserts := assert.New(t)
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.event.toDocument()
+			asserts.Nil(err)
+			asserts.Equal(got.PageContent, "hello world")
+			asserts.Equal(got.Metadata["startMs"], int64(240))
+			asserts.Equal(got.Metadata["durationMs"], int64(4880))
+		})
+	}
+}
+
+func Test_event_toDocument_Error(t *testing.T) {
+	testCases := []struct {
+		name  string
+		event event
+		want  schema.Document
+		err   error
+	}{
+		{
+			name: "noSegment",
+			event: event{
+				Segs:        []segment{},
+				TStartMs:    240,
+				DDurationMs: 4880,
+			},
+			err: errors.New("no segments found"),
+		},
+	}
+
+	asserts := assert.New(t)
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := tt.event.toDocument()
+			asserts.Equal(err, tt.err)
 		})
 	}
 }

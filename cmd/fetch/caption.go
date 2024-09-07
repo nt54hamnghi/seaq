@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
+	"github.com/nt54hamnghi/hiku/pkg/loader"
 	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
 	"github.com/spf13/cobra"
 )
@@ -28,9 +29,10 @@ var captionCmd = &cobra.Command{
 	SilenceUsage: true,
 	PreRunE:      flagGroup.ValidateGroups(&output),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		vid := args[0]
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+
+		vid := args[0]
 
 		var err error
 		var startTs, endTs *youtube.Timestamp
@@ -49,7 +51,7 @@ var captionCmd = &cobra.Command{
 			}
 		}
 
-		loader := youtube.NewYouTubeLoader(
+		youtubeLoader := youtube.NewYouTubeLoader(
 			youtube.WithVideoId(vid),
 			youtube.WithMetadata(metadata),
 			youtube.WithStart(startTs),
@@ -62,7 +64,7 @@ var captionCmd = &cobra.Command{
 		}
 		defer dest.Close()
 
-		return fetchAndWrite(ctx, loader, dest)
+		return loader.LoadAndWrite(ctx, youtubeLoader, dest, asJson)
 	},
 }
 
@@ -70,6 +72,7 @@ func init() {
 	captionCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
 	captionCmd.Flags().StringVar(&start, "start", "", "start time")
 	captionCmd.Flags().StringVar(&end, "end", "", "end time")
+	captionCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
 
 	flagGroup.InitGroups(captionCmd, &output)
 }

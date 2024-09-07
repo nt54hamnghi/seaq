@@ -11,6 +11,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
+	"github.com/nt54hamnghi/hiku/pkg/loader"
 	"github.com/nt54hamnghi/hiku/pkg/loader/html"
 	"github.com/spf13/cobra"
 	"github.com/tmc/langchaingo/documentloaders"
@@ -55,24 +56,24 @@ var pageCmd = &cobra.Command{
 	SilenceUsage: true,
 	PreRunE:      flagGroup.ValidateGroups(&rc, &output),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		var loader documentloaders.Loader
+		var htmlLoader documentloaders.Loader
 
-		htmlLoader := html.NewHtmlLoader(
+		baseLoader := html.NewHtmlLoader(
 			html.WithUrl(args[0]),
 			html.WithSelector(selector),
 			html.WithAuto(auto),
 		)
 
-		if !rc.Recursive {
-			loader = htmlLoader
-		} else {
-			loader = html.NewRecursiveHtmlLoader(
-				html.WithHtmlLoader(htmlLoader),
+		if rc.Recursive {
+			htmlLoader = html.NewRecursiveHtmlLoader(
+				html.WithHtmlLoader(baseLoader),
 				html.WithMaxPages(rc.MaxPages),
 			)
+		} else {
+			htmlLoader = baseLoader
 		}
 
 		dest, err := output.Writer()
@@ -81,13 +82,14 @@ var pageCmd = &cobra.Command{
 		}
 		defer dest.Close()
 
-		return fetchAndWrite(ctx, loader, dest)
+		return loader.LoadAndWrite(ctx, htmlLoader, dest, asJson)
 	},
 }
 
 func init() {
 	pageCmd.Flags().StringVarP(&selector, "selector", "s", "", "filter content by selector")
 	pageCmd.Flags().BoolVarP(&auto, "auto", "a", false, "automatically detect content")
+	pageCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
 
 	flagGroup.InitGroups(pageCmd, &rc, &output)
 }

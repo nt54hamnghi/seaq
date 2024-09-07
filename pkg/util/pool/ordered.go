@@ -2,6 +2,7 @@ package pool
 
 import "sync"
 
+// Result represents the result of a task with its ID, output, and error.
 type Result[O any] struct {
 	id     int
 	Output O
@@ -10,6 +11,7 @@ type Result[O any] struct {
 
 type Task[O any] func() (O, error)
 
+// OrderedGo executes tasks concurrently and returns results in the same order as provided.
 func OrderedGo[O any](tasks []Task[O]) []Result[O] {
 	ch := make(chan Result[O], len(tasks))
 	wg := &sync.WaitGroup{}

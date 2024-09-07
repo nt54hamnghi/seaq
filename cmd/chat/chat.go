@@ -41,9 +41,16 @@ var ChatCmd = &cobra.Command{
 
 		ctx := context.Background()
 
+		verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+		if verbose {
+			fmt.Println("Using model:", modelName)
+		}
+
 		// load the document
-		reader := strings.NewReader(input)
-		loader := documentloaders.NewText(reader)
+		loader := documentloaders.NewText(strings.NewReader(input))
 		docs, err := loader.LoadAndSplit(
 			ctx,
 			textsplitter.NewRecursiveCharacter(
@@ -53,14 +60,6 @@ var ChatCmd = &cobra.Command{
 		)
 		if err != nil {
 			return err
-		}
-
-		verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
-		if err != nil {
-			return err
-		}
-		if verbose {
-			fmt.Println("Using model:", modelName)
 		}
 
 		// construct model
