@@ -32,6 +32,16 @@ var (
 	noStream    bool
 	verbose     bool
 	output      flagGroup.Output
+
+	common = &cobra.Group{
+		Title: "Common Commands:",
+		ID:    "common",
+	}
+
+	management = &cobra.Group{
+		Title: "Management Commands:",
+		ID:    "management",
+	}
 )
 
 // endregion: --- flags
@@ -128,12 +138,25 @@ func init() {
 	// flag groups
 	flagGroup.InitGroups(rootCmd, &output)
 
+	// assign commands to groups
+	// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help
+	chat.ChatCmd.GroupID = "common"
+	fetch.FetchCmd.GroupID = "common"
+	pattern.PatternCmd.GroupID = "management"
+	model.ModelCmd.GroupID = "management"
+
 	// add subcommands
 	rootCmd.AddCommand(
 		chat.ChatCmd,
 		fetch.FetchCmd,
 		pattern.PatternCmd,
 		model.ModelCmd,
+	)
+
+	// add groups
+	rootCmd.AddGroup(
+		common,
+		management,
 	)
 }
 
