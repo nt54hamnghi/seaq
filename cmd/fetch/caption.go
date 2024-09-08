@@ -69,9 +69,11 @@ var captionCmd = &cobra.Command{
 }
 
 func init() {
+	captionCmd.Flags().SortFlags = false
+
+	captionCmd.Flags().StringVarP(&start, "start", "s", "", "start time")
+	captionCmd.Flags().StringVarP(&end, "end", "e", "", "end time")
 	captionCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
-	captionCmd.Flags().StringVar(&start, "start", "", "start time")
-	captionCmd.Flags().StringVar(&end, "end", "", "end time")
 	captionCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
 
 	flagGroup.InitGroups(captionCmd, &output)

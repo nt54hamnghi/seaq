@@ -107,6 +107,9 @@ func init() {
 		cobra.CheckErr(initConfig())
 	})
 
+	// flags setting
+	rootCmd.Flags().SortFlags = false
+
 	// flags definition
 	// persistent flags are global and available to all commands
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
@@ -118,12 +121,12 @@ func init() {
 	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use")
 	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
 
-	// flag groups
-	flagGroup.InitGroups(rootCmd, &output)
-
 	// register completion function
 	rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
 	rootCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
+
+	// flag groups
+	flagGroup.InitGroups(rootCmd, &output)
 
 	// add subcommands
 	rootCmd.AddCommand(

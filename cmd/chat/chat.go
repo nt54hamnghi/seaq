@@ -83,6 +83,8 @@ var ChatCmd = &cobra.Command{
 }
 
 func init() {
+	ChatCmd.Flags().SortFlags = false
+
 	ChatCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
 	ChatCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
 

@@ -87,8 +87,10 @@ var pageCmd = &cobra.Command{
 }
 
 func init() {
-	pageCmd.Flags().StringVarP(&selector, "selector", "s", "", "filter content by selector")
+	pageCmd.Flags().SortFlags = false
+
 	pageCmd.Flags().BoolVarP(&auto, "auto", "a", false, "automatically detect content")
+	pageCmd.Flags().StringVarP(&selector, "selector", "s", "", "filter content by selector")
 	pageCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
 
 	flagGroup.InitGroups(pageCmd, &rc, &output)
