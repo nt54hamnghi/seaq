@@ -20,11 +20,11 @@ var (
 	end      string
 )
 
-// captionCmd represents the caption command
-var captionCmd = &cobra.Command{
-	Use:          "caption [url|videoId]",
-	Short:        "Get caption from a YouTube video",
-	Aliases:      []string{"cap", "c"},
+// youtubeCmd represents the caption command
+var youtubeCmd = &cobra.Command{
+	Use:          "youtube [url|videoId]",
+	Short:        "Get caption and description of a YouTube video",
+	Aliases:      []string{"ytb", "y"},
 	Args:         validateCaptionArgs,
 	SilenceUsage: true,
 	PreRunE:      flagGroup.ValidateGroups(&output),
@@ -69,14 +69,14 @@ var captionCmd = &cobra.Command{
 }
 
 func init() {
-	captionCmd.Flags().SortFlags = false
+	youtubeCmd.Flags().SortFlags = false
 
-	captionCmd.Flags().StringVarP(&start, "start", "s", "", "start time")
-	captionCmd.Flags().StringVarP(&end, "end", "e", "", "end time")
-	captionCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
-	captionCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
+	youtubeCmd.Flags().StringVarP(&start, "start", "s", "", "start time")
+	youtubeCmd.Flags().StringVarP(&end, "end", "e", "", "end time")
+	youtubeCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
+	youtubeCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
 
-	flagGroup.InitGroups(captionCmd, &output)
+	flagGroup.InitGroups(youtubeCmd, &output)
 }
 
 func validateCaptionArgs(cmd *cobra.Command, args []string) error {

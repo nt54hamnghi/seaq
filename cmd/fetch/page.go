@@ -50,7 +50,7 @@ var (
 // pageCmd represents the scrape command
 var pageCmd = &cobra.Command{
 	Use:          "page [url]",
-	Short:        "Fetch HTML from a URL and convert it to markdown",
+	Short:        "Get HTML data from a URL and convert it to markdown",
 	Aliases:      []string{"pg", "p"},
 	Args:         validatePageArgs,
 	SilenceUsage: true,
