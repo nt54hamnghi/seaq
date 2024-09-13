@@ -356,10 +356,9 @@ func Test_event_toDocument(t *testing.T) {
 
 func Test_event_toDocument_Error(t *testing.T) {
 	testCases := []struct {
-		name  string
-		event event
-		want  schema.Document
-		err   error
+		name    string
+		event   event
+		wantErr error
 	}{
 		{
 			name: "noSegment",
@@ -368,7 +367,7 @@ func Test_event_toDocument_Error(t *testing.T) {
 				TStartMs:    240,
 				DDurationMs: 4880,
 			},
-			err: errors.New("no segments found"),
+			wantErr: errors.New("no segments found"),
 		},
 	}
 
@@ -376,7 +375,7 @@ func Test_event_toDocument_Error(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tt.event.toDocument()
-			asserts.Equal(err, tt.err)
+			asserts.Equal(err, tt.wantErr)
 		})
 	}
 }

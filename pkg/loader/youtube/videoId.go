@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	ErrInValidYouTubeURL    = errors.New("invalid YouTube url")
-	ErrInvalidVideoId       = errors.New("invalid video ID")
+	ErrInvalidYouTubeURL    = errors.New("invalid YouTube url")
+	ErrInvalidVideoId       = errors.New("invalid YouTube video ID")
 	ErrVideoIdNotFoundInURL = errors.New("video id not found in YouTube url")
 )
 
@@ -29,7 +29,7 @@ func ResolveVideoId(src string) (videoId, error) {
 func extractVideoId(rawUrl string) (videoId, error) {
 	query, found := strings.CutPrefix(rawUrl, YouTubeWatchUrl+"?")
 	if !found {
-		return "", ErrInValidYouTubeURL
+		return "", ErrInvalidYouTubeURL
 	}
 
 	// parse the query string

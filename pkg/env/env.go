@@ -6,11 +6,13 @@ import (
 )
 
 const (
-	OPENAI_API_KEY    = "OPENAI_API_KEY"    // Environment variable name for OpenAI API key
-	ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY" // Environment variable name for Anthropic API key
-	GEMINI_API_KEY    = "GEMINI_API_KEY"    // Environment variable name for Gemini API key
-	YOUTUBE_API_KEY   = "YOUTUBE_API_KEY"   // Environment variable name for Youtube API key
-	CHROMA_URL        = "CHROMA_URL"        // Environment variable name for Chroma URL
+	OPENAI_API_KEY    = "OPENAI_API_KEY"
+	ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY"
+	GEMINI_API_KEY    = "GEMINI_API_KEY"
+	YOUTUBE_API_KEY   = "YOUTUBE_API_KEY"
+	CHROMA_URL        = "CHROMA_URL"
+	X_AUTH_TOKEN      = "X_AUTH_TOKEN" // x.com auth_token cookie
+	X_CSRF_TOKEN      = "X_CSRF_TOKEN" // x.com ct0 cookie
 )
 
 var globalEnvStore = NewEnvStore()
@@ -43,6 +45,18 @@ func YoutubeAPIKey() (string, error) {
 // or an error if not set.
 func ChromaURL() (string, error) {
 	return globalEnvStore.Get(CHROMA_URL)
+}
+
+// XAuthToken returns the value of the X_AUTH_TOKEN environment variable
+// or an error if not set.
+func XAuthToken() (string, error) {
+	return globalEnvStore.Get(X_AUTH_TOKEN)
+}
+
+// XCSRFToken returns the value of the X_CT0 environment variable
+// or an error if not set.
+func XCSRFToken() (string, error) {
+	return globalEnvStore.Get(X_CSRF_TOKEN)
 }
 
 type EnvStore struct {

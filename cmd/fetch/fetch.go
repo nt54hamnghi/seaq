@@ -27,6 +27,7 @@ var FetchCmd = &cobra.Command{
 }
 
 func init() {
-	FetchCmd.AddCommand(youtubeCmd)
 	FetchCmd.AddCommand(pageCmd)
+	FetchCmd.AddCommand(xCmd)
+	FetchCmd.AddCommand(youtubeCmd)
 }

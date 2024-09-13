@@ -12,6 +12,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.12.1
 	github.com/gobwas/glob v0.2.3
 	github.com/gocolly/colly v1.2.0
+	github.com/imperatrona/twitter-scraper v0.0.12
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
@@ -21,6 +22,7 @@ require (
 )
 
 require (
+	github.com/AlexEidt/Vidio v1.5.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect

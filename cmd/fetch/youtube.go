@@ -25,7 +25,7 @@ var youtubeCmd = &cobra.Command{
 	Use:          "youtube [url|videoId]",
 	Short:        "Get caption and description of a YouTube video",
 	Aliases:      []string{"ytb", "y"},
-	Args:         validateCaptionArgs,
+	Args:         youTubeArgs,
 	SilenceUsage: true,
 	PreRunE:      flagGroup.ValidateGroups(&output),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -79,7 +79,7 @@ func init() {
 	flagGroup.InitGroups(youtubeCmd, &output)
 }
 
-func validateCaptionArgs(cmd *cobra.Command, args []string) error {
+func youTubeArgs(_ *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("accepts 1 arg(s), received %d", len(args))
 	}
