@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/nt54hamnghi/hiku/pkg/env"
-	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
+	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
 	"github.com/tmc/langchaingo/schema"
 )
 
@@ -39,7 +39,7 @@ func fetchMetadta(ctx context.Context, vid string) (*snippet, error) {
 		return nil, err
 	}
 
-	data, err := httpx.GetAs[youtubeVideoListResponse](ctx, url, nil)
+	data, err := reqx.GetAs[youtubeVideoListResponse](ctx, url, nil)
 	if err != nil {
 		return nil, err
 	}

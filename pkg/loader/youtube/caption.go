@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
 	"github.com/nt54hamnghi/hiku/pkg/util/pool"
+	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
 	"github.com/tmc/langchaingo/schema"
 )
 
@@ -276,7 +276,7 @@ func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 		return caption{}, errors.New("no English caption track found")
 	}
 
-	return httpx.GetAs[caption](ctx, ct.BaseURL, nil)
+	return reqx.GetAs[caption](ctx, ct.BaseURL, nil)
 }
 
 // caption represents a collection of caption events.

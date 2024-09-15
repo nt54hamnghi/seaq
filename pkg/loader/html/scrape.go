@@ -11,7 +11,7 @@ import (
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
+	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
 )
 
 type scraper interface {
@@ -42,7 +42,7 @@ func (s selectorScraper) scrape(doc *goquery.Document) ([]string, error) {
 }
 
 func scrapeFromUrl(ctx context.Context, url string, scr scraper) (string, error) {
-	resp, err := httpx.Get(ctx, url, nil)
+	resp, err := reqx.Get(ctx, url, nil)
 	if err != nil {
 		return "", err
 	}

@@ -1,4 +1,5 @@
-package httpx
+// Request + Extra
+package reqx
 
 import (
 	"bytes"

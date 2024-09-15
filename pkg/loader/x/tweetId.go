@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
+	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
 )
 
 var (
@@ -26,12 +26,12 @@ func ResolveTweetId(src string) (tweetId, error) {
 
 // extractTweetId returns the tweet ID of a provided URL
 func extractTweetId(rawUrl string) (string, error) {
-	xUrl, err := httpx.ParseUrl("x.com")(rawUrl)
+	xUrl, err := reqx.ParseUrl("x.com")(rawUrl)
 	if err != nil {
 		return "", err
 	}
 
-	matches, err := httpx.ParsePath(xUrl.Path, "/{username}/status/{tweetId}")
+	matches, err := reqx.ParsePath(xUrl.Path, "/{username}/status/{tweetId}")
 	if err != nil {
 		return "", ErrTweetIdNotFoundInURL
 	}
