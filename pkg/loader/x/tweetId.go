@@ -2,13 +2,12 @@ package x
 
 import (
 	"errors"
-	"net/url"
 	"strconv"
-	"strings"
+
+	"github.com/nt54hamnghi/hiku/pkg/util/httpx"
 )
 
 var (
-	ErrInvalidXURL          = errors.New("invalid X url")
 	ErrInvalidTweetId       = errors.New("invalid tweet ID")
 	ErrTweetIdNotFoundInURL = errors.New("tweet id not found in X url")
 )
@@ -27,31 +26,17 @@ func ResolveTweetId(src string) (tweetId, error) {
 
 // extractTweetId returns the tweet ID of a provided URL
 func extractTweetId(rawUrl string) (string, error) {
-	parsedUrl, err := url.ParseRequestURI(rawUrl)
+	xUrl, err := httpx.ParseUrl("x.com")(rawUrl)
 	if err != nil {
-		return "", ErrInvalidXURL
+		return "", err
 	}
 
-	// TODO: add check for scheme
-	if !strings.HasSuffix(parsedUrl.Hostname(), "x.com") {
-		return "", ErrInvalidXURL
-	}
-
-	path := parsedUrl.Path
-	if path == "" {
+	matches, err := httpx.ParsePath(xUrl.Path, "/{username}/status/{tweetId}")
+	if err != nil {
 		return "", ErrTweetIdNotFoundInURL
 	}
 
-	segments := strings.Split(path, "/")
-	if len(segments) != 4 {
-		return "", ErrTweetIdNotFoundInURL
-	}
-
-	if segments[2] != "status" {
-		return "", ErrInvalidXURL
-	}
-
-	id := segments[3]
+	id := matches["tweetId"]
 	if _, err := strconv.ParseUint(id, 10, 64); err != nil {
 		return "", ErrInvalidTweetId
 	}

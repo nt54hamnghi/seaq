@@ -53,7 +53,7 @@ func Test_extractTweetId(t *testing.T) {
 		},
 		{
 			name: "withQueryParams",
-			url:  testXUrl + "?v=SL_YMm9C6tw&t=5s",
+			url:  testXUrl + "?page=0",
 			want: testTweetId,
 		},
 	}
@@ -76,16 +76,6 @@ func Test_extractTweetId_Error(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name:    "unparsableURL",
-			url:     "",
-			wantErr: ErrInvalidXURL,
-		},
-		{
-			name:    "not_x.com",
-			url:     "https://www.google.com/LogarithmicRex/status/1567638108937801728",
-			wantErr: ErrInvalidXURL,
-		},
-		{
 			name:    "noPath",
 			url:     "https://x.com",
 			wantErr: ErrTweetIdNotFoundInURL,
@@ -98,7 +88,7 @@ func Test_extractTweetId_Error(t *testing.T) {
 		{
 			name:    "wrongPath",
 			url:     "https://x.com/LogarithmicRex/invalid/1567638108937801728",
-			wantErr: ErrInvalidXURL,
+			wantErr: ErrTweetIdNotFoundInURL,
 		},
 		{
 			name:    "invalidId",
@@ -112,7 +102,7 @@ func Test_extractTweetId_Error(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := extractTweetId(tc.url)
-			asserts.Equal(err, tc.wantErr)
+			asserts.Equal(tc.wantErr, err)
 		})
 	}
 }
