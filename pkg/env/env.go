@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	OPENAI_API_KEY    = "OPENAI_API_KEY"
-	ANTHROPIC_API_KEY = "ANTHROPIC_API_KEY"
-	GEMINI_API_KEY    = "GEMINI_API_KEY"
-	YOUTUBE_API_KEY   = "YOUTUBE_API_KEY"
-	CHROMA_URL        = "CHROMA_URL"
-	X_AUTH_TOKEN      = "X_AUTH_TOKEN" // x.com auth_token cookie
-	X_CSRF_TOKEN      = "X_CSRF_TOKEN" // x.com ct0 cookie
+	OPENAI_API_KEY     = "OPENAI_API_KEY"
+	ANTHROPIC_API_KEY  = "ANTHROPIC_API_KEY"
+	GEMINI_API_KEY     = "GEMINI_API_KEY"
+	YOUTUBE_API_KEY    = "YOUTUBE_API_KEY"
+	CHROMA_URL         = "CHROMA_URL"
+	X_AUTH_TOKEN       = "X_AUTH_TOKEN" // x.com auth_token cookie
+	X_CSRF_TOKEN       = "X_CSRF_TOKEN" // x.com ct0 cookie
+	UDEMY_ACCESS_TOKEN = "UDEMY_ACCESS_TOKEN"
 )
 
 var globalEnvStore = NewEnvStore()
@@ -53,10 +54,16 @@ func XAuthToken() (string, error) {
 	return globalEnvStore.Get(X_AUTH_TOKEN)
 }
 
-// XCSRFToken returns the value of the X_CT0 environment variable
+// XCSRFToken returns the value of the X_CSRF_TOKEN environment variable
 // or an error if not set.
 func XCSRFToken() (string, error) {
 	return globalEnvStore.Get(X_CSRF_TOKEN)
+}
+
+// UdemyAccessToken returns the value of the UDEMY_ACCESS_TOKEN environment variable
+// or an error if not set.
+func UdemyAccessToken() (string, error) {
+	return globalEnvStore.Get(UDEMY_ACCESS_TOKEN)
 }
 
 type EnvStore struct {

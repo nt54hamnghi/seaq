@@ -20,7 +20,6 @@ var (
 
 // xCmd represents the x command
 var xCmd = &cobra.Command{
-	// TODO: add validation for tweetId
 	Use:          "x [url|videoId]",
 	Short:        "Get thread or tweet from x.com",
 	Args:         xArgs,
