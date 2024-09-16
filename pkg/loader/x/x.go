@@ -6,6 +6,7 @@ import (
 
 	x "github.com/imperatrona/twitter-scraper"
 	"github.com/nt54hamnghi/hiku/pkg/env"
+	"github.com/nt54hamnghi/hiku/pkg/util/pool"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )
@@ -64,7 +65,7 @@ func NewXLoader(opts ...XLoaderOption) (*XLoader, error) {
 	return loader, nil
 }
 
-func toDocument(tweet *x.Tweet) (schema.Document, error) {
+func tweetToDocument(tweet *x.Tweet) (schema.Document, error) {
 	if tweet == nil {
 		return schema.Document{}, errors.New("nil tweet")
 	}
@@ -101,7 +102,7 @@ func (l XLoader) getTweet() (schema.Document, error) {
 		return doc, err
 	}
 
-	return toDocument(tweet)
+	return tweetToDocument(tweet)
 }
 
 func (l XLoader) getThread() ([]schema.Document, error) {
@@ -110,16 +111,7 @@ func (l XLoader) getThread() ([]schema.Document, error) {
 		return nil, err
 	}
 
-	docs := make([]schema.Document, 0, len(thread))
-	for _, tweet := range thread {
-		doc, err := toDocument(tweet)
-		if err != nil {
-			return nil, err
-		}
-		docs = append(docs, doc)
-	}
-
-	return docs, nil
+	return pool.OrderedRun(thread, tweetToDocument)
 }
 
 // Load loads from a source and returns documents.
