@@ -25,6 +25,10 @@ const (
 	UDEMY_API_URL = "https://www.udemy.com/api-2.0"
 )
 
+var (
+	englishLocalIds = []string{"en_US", "en_GB"}
+)
+
 // region: --- helpers
 
 func parseUdemyUrl(rawUrl string) (courseName string, lectureId int, err error) {
@@ -132,16 +136,21 @@ type asset struct {
 	Captions []caption `json:"captions"`
 }
 
-func (l *lecture) findCaption(localeID string) (caption, error) {
+func (l *lecture) findCaption(localeIDs ...string) (caption, error) {
 	captions := l.Asset.Captions
 
 	idx := slices.IndexFunc(captions,
 		func(c caption) bool {
-			return c.LocaleID == localeID
+			for _, id := range localeIDs {
+				if c.LocaleID == id {
+					return true
+				}
+			}
+			return false
 		},
 	)
 	if idx == -1 {
-		return caption{}, fmt.Errorf("no caption found for locale ID: %s", localeID)
+		return caption{}, fmt.Errorf("no caption found for locale ID: %q", localeIDs)
 	}
 
 	return captions[idx], nil
@@ -224,5 +233,5 @@ func (u *udemyClient) getCaption(url string) (caption, error) {
 		return caption{}, fmt.Errorf("failed to search lecture: %w", err)
 	}
 
-	return lecture.findCaption("en_US")
+	return lecture.findCaption(englishLocalIds...)
 }
