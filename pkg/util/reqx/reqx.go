@@ -77,7 +77,10 @@ func Do(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header = headers
+	if headers != nil {
+		req.Header = http.Header(headers)
+	}
+	fmt.Println(req.Header)
 
 	// create a new HTTP client and send the request
 	client := &http.Client{}
@@ -130,7 +133,7 @@ func (r *Response) String() (string, error) {
 
 func (r *Response) Bytes() ([]byte, error) {
 	if err := r.ExpectSuccess(); err != nil {
-		return nil, ErrNilResponse
+		return nil, err
 	}
 
 	defer r.Body.Close()
@@ -174,11 +177,11 @@ func (r *Response) ExpectSuccess() error {
 		return ErrNilResponse
 	}
 
-	if code := r.StatusCode; code > 199 && code < 300 {
-		return nil
-	} else {
-		return fmt.Errorf("unexpected status code: %d", code)
+	if code := r.StatusCode; code <= 199 || code >= 300 {
+		return fmt.Errorf("unexpected status code: %s", r.Status)
 	}
+
+	return nil
 }
 
 func (r *Response) IsSuccess() bool {

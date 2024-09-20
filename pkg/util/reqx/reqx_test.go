@@ -182,7 +182,7 @@ func TestResponse_ExpectSuccess_Error(t *testing.T) {
 			Response: &http.Response{StatusCode: tt.statusCode},
 		}
 
-		want := fmt.Errorf("unexpected status code: %d", tt.statusCode)
+		want := fmt.Errorf("unexpected status code: %s", resp.Status)
 
 		t.Run(tt.name, func(t *testing.T) {
 			err := resp.ExpectSuccess()
