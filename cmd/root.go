@@ -26,12 +26,13 @@ import (
 
 var (
 	configFile  string
-	patternName string
-	patternRepo string
+	hint        string
 	modelName   string
 	noStream    bool
-	verbose     bool
 	output      flagGroup.Output
+	patternName string
+	patternRepo string
+	verbose     bool
 
 	common = &cobra.Group{
 		Title: "Common Commands:",
@@ -92,7 +93,7 @@ var rootCmd = &cobra.Command{
 		// run the completion
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		msgs := llm.PrepareMessages(prompt, string(input))
+		msgs := llm.PrepareMessages(prompt, input, hint)
 
 		if noStream {
 			return llm.CreateCompletion(ctx, model, dest, msgs)
@@ -126,6 +127,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "verbose output")
 
 	// local flags are only available to the root command
+	rootCmd.Flags().StringVarP(&hint, "hint", "i", "", "optional context to guide the LLM's focus")
 	rootCmd.Flags().BoolVar(&noStream, "no-stream", false, "disable streaming mode")
 	rootCmd.Flags().StringVarP(&patternRepo, "repo", "r", "", "path to the pattern repository")
 	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use")

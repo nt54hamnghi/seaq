@@ -11,6 +11,7 @@ import (
 	"github.com/tmc/langchaingo/llms/anthropic"
 	"github.com/tmc/langchaingo/llms/googleai"
 	"github.com/tmc/langchaingo/llms/openai"
+	"github.com/tmc/langchaingo/prompts"
 )
 
 const (
@@ -57,6 +58,18 @@ var Models = map[string]map[string]bool{
 		// Gemini1Pro:    true,
 	},
 }
+
+// region: --- hint template
+
+var hintTemplate = prompts.NewPromptTemplate(`
+For the following content, focus on this aspect only: {{.hint}}
+Note: If this focus is irrelevant to the content, disregard the focus.
+Content: {{.content}}
+`,
+	[]string{"content", "hint"},
+)
+
+// endregion: --- hint template
 
 func LookupModel(name string) (provider string, model string, found bool) {
 	if name == "" {
@@ -133,6 +146,9 @@ func CreateCompletion(
 	}
 
 	_, err = io.WriteString(writer, resp.Choices[0].Content)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -163,16 +179,22 @@ func CreateStreamCompletion(
 
 }
 
-func PrepareMessages(prompt string, content string) []llms.MessageContent {
+func PrepareMessages(prompt string, content string, hint string) []llms.MessageContent {
+	altContent := content
+
+	if hint != "" {
+		// static template, so no need to check for error
+		altContent, _ = hintTemplate.Format(map[string]any{"content": content, "hint": hint})
+	}
+
 	return []llms.MessageContent{
 		{
 			Role:  llms.ChatMessageTypeSystem,
 			Parts: []llms.ContentPart{llms.TextContent{Text: prompt}},
 		},
-
 		{
 			Role:  llms.ChatMessageTypeHuman,
-			Parts: []llms.ContentPart{llms.TextContent{Text: content}},
+			Parts: []llms.ContentPart{llms.TextContent{Text: altContent}},
 		},
 	}
 }
