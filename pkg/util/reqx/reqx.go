@@ -80,7 +80,7 @@ func Do(
 	if headers != nil {
 		req.Header = http.Header(headers)
 	}
-	fmt.Println(req.Header)
+	req.Header.Set("User-Agent", "go-http-client/1.1")
 
 	// create a new HTTP client and send the request
 	client := &http.Client{}
