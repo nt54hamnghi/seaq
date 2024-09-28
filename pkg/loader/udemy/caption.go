@@ -5,6 +5,7 @@ package udemy
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -52,19 +53,24 @@ func parseUdemyUrl(rawUrl string) (courseName string, lectureId int, err error) 
 	return
 }
 
-func requestAPI[T any](u *udemyClient, target string) (T, error) {
+func requestAPI[T any](ctx context.Context, u *udemyClient, target string) (T, error) {
 	var t T
 
-	resp, err := u.Get(target)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {
 		return t, err
 	}
-	defer resp.Body.Close()
+
+	res, err := u.Do(req)
+	if err != nil {
+		return t, err
+	}
+	defer res.Body.Close()
 
 	return reqx.Into[T](
 		&reqx.Response{
-			Response: resp,
-			Request:  resp.Request,
+			Response: res,
+			Request:  res.Request,
 		},
 	)
 }
@@ -116,28 +122,53 @@ type course struct {
 	URL   string `json:"url"`
 }
 
-func (u *udemyClient) searchCourse(courseName string) (course, error) {
-	query := url.Values{}
-	query.Add("fields[course]", "@min")
-
-	target := fmt.Sprintf("%s/courses/%s?%s", UDEMY_API_URL, courseName, query.Encode())
-
-	return requestAPI[course](u, target)
-}
-
 type lecture struct {
 	ID          int    `json:"id"`
 	Description string `json:"description"`
 	Asset       asset  `json:"asset"`
 }
 
+type assetType string
+
+const (
+	video   assetType = "Video"
+	article assetType = "Article"
+)
+
+func (a assetType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(a)
+}
+
+func (a *assetType) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+
+	switch str {
+	case "Video":
+		*a = video
+	case "Article":
+		*a = article
+	default:
+		*a = assetType(str)
+	}
+	return nil
+}
+
 type asset struct {
 	ID       int       `json:"id"`
-	Captions []caption `json:"captions"`
+	Type     assetType `json:"asset_type"`
+	Body     string    `json:"body,omitempty"`
+	Captions []caption `json:"captions,omitempty"`
 }
 
 func (l *lecture) findCaption(localeIDs ...string) (caption, error) {
 	captions := l.Asset.Captions
+
+	if len(captions) == 0 {
+		return caption{}, errors.New("no captions available")
+	}
 
 	idx := slices.IndexFunc(captions,
 		func(c caption) bool {
@@ -154,6 +185,19 @@ func (l *lecture) findCaption(localeIDs ...string) (caption, error) {
 	}
 
 	return captions[idx], nil
+}
+
+func (l *lecture) getCaption() (caption, error) {
+	return l.findCaption(englishLocalIds...)
+}
+
+func (l *lecture) getArticle() (string, error) {
+	article := l.Asset.Body
+	if article == "" {
+		return "", errors.New("no article available")
+	}
+
+	return article, nil
 }
 
 type caption struct {
@@ -202,36 +246,43 @@ func subtitleToDocument(subtitle *astisub.Item) (schema.Document, error) {
 	}, nil
 }
 
-func (u *udemyClient) searchLecture(courseId, lectureId int) (lecture, error) {
+func (u *udemyClient) searchCourse(ctx context.Context, courseName string) (course, error) {
+	query := url.Values{}
+	query.Add("fields[course]", "@min")
+
+	target := fmt.Sprintf("%s/courses/%s?%s", UDEMY_API_URL, courseName, query.Encode())
+
+	return requestAPI[course](ctx, u, target)
+}
+
+// searchLecture searches for a lecture by course ID and lecture ID
+func (u *udemyClient) searchLecture(ctx context.Context, courseId, lectureId int) (lecture, error) {
 	query := url.Values{}
 	query.Add("fields[lecture]", "description,asset")
-	query.Add("fields[asset]", "captions")
+	query.Add("fields[asset]", "asset_type,captions,body")
 
 	target := fmt.Sprintf(
 		"%s/users/me/subscribed-courses/%d/lectures/%d/?%s",
 		UDEMY_API_URL, courseId, lectureId, query.Encode(),
 	)
 
-	return requestAPI[lecture](u, target)
+	return requestAPI[lecture](ctx, u, target)
 }
 
-func (u *udemyClient) getCaption(url string) (caption, error) {
+// searchLectureByUrl searches for a lecture by URL
+func (u *udemyClient) searchLectureByUrl(ctx context.Context, url string) (lecture, error) {
+	// parse course name and lecture ID from URL
 	courseName, lectureId, err := parseUdemyUrl(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// search course to retrieve course ID
-	course, err := u.searchCourse(courseName)
+	course, err := u.searchCourse(ctx, courseName)
 	if err != nil {
-		return caption{}, fmt.Errorf("failed to search course: %w", err)
+		return lecture{}, fmt.Errorf("failed to search course: %w", err)
 	}
 
 	// search lecture to retrieve caption download URL
-	lecture, err := u.searchLecture(course.ID, lectureId)
-	if err != nil {
-		return caption{}, fmt.Errorf("failed to search lecture: %w", err)
-	}
-
-	return lecture.findCaption(englishLocalIds...)
+	return u.searchLecture(ctx, course.ID, lectureId)
 }

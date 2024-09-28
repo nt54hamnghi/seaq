@@ -2,6 +2,7 @@ package udemy
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nt54hamnghi/hiku/pkg/env"
 	"github.com/tmc/langchaingo/schema"
@@ -42,12 +43,27 @@ func NewUdemyLoader(opts ...UdemyLoaderOption) (*UdemyLoader, error) {
 
 // Load loads from a source and returns documents.
 func (l UdemyLoader) Load(ctx context.Context) ([]schema.Document, error) {
-	caption, err := l.client.getCaption(l.url)
+	lec, err := l.client.searchLectureByUrl(ctx, l.url)
 	if err != nil {
 		return nil, err
 	}
 
-	return caption.download(ctx)
+	switch lec.Asset.Type {
+	case video:
+		caption, err := lec.getCaption()
+		if err != nil {
+			return nil, err
+		}
+		return caption.download(ctx)
+	case article:
+		article, err := lec.getArticle()
+		if err != nil {
+			return nil, err
+		}
+		return []schema.Document{{PageContent: article}}, nil
+	default:
+		return nil, fmt.Errorf("unsupported asset type: %s", lec.Asset.Type)
+	}
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
