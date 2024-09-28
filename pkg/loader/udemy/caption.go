@@ -128,15 +128,22 @@ type lecture struct {
 	Asset       asset  `json:"asset"`
 }
 
-type assetType string
+type assetType int
 
 const (
-	video   assetType = "Video"
-	article assetType = "Article"
+	video assetType = iota
+	article
 )
 
 func (a assetType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a)
+	switch a {
+	case video:
+		return json.Marshal("Video")
+	case article:
+		return json.Marshal("Article")
+	default:
+		return nil, errors.New("unknown asset type")
+	}
 }
 
 func (a *assetType) UnmarshalJSON(data []byte) error {
@@ -151,7 +158,7 @@ func (a *assetType) UnmarshalJSON(data []byte) error {
 	case "Article":
 		*a = article
 	default:
-		*a = assetType(str)
+		return fmt.Errorf("unsupported asset type: %q", str)
 	}
 	return nil
 }
