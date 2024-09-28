@@ -2,7 +2,7 @@ package udemy
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/nt54hamnghi/hiku/pkg/env"
 	"github.com/tmc/langchaingo/schema"
@@ -62,7 +62,7 @@ func (l UdemyLoader) Load(ctx context.Context) ([]schema.Document, error) {
 		}
 		return []schema.Document{{PageContent: article}}, nil
 	default:
-		return nil, fmt.Errorf("unsupported asset type: %s", lec.Asset.Type)
+		return nil, errors.New("unknown asset type")
 	}
 }
 

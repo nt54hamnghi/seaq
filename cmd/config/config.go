@@ -10,6 +10,7 @@ import (
 
 var Hiku *HikuConfig = New()
 
+// HikuConfig is a slim wrapper around an instance of viper.Viper
 type HikuConfig struct {
 	*viper.Viper
 }
