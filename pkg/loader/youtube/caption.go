@@ -113,20 +113,14 @@ func loadCaptionTracks(ctx context.Context, vid videoId) ([]captionTrack, error)
 	client := &http.Client{Jar: jar}
 
 	captionTracks, err := retry(2, 100*time.Millisecond, func() ([]captionTrack, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		resp, err := client.Do(req)
+		resp, err := reqx.DoWith(client, ctx, http.MethodGet, url, nil, nil)
 		if err != nil {
 			return nil, err
 		}
 		defer resp.Body.Close()
 
-		// check if the response is successful
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		if err = resp.ExpectSuccess(); err != nil {
+			return nil, err
 		}
 
 		// the Raw HTML content contains a list of available caption tracks
@@ -200,7 +194,7 @@ func (ct *captionTrack) asJson3() {
 	if !strings.Contains(url, "?") {
 		url += "?"
 	}
-	url += "&fmt=json3"
+	url += "&fmt=json3" // TODO: prepend "&" might be incorrect here
 
 	ct.BaseURL = url
 }

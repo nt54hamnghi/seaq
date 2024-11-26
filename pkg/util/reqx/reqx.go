@@ -58,43 +58,54 @@ func Do(
 	headers map[string][]string,
 ) (*Response, error) {
 
-	// convert struct to into a JSON-encoded byte slice
-	var buf io.Reader
+	return DoWith(&http.Client{}, ctx, method, url, body, headers)
+}
 
-	if body != nil {
+func DoWith(
+	client *http.Client,
+	ctx context.Context,
+	method string,
+	url string,
+	body any,
+	headers map[string][]string,
+) (*Response, error) {
+
+	// Prepare request body
+	var buf io.Reader
+	if body == nil {
+		buf = bytes.NewBuffer(nil)
+	} else {
 		b, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
 		buf = bytes.NewBuffer(b)
-	} else {
-		buf = bytes.NewBuffer([]byte{})
 	}
 
-	// wrap the JSON byte slice in a `*bytes.Buffer`
-	// so it can be read by the HTTP request body.
+	// Prepare request
 	req, err := http.NewRequestWithContext(ctx, method, url, buf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	if headers != nil {
-		req.Header = http.Header(headers)
+	for k, vs := range headers {
+		for _, v := range vs {
+			req.Header.Add(k, v)
+		}
 	}
 	req.Header.Set("User-Agent", "go-http-client/1.1")
 
+	// Send request
 	// create a new HTTP client and send the request
-	client := &http.Client{}
-	rawResp, err := client.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
 	// read the response body
 	return &Response{
-		Response: rawResp,
+		Response: res,
 		Request:  req,
 	}, nil
-
 }
 
 type Response struct {
