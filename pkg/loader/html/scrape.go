@@ -41,7 +41,7 @@ func (s selectorScraper) scrape(doc *goquery.Document) ([]string, error) {
 	return findSelector(s.selector, doc)
 }
 
-func scrapeFromUrl(ctx context.Context, url string, scr scraper) (string, error) {
+func scrapeFromURL(ctx context.Context, url string, scr scraper) (string, error) {
 	resp, err := reqx.Get(ctx, url, nil)
 	if err != nil {
 		return "", err
@@ -99,25 +99,25 @@ func findSelector(selector string, doc *goquery.Document) ([]string, error) {
 
 func collect(selection *goquery.Selection) []string {
 	res := make([]string, 0, selection.Length())
-	selection.Contents().Each(func(i int, s *goquery.Selection) {
+	selection.Contents().Each(func(_ int, s *goquery.Selection) {
 		html, err := s.Html()
 		if err != nil {
 			return
 		}
-		res = append(res, string(html))
+		res = append(res, html)
 	})
 	return res
 }
 
-func html2md(rawHtml []byte) ([]byte, error) {
-	safeHtml := sanitizeHtml(rawHtml)
+func html2md(rawHTML []byte) ([]byte, error) {
+	safeHTML := sanitizeHTML(rawHTML)
 	converter := md.NewConverter("", true, nil)
 	// converter.Use(plugin.Table())
 
-	return converter.ConvertBytes(safeHtml)
+	return converter.ConvertBytes(safeHTML)
 }
 
-func sanitizeHtml(html []byte) []byte {
+func sanitizeHTML(html []byte) []byte {
 	policy := bluemonday.UGCPolicy()
 	policy.AllowAttrs("href").OnElements("a")
 	policy.RequireParseableURLs(true)

@@ -4,13 +4,13 @@ Copyright © 2024 Nghi Nguyen
 package fetch
 
 import (
-	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
+	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
 	"github.com/spf13/cobra"
 )
 
 var (
-	output flagGroup.Output
-	asJson bool
+	output flaggroup.Output
+	asJSON bool
 )
 
 // FetchCmd represents the scrape command
@@ -21,8 +21,8 @@ var FetchCmd = &cobra.Command{
 	Aliases:      []string{"fet", "f"},
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
+		return cmd.Help()
 	},
 }
 

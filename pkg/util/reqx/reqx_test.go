@@ -10,19 +10,20 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
-type HttpSuite struct {
+type HTTPSuite struct {
 	suite.Suite
 	server *httptest.Server
 }
 
 func TestHttpSuite(t *testing.T) {
-	suite.Run(t, &HttpSuite{})
+	suite.Run(t, &HTTPSuite{})
 }
 
-func (s *HttpSuite) SetupSuite() {
+func (s *HTTPSuite) SetupSuite() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -46,11 +47,11 @@ func (s *HttpSuite) SetupSuite() {
 	s.server = httptest.NewServer(mux)
 }
 
-func (s *HttpSuite) TearDownSuite() {
+func (s *HTTPSuite) TearDownSuite() {
 	s.server.Close()
 }
 
-func (s *HttpSuite) TestDo() {
+func (s *HTTPSuite) TestDo() {
 	// replace the real URL with the mock server's URL
 	url := s.server.URL
 
@@ -101,16 +102,15 @@ func (s *HttpSuite) TestDo() {
 	t := s.T()
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			res, err := Do(ctx, tc.method, url+tc.endpoint, tc.body, tc.headers)
-			s.Equal(nil, err)
+			if s.NoError(err) {
+				body, _ := io.ReadAll(res.Body)
+				s.Equal(tc.want, body)
+			}
 			defer res.Body.Close()
-
-			body, _ := io.ReadAll(res.Body)
-			s.Equal(tc.want, body)
 		})
 	}
-
 }
 
 func TestResponse_Expec_Nil_Response(t *testing.T) {
@@ -145,17 +145,17 @@ func TestResponse_ExpectSuccess(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
 			Response: &http.Response{StatusCode: tt.statusCode},
 		}
 
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectSuccess()
-			asserts.Nil(err)
-			asserts.True(resp.IsSuccess())
+			requires.NoError(err)
+			requires.True(resp.IsSuccess())
 		})
 	}
 }
@@ -184,7 +184,7 @@ func TestResponse_ExpectSuccess_Error(t *testing.T) {
 
 		want := fmt.Errorf("unexpected status code: %s", resp.Status)
 
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectSuccess()
 			asserts.Equal(want, err)
 			asserts.False(resp.IsSuccess())
@@ -207,20 +207,21 @@ func TestResponse_ExpectStatusCode(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
 			Response: &http.Response{StatusCode: tt.statusCode},
 		}
 
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectStatusCode(tt.statusCode)
-			asserts.Nil(err)
-			asserts.True(resp.HasStatusCode(tt.statusCode))
+			requires.NoError(err)
+			requires.True(resp.HasStatusCode(tt.statusCode))
 		})
 	}
 }
+
 func TestResponse_ExpectStatusCode_Error(t *testing.T) {
 	testCases := []struct {
 		name   string
@@ -248,7 +249,7 @@ func TestResponse_ExpectStatusCode_Error(t *testing.T) {
 
 		want := fmt.Errorf("unexpected status code: %d", tt.actual)
 
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectStatusCode(tt.want)
 			asserts.Equal(want, err)
 			asserts.False(resp.HasStatusCode(tt.want))
@@ -274,7 +275,7 @@ func TestResponse_ExpectContentType(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -283,10 +284,10 @@ func TestResponse_ExpectContentType(t *testing.T) {
 			},
 		}
 
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectContentType(tt.want)
-			asserts.Nil(err)
-			asserts.True(resp.HasContentType(tt.want))
+			requires.NoError(err)
+			requires.True(resp.HasContentType(tt.want))
 		})
 	}
 }
@@ -320,7 +321,7 @@ func TestResponse_ExpectContentType_Error(t *testing.T) {
 
 		want := fmt.Errorf("unexpected content type: %s", tt.actual)
 
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectContentType(tt.want)
 			asserts.Equal(want, err)
 			asserts.False(resp.HasContentType(tt.want))
@@ -346,7 +347,7 @@ func TestResponse_Bytes(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -355,10 +356,10 @@ func TestResponse_Bytes(t *testing.T) {
 				Body:       io.NopCloser(bytes.NewBuffer(tt.actual)),
 			},
 		}
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			res, err := resp.Bytes()
-			asserts.Nil(err)
-			asserts.Equal(tt.want, res)
+			requires.NoError(err)
+			requires.Equal(tt.want, res)
 		})
 	}
 }
@@ -381,7 +382,7 @@ func TestResponse_String(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -390,10 +391,10 @@ func TestResponse_String(t *testing.T) {
 				Body:       io.NopCloser(bytes.NewBufferString(tt.actual)),
 			},
 		}
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			res, err := resp.String()
-			asserts.Nil(err)
-			asserts.Equal(tt.want, res)
+			requires.NoError(err)
+			requires.Equal(tt.want, res)
 		})
 	}
 }
@@ -415,11 +416,11 @@ func TestInto(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	res, err := Into[message](resp)
-	asserts.Nil(err)
-	asserts.Equal(res, message{Message: "hello"})
+	requires.NoError(err)
+	requires.Equal(message{Message: "hello"}, res)
 }
 
 func TestInto_Error(t *testing.T) {
@@ -439,5 +440,5 @@ func TestInto_Error(t *testing.T) {
 	asserts := assert.New(t)
 
 	_, err := Into[message](resp)
-	asserts.NotNil(err)
+	asserts.Error(err)
 }

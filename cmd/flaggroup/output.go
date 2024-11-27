@@ -1,4 +1,4 @@
-package flagGroup
+package flaggroup
 
 import (
 	"errors"
@@ -21,12 +21,12 @@ func (o *Output) Writer() (io.WriteCloser, error) {
 
 	if o.Force {
 		return util.NewTruncateFileWriter(o.File)
-	} else {
-		return util.NewCreateOnlyFileWriter(o.File)
 	}
+
+	return util.NewCreateOnlyFileWriter(o.File)
 }
 
-func (o *Output) Validate(cmd *cobra.Command, _ []string) error {
+func (o *Output) Validate(cmd *cobra.Command, args []string) error { // nolint: revive
 	outputFileSet := cmd.Flags().Changed("output")
 	forceSet := cmd.Flags().Changed("force")
 

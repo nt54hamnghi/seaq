@@ -12,13 +12,13 @@ import (
 
 // region: --- errors
 
-var ErrYoutubeApiKeyNotSet = errors.New("YOUTUBE_API_KEY is not set")
+var ErrYoutubeAPIKeyNotSet = errors.New("YOUTUBE_API_KEY is not set")
 
 // endregion: --- errors
 
-const YoutubeApiUrl = "https://youtube.googleapis.com/youtube/v3/videos"
+const YoutubeAPIURL = "https://youtube.googleapis.com/youtube/v3/videos"
 
-func fetchMetadtaAsDocument(ctx context.Context, vid videoId) (schema.Document, error) {
+func fetchMetadtaAsDocument(ctx context.Context, vid videoID) (schema.Document, error) {
 	snippet, err := fetchMetadta(ctx, vid)
 	if err != nil {
 		return schema.Document{}, err
@@ -34,7 +34,7 @@ func fetchMetadtaAsDocument(ctx context.Context, vid videoId) (schema.Document, 
 }
 
 func fetchMetadta(ctx context.Context, vid string) (*snippet, error) {
-	url, err := buildSnippetRequestUrl(vid)
+	url, err := buildSnippetRequestURL(vid)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ type snippet struct {
 	Title        string   `json:"title"`
 	ChannelTitle string   `json:"channelTitle"`
 	Description  string   `json:"description"`
-	Tags         []string `json:"-"` //`json:"tags"`
+	Tags         []string `json:"-"` // `json:"tags"`
 }
 
 // Implement the String method
@@ -76,15 +76,14 @@ Description:
 %s
 ---
 `, s.Title, s.ChannelTitle, s.Description)
-
 }
 
-func buildSnippetRequestUrl(vid videoId) (string, error) {
+func buildSnippetRequestURL(vid videoID) (string, error) {
 	apiKey, err := env.YoutubeAPIKey()
 	if err != nil {
 		return "", err
 	}
 
-	url := fmt.Sprintf("%s?part=snippet&id=%s&key=%s", YoutubeApiUrl, vid, apiKey)
+	url := fmt.Sprintf("%s?part=snippet&id=%s&key=%s", YoutubeAPIURL, vid, apiKey)
 	return url, nil
 }

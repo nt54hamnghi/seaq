@@ -5,14 +5,15 @@ import (
 	"os"
 )
 
+// nolint: revive,gosec
 const (
 	OPENAI_API_KEY     = "OPENAI_API_KEY"
 	ANTHROPIC_API_KEY  = "ANTHROPIC_API_KEY"
 	GEMINI_API_KEY     = "GEMINI_API_KEY"
 	YOUTUBE_API_KEY    = "YOUTUBE_API_KEY"
 	CHROMA_URL         = "CHROMA_URL"
-	X_AUTH_TOKEN       = "X_AUTH_TOKEN" // x.com auth_token cookie
-	X_CSRF_TOKEN       = "X_CSRF_TOKEN" // x.com ct0 cookie
+	X_AUTH_TOKEN       = "X_AUTH_TOKEN" // x.com
+	X_CSRF_TOKEN       = "X_CSRF_TOKEN" // x.com
 	UDEMY_ACCESS_TOKEN = "UDEMY_ACCESS_TOKEN"
 )
 
@@ -66,12 +67,12 @@ func UdemyAccessToken() (string, error) {
 	return globalEnvStore.Get(UDEMY_ACCESS_TOKEN)
 }
 
-type EnvStore struct {
+type Store struct {
 	getEnv func(string) (string, error)
 }
 
-func NewEnvStore() *EnvStore {
-	return &EnvStore{
+func NewEnvStore() *Store {
+	return &Store{
 		getEnv: func(s string) (string, error) {
 			val, ok := os.LookupEnv(s)
 			if !ok {
@@ -82,6 +83,6 @@ func NewEnvStore() *EnvStore {
 	}
 }
 
-func (e *EnvStore) Get(key string) (string, error) {
+func (e *Store) Get(key string) (string, error) {
 	return e.getEnv(key)
 }

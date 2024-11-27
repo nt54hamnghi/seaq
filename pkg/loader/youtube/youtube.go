@@ -14,40 +14,40 @@ type youtubeFilter struct {
 	end   *Timestamp
 }
 
-type YouTubeLoader struct {
+type Loader struct {
 	youtubeFilter
-	videoId         string
+	videoID         string
 	includeMetadata bool
 }
 
-type YoutubeLoaderOption func(*YouTubeLoader)
+type Option func(*Loader)
 
-func WithVideoId(src string) YoutubeLoaderOption {
-	return func(o *YouTubeLoader) {
-		o.videoId = src
+func WithVideoID(src string) Option {
+	return func(o *Loader) {
+		o.videoID = src
 	}
 }
 
-func WithStart(start *Timestamp) YoutubeLoaderOption {
-	return func(o *YouTubeLoader) {
+func WithStart(start *Timestamp) Option {
+	return func(o *Loader) {
 		o.start = start
 	}
 }
 
-func WithEnd(end *Timestamp) YoutubeLoaderOption {
-	return func(o *YouTubeLoader) {
+func WithEnd(end *Timestamp) Option {
+	return func(o *Loader) {
 		o.end = end
 	}
 }
 
-func WithMetadata(includeMetadata bool) YoutubeLoaderOption {
-	return func(o *YouTubeLoader) {
+func WithMetadata(includeMetadata bool) Option {
+	return func(o *Loader) {
 		o.includeMetadata = includeMetadata
 	}
 }
 
-func NewYouTubeLoader(opts ...YoutubeLoaderOption) *YouTubeLoader {
-	loader := &YouTubeLoader{}
+func NewYouTubeLoader(opts ...Option) *Loader {
+	loader := &Loader{}
 	for _, opt := range opts {
 		opt(loader)
 	}
@@ -55,16 +55,16 @@ func NewYouTubeLoader(opts ...YoutubeLoaderOption) *YouTubeLoader {
 }
 
 // Load loads from a source and returns documents.
-func (l YouTubeLoader) Load(ctx context.Context) ([]schema.Document, error) {
+func (l Loader) Load(ctx context.Context) ([]schema.Document, error) {
 	tasks := []pool.Task[[]schema.Document]{
 		func() ([]schema.Document, error) {
-			return fetchCaptionAsDocuments(ctx, l.videoId, &l.youtubeFilter)
+			return fetchCaptionAsDocuments(ctx, l.videoID, &l.youtubeFilter)
 		},
 	}
 
 	if l.includeMetadata {
 		tasks = append(tasks, func() ([]schema.Document, error) {
-			doc, err := fetchMetadtaAsDocument(ctx, l.videoId)
+			doc, err := fetchMetadtaAsDocument(ctx, l.videoID)
 			return []schema.Document{doc}, err
 		})
 	}
@@ -82,7 +82,7 @@ func (l YouTubeLoader) Load(ctx context.Context) ([]schema.Document, error) {
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
-func (l YouTubeLoader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
+func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
 	docs, err := l.Load(ctx)
 	if err != nil {
 		return nil, err

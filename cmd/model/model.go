@@ -15,7 +15,7 @@ var ModelCmd = &cobra.Command{
 	Aliases:      []string{"mdl", "m"},
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		return cmd.Usage()
 	},
 }
@@ -27,6 +27,6 @@ func init() {
 	)
 }
 
-func CompleteModelArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func CompleteModelArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) { // nolint: revive
 	return config.Hiku.ListModels(), cobra.ShellCompDirectiveNoFileComp
 }

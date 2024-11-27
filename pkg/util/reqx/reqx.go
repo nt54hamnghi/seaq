@@ -14,9 +14,7 @@ import (
 
 // region: --- errors
 
-var (
-	ErrNilResponse = errors.New("response is nil")
-)
+var ErrNilResponse = errors.New("response is nil")
 
 // endregion: --- errors
 
@@ -57,19 +55,17 @@ func Do(
 	body any,
 	headers map[string][]string,
 ) (*Response, error) {
-
-	return DoWith(&http.Client{}, ctx, method, url, body, headers)
+	return DoWith(ctx, &http.Client{}, method, url, body, headers)
 }
 
 func DoWith(
-	client *http.Client,
 	ctx context.Context,
+	client *http.Client,
 	method string,
 	url string,
 	body any,
 	headers map[string][]string,
 ) (*Response, error) {
-
 	// Prepare request body
 	var buf io.Reader
 	if body == nil {
@@ -95,8 +91,8 @@ func DoWith(
 	req.Header.Set("User-Agent", "go-http-client/1.1")
 
 	// Send request
-	// create a new HTTP client and send the request
-	res, err := client.Do(req)
+	// Caller is responsible for closing the response body
+	res, err := client.Do(req) // nolint: bodyclose
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTimestamp_ToMsDuration(t *testing.T) {
@@ -44,7 +45,7 @@ func TestTimestamp_ToMsDuration(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			msDuration := tt.timestamp.ToMsDuration()
 			asserts.Equal(tt.want, msDuration)
 		})
@@ -69,14 +70,14 @@ func TestParseTimestamp(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			got, err := ParseTimestamp(tt.input)
-			asserts.Nil(err)
-			asserts.NotNil(got)
-			asserts.Equal(*tt.want, *got)
+			requires.NoError(err)
+			requires.NotNil(got)
+			requires.Equal(*tt.want, *got)
 		})
 	}
 }
@@ -107,7 +108,7 @@ func TestParseTimestamp_Error(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			_, err := ParseTimestamp(tt.input)
 			asserts.Equal(err, errors.New("invalid timestamp string"))
 		})

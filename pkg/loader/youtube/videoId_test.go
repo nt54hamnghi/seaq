@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolveVideoId(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name string
 		src  string
-		want videoId
+		want videoID
 	}{
 		{
 			name: "validVid",
@@ -19,24 +20,24 @@ func TestResolveVideoId(t *testing.T) {
 		},
 		{
 			name: "validUrl",
-			src:  YouTubeWatchUrl + "?v=SL_YMm9C6tw",
+			src:  YouTubeWatchURL + "?v=SL_YMm9C6tw",
 			want: "SL_YMm9C6tw",
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			vid, err := ResolveVideoId(tc.src)
-			asserts.Nil(err)
-			asserts.Equal(vid, tc.want)
+		t.Run(tc.name, func(*testing.T) {
+			vid, err := ResolveVideoID(tc.src)
+			requires.NoError(err)
+			requires.Equal(tc.want, vid)
 		})
 	}
 }
 
 func TestResolveVideoId_Error(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name string
 		src  string
 		err  error
@@ -49,48 +50,49 @@ func TestResolveVideoId_Error(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := ResolveVideoId(tc.src)
+		t.Run(tc.name, func(*testing.T) {
+			_, err := ResolveVideoID(tc.src)
 			asserts.Equal(err, tc.err)
 		})
 	}
 }
 
 func Test_extractVideoId(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name string
 		url  string
 		want string
 	}{
 		{
 			name: "valid",
-			url:  YouTubeWatchUrl + "?v=SL_YMm9C6tw",
+			url:  YouTubeWatchURL + "?v=SL_YMm9C6tw",
 			want: "SL_YMm9C6tw",
 		},
 		{
 			name: "multipleParams",
-			url:  YouTubeWatchUrl + "?v=SL_YMm9C6tw&t=5s",
+			url:  YouTubeWatchURL + "?v=SL_YMm9C6tw&t=5s",
 			want: "SL_YMm9C6tw",
 		},
 		{
 			name: "multipleVids",
-			url:  YouTubeWatchUrl + "?v=SL_YMm9C6tw&v=12345678910",
+			url:  YouTubeWatchURL + "?v=SL_YMm9C6tw&v=12345678910",
 			want: "SL_YMm9C6tw",
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual, err := extractVideoId(tc.url)
-			asserts.Nil(err)
-			asserts.Equal(actual, tc.want)
+		t.Run(tc.name, func(*testing.T) {
+			actual, err := extractVideoID(tc.url)
+			requires.NoError(err)
+			requires.Equal(tc.want, actual)
 		})
 	}
 }
+
 func Test_extractVideoId_Error(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name string
 		url  string
 		err  error
@@ -102,28 +104,28 @@ func Test_extractVideoId_Error(t *testing.T) {
 		},
 		{
 			name: "missingVid",
-			url:  YouTubeWatchUrl + "?t=5s",
-			err:  ErrVideoIdNotFoundInURL,
+			url:  YouTubeWatchURL + "?t=5s",
+			err:  ErrVideoIDNotFoundInURL,
 		},
 		{
 			name: "noValue",
-			url:  YouTubeWatchUrl + "?v=",
-			err:  ErrVideoIdNotFoundInURL,
+			url:  YouTubeWatchURL + "?v=",
+			err:  ErrVideoIDNotFoundInURL,
 		},
 		{
 			name: "videoIdTooShort",
-			url:  YouTubeWatchUrl + "?v=short",
-			err:  ErrInvalidVideoId,
+			url:  YouTubeWatchURL + "?v=short",
+			err:  ErrInvalidVideoID,
 		},
 		{
 			name: "videoIdTooLong",
-			url:  YouTubeWatchUrl + "?v=looooooooong",
-			err:  ErrInvalidVideoId,
+			url:  YouTubeWatchURL + "?v=looooooooong",
+			err:  ErrInvalidVideoID,
 		},
 		{
 			name: "invalidChars",
-			url:  YouTubeWatchUrl + "?v=!!!!!!!!!!!",
-			err:  ErrInvalidVideoId,
+			url:  YouTubeWatchURL + "?v=!!!!!!!!!!!",
+			err:  ErrInvalidVideoID,
 		},
 		{
 			name: "invalidUrl",
@@ -135,8 +137,8 @@ func Test_extractVideoId_Error(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := extractVideoId(tc.url)
+		t.Run(tc.name, func(*testing.T) {
+			_, err := extractVideoID(tc.url)
 			asserts.Equal(err, tc.err)
 		})
 	}

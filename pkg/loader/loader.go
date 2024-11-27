@@ -44,13 +44,13 @@ func LoadAndMarshal(ctx context.Context, l documentloaders.Loader) (string, erro
 // LoadAndWrite loads documents using the Loader and writes them to the writer.
 // If asJson is true, the documents are marshaled into a JSON string before writing.
 // Otherwise, the documents are joined into a single string using "\n" as the separator before writing.
-func LoadAndWrite(ctx context.Context, l documentloaders.Loader, writer io.Writer, asJson bool) error {
+func LoadAndWrite(ctx context.Context, l documentloaders.Loader, writer io.Writer, asJSON bool) error {
 	var (
 		docs string
 		err  error
 	)
 
-	if asJson {
+	if asJSON {
 		docs, err = LoadAndMarshal(ctx, l)
 	} else {
 		docs, err = LoadAndJoin(ctx, l)

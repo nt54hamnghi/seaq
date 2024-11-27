@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tmc/langchaingo/schema"
 )
 
@@ -41,15 +42,15 @@ func Test_extractCaptionTracks(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			body := strings.NewReader(tt.body)
 			actual, err := extractCaptionTracks(body)
 
-			asserts.Nil(err)
-			asserts.Equal(actual, tt.want)
+			requires.NoError(err)
+			requires.Equal(tt.want, actual)
 		})
 	}
 }
@@ -70,7 +71,7 @@ func Test_extractCaptionTracks_Error(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			body := strings.NewReader(tt.body)
 			_, err := extractCaptionTracks(body)
 			asserts.Equal(err, tt.err)
@@ -78,7 +79,7 @@ func Test_extractCaptionTracks_Error(t *testing.T) {
 	}
 }
 
-func Ok(w http.ResponseWriter, r *http.Request) {
+func Ok(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -99,22 +100,23 @@ func Test_processCaptionTracks(t *testing.T) {
 
 	asserts := assert.New(t)
 	for _, r := range tracks {
-		asserts.True(strings.Contains(r.BaseURL, "fmt=json3"))
+		asserts.Contains(r.BaseURL, "fmt=json3")
 
 		if strings.Contains(r.BaseURL, "not-found") {
 			asserts.False(r.HasAutoTranslation)
-			asserts.False(strings.Contains(r.BaseURL, "tlang=en"))
+			asserts.NotContains(r.BaseURL, "tlang=en")
 		} else {
 			asserts.True(r.HasAutoTranslation)
-			asserts.True(strings.Contains(r.BaseURL, "tlang=en"))
+			asserts.Contains(r.BaseURL, "tlang=en")
 		}
 	}
 }
 
 func Test_loadCaption(t *testing.T) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		// nolint: errcheck
 		w.Write([]byte(`
 		{
 			"events": [
@@ -130,10 +132,10 @@ func Test_loadCaption(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	var testCases = []struct {
+	testCases := []struct {
 		name         string
 		captionTrack []captionTrack
-		expected     caption
+		want         caption
 	}{
 		{
 			name: "valid",
@@ -143,7 +145,7 @@ func Test_loadCaption(t *testing.T) {
 					LanguageCode: "en",
 				},
 			},
-			expected: caption{Events: []event{
+			want: caption{Events: []event{
 				{DDurationMs: 1249390, ID: 1},
 			}},
 		},
@@ -156,25 +158,25 @@ func Test_loadCaption(t *testing.T) {
 					HasAutoTranslation: true,
 				},
 			},
-			expected: caption{Events: []event{
+			want: caption{Events: []event{
 				{DDurationMs: 1249390, ID: 1},
 			}},
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			c, err := loadCaption(context.TODO(), tc.captionTrack)
-			asserts.Nil(err)
-			asserts.Equal(c, tc.expected)
+			requires.NoError(err)
+			requires.Equal(tc.want, c)
 		})
 	}
 }
 
 func Test_loadCaption_Error(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name         string
 		captionTrack []captionTrack
 		err          error
@@ -204,7 +206,7 @@ func Test_loadCaption_Error(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			_, err := loadCaption(context.TODO(), tc.captionTrack)
 			asserts.Equal(err, tc.err)
 		})
@@ -252,11 +254,11 @@ func Test_caption_filterStart(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			c := &caption{Events: tt.events}
 			c.filterStart(tt.start)
 
-			asserts.Equal(c.Events, tt.want)
+			asserts.Equal(tt.want, c.Events)
 		})
 	}
 }
@@ -302,11 +304,11 @@ func Test_caption_filterEnd(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			c := &caption{Events: tt.events}
 			c.filterEnd(tt.end)
 
-			asserts.Equal(c.Events, tt.want)
+			asserts.Equal(tt.want, c.Events)
 		})
 	}
 }
@@ -342,14 +344,14 @@ func Test_event_toDocument(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			got, err := tt.event.toDocument()
-			asserts.Nil(err)
-			asserts.Equal(got.PageContent, "hello world")
-			asserts.Equal(got.Metadata["startMs"], int64(240))
-			asserts.Equal(got.Metadata["durationMs"], int64(4880))
+			requires.NoError(err)
+			requires.Equal("hello world", got.PageContent)
+			requires.Equal(int64(240), got.Metadata["startMs"])
+			requires.Equal(int64(4880), got.Metadata["durationMs"])
 		})
 	}
 }
@@ -373,9 +375,9 @@ func Test_event_toDocument_Error(t *testing.T) {
 
 	asserts := assert.New(t)
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			_, err := tt.event.toDocument()
-			asserts.Equal(err, tt.wantErr)
+			asserts.Equal(tt.wantErr, err)
 		})
 	}
 }

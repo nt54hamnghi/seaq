@@ -15,7 +15,7 @@ var listCmd = &cobra.Command{
 	Aliases:      []string{"ls"},
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		for provider, models := range llm.Models {
 			cmd.Println(provider)
 			cmd.Println("--------------------")

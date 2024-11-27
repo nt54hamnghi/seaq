@@ -15,7 +15,7 @@ var PatternCmd = &cobra.Command{
 	Aliases:      []string{"pat", "p"},
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		return cmd.Usage()
 	},
 }
@@ -27,7 +27,7 @@ func init() {
 	)
 }
 
-func CompletePatternArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func CompletePatternArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) { // nolint: revive
 	patterns, err := config.Hiku.ListPatterns()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp

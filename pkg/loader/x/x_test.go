@@ -12,7 +12,7 @@ import (
 func Test_toDocument_tweet(t *testing.T) {
 	var nilQuote map[string]any
 
-	var testCases = []struct {
+	testCases := []struct {
 		name  string
 		tweet *x.Tweet
 		want  schema.Document
@@ -77,7 +77,7 @@ func Test_toDocument_tweet(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			got, _ := tweetToDocument(tt.tweet)
 			asserts.Equal(tt.want, got)
 		})
@@ -85,7 +85,7 @@ func Test_toDocument_tweet(t *testing.T) {
 }
 
 func Test_toDocument_tweet_Error(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name    string
 		tweet   *x.Tweet
 		wantErr error
@@ -100,9 +100,9 @@ func Test_toDocument_tweet_Error(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			_, err := tweetToDocument(tt.tweet)
-			asserts.NotNil(err)
+			asserts.Error(err)
 		})
 	}
 }

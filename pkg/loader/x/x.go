@@ -11,27 +11,27 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-type XLoader struct {
-	tweetId string
+type Loader struct {
+	tweetID string
 	xNgin   *x.Scraper
 	noReply bool
 }
 
-type XLoaderOption func(*XLoader)
+type Option func(*Loader)
 
-func WithTweetId(id string) XLoaderOption {
-	return func(o *XLoader) {
-		o.tweetId = id
+func WithTweetID(id string) Option {
+	return func(o *Loader) {
+		o.tweetID = id
 	}
 }
 
-func WithoutReply(noReply bool) XLoaderOption {
-	return func(o *XLoader) {
+func WithoutReply(noReply bool) Option {
+	return func(o *Loader) {
 		o.noReply = noReply
 	}
 }
 
-func NewXLoader(opts ...XLoaderOption) (*XLoader, error) {
+func NewXLoader(opts ...Option) (*Loader, error) {
 	authToken, err := env.XAuthToken()
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func NewXLoader(opts ...XLoaderOption) (*XLoader, error) {
 		return nil, errors.New("invalid AuthToken")
 	}
 
-	loader := &XLoader{
+	loader := &Loader{
 		xNgin:   xngin,
 		noReply: false,
 	}
@@ -94,10 +94,10 @@ func tweetToDocument(tweet *x.Tweet) (schema.Document, error) {
 	}, nil
 }
 
-func (l XLoader) getTweet() (schema.Document, error) {
+func (l Loader) getTweet() (schema.Document, error) {
 	var doc schema.Document
 
-	tweet, err := l.xNgin.GetTweet(l.tweetId)
+	tweet, err := l.xNgin.GetTweet(l.tweetID)
 	if err != nil {
 		return doc, err
 	}
@@ -105,8 +105,8 @@ func (l XLoader) getTweet() (schema.Document, error) {
 	return tweetToDocument(tweet)
 }
 
-func (l XLoader) getThread() ([]schema.Document, error) {
-	thread, _, err := l.xNgin.GetTweetReplies(l.tweetId, "")
+func (l Loader) getThread() ([]schema.Document, error) {
+	thread, _, err := l.xNgin.GetTweetReplies(l.tweetID, "")
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (l XLoader) getThread() ([]schema.Document, error) {
 }
 
 // Load loads from a source and returns documents.
-func (l XLoader) Load(ctx context.Context) ([]schema.Document, error) {
+func (l Loader) Load(_ context.Context) ([]schema.Document, error) {
 	if l.noReply {
 		tweet, err := l.getTweet()
 		if err != nil {
@@ -128,7 +128,7 @@ func (l XLoader) Load(ctx context.Context) ([]schema.Document, error) {
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
-func (l XLoader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
+func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
 	docs, err := l.Load(ctx)
 	if err != nil {
 		return nil, err

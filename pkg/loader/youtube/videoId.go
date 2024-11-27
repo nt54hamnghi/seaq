@@ -9,25 +9,25 @@ import (
 
 var (
 	ErrInvalidYouTubeURL    = errors.New("invalid YouTube url")
-	ErrInvalidVideoId       = errors.New("invalid YouTube video ID")
-	ErrVideoIdNotFoundInURL = errors.New("video id not found in YouTube url")
+	ErrInvalidVideoID       = errors.New("invalid YouTube video ID")
+	ErrVideoIDNotFoundInURL = errors.New("video id not found in YouTube url")
 )
 
-type videoId = string
+type videoID = string
 
-var videoIdRe = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
+var videoIDRegex = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
 
-func ResolveVideoId(src string) (videoId, error) {
-	if videoIdRe.MatchString(src) {
+func ResolveVideoID(src string) (videoID, error) {
+	if videoIDRegex.MatchString(src) {
 		return src, nil
 	}
 
-	return extractVideoId(src)
+	return extractVideoID(src)
 }
 
-// extractVideoId returns the video ID of a YouTube watch URL
-func extractVideoId(rawUrl string) (videoId, error) {
-	query, found := strings.CutPrefix(rawUrl, YouTubeWatchUrl+"?")
+// extractVideoID returns the video ID of a YouTube watch URL
+func extractVideoID(rawURL string) (videoID, error) {
+	query, found := strings.CutPrefix(rawURL, YouTubeWatchURL+"?")
 	if !found {
 		return "", ErrInvalidYouTubeURL
 	}
@@ -40,11 +40,11 @@ func extractVideoId(rawUrl string) (videoId, error) {
 
 	vid, ok := q["v"]
 	if !ok || len(vid) == 0 || vid[0] == "" {
-		return "", ErrVideoIdNotFoundInURL
+		return "", ErrVideoIDNotFoundInURL
 	}
 
-	if !videoIdRe.MatchString(vid[0]) {
-		return "", ErrInvalidVideoId
+	if !videoIDRegex.MatchString(vid[0]) {
+		return "", ErrInvalidVideoID
 	}
 
 	return vid[0], nil

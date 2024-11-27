@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
+	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
 	"github.com/nt54hamnghi/hiku/pkg/loader"
 	"github.com/nt54hamnghi/hiku/pkg/loader/udemy"
 	"github.com/spf13/cobra"
@@ -19,14 +19,14 @@ var udemyCmd = &cobra.Command{
 	Short:        "Get transcript of a Udemy lecture video",
 	Aliases:      []string{"udm", "u"},
 	Args:         cobra.ExactArgs(1),
-	PreRunE:      flagGroup.ValidateGroups(&output),
+	PreRunE:      flaggroup.ValidateGroups(&output),
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		udemyLoader, err := udemy.NewUdemyLoader(
-			udemy.WithUrl(args[0]),
+			udemy.WithURL(args[0]),
 		)
 		if err != nil {
 			return err
@@ -38,12 +38,12 @@ var udemyCmd = &cobra.Command{
 		}
 		defer dest.Close()
 
-		return loader.LoadAndWrite(ctx, udemyLoader, dest, asJson)
+		return loader.LoadAndWrite(ctx, udemyLoader, dest, asJSON)
 	},
 }
 
 func init() {
 	udemyCmd.Flags().SortFlags = false
 
-	udemyCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
+	udemyCmd.Flags().BoolVarP(&asJSON, "json", "j", false, "output as JSON")
 }

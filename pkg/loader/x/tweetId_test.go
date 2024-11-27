@@ -4,44 +4,45 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
-	testTweetId = "1567638108937801728"
+	testTweetID = "1567638108937801728"
 	testXUrl    = "https://x.com/LogarithmicRex/status/1567638108937801728"
 )
 
 func TestResolveTweetId(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name string
 		src  string
-		want tweetId
+		want tweetID
 	}{
 		{
 			name: "validId",
-			src:  testTweetId,
-			want: testTweetId,
+			src:  testTweetID,
+			want: testTweetID,
 		},
 		{
 			name: "validUrl",
 			src:  testXUrl,
-			want: testTweetId,
+			want: testTweetID,
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			vid, err := ResolveTweetId(tc.src)
-			asserts.Nil(err)
-			asserts.Equal(vid, tc.want)
+		t.Run(tc.name, func(*testing.T) {
+			vid, err := ResolveTweetID(tc.src)
+			requires.NoError(err)
+			requires.Equal(tc.want, vid)
 		})
 	}
 }
 
 func Test_extractTweetId(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name string
 		url  string
 		want string
@@ -49,28 +50,28 @@ func Test_extractTweetId(t *testing.T) {
 		{
 			name: "valid",
 			url:  testXUrl,
-			want: testTweetId,
+			want: testTweetID,
 		},
 		{
 			name: "withQueryParams",
 			url:  testXUrl + "?page=0",
-			want: testTweetId,
+			want: testTweetID,
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual, err := extractTweetId(tc.url)
-			asserts.Nil(err)
-			asserts.Equal(actual, tc.want)
+		t.Run(tc.name, func(*testing.T) {
+			actual, err := extractTweetID(tc.url)
+			requires.NoError(err)
+			requires.Equal(tc.want, actual)
 		})
 	}
 }
 
 func Test_extractTweetId_Error(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name    string
 		url     string
 		wantErr error
@@ -78,30 +79,30 @@ func Test_extractTweetId_Error(t *testing.T) {
 		{
 			name:    "noPath",
 			url:     "https://x.com",
-			wantErr: ErrTweetIdNotFoundInURL,
+			wantErr: ErrTweetIDNotFoundInURL,
 		},
 		{
 			name:    "ShortPath",
 			url:     "https://x.com/LogarithmicRex",
-			wantErr: ErrTweetIdNotFoundInURL,
+			wantErr: ErrTweetIDNotFoundInURL,
 		},
 		{
 			name:    "wrongPath",
 			url:     "https://x.com/LogarithmicRex/invalid/1567638108937801728",
-			wantErr: ErrTweetIdNotFoundInURL,
+			wantErr: ErrTweetIDNotFoundInURL,
 		},
 		{
 			name:    "invalidId",
 			url:     "https://x.com/LogarithmicRex/status/invalid",
-			wantErr: ErrInvalidTweetId,
+			wantErr: ErrInvalidTweetID,
 		},
 	}
 
 	asserts := assert.New(t)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := extractTweetId(tc.url)
+		t.Run(tc.name, func(*testing.T) {
+			_, err := extractTweetID(tc.url)
 			asserts.Equal(tc.wantErr, err)
 		})
 	}

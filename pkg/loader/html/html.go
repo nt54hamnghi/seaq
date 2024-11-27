@@ -7,34 +7,34 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-type HtmlLoader struct {
+type Loader struct {
 	url      string
 	selector string
 	auto     bool
 }
 
-type HtmlOption func(*HtmlLoader)
+type Option func(*Loader)
 
-func WithUrl(url string) HtmlOption {
-	return func(l *HtmlLoader) {
+func WithURL(url string) Option {
+	return func(l *Loader) {
 		l.url = url
 	}
 }
 
-func WithSelector(selector string) HtmlOption {
-	return func(l *HtmlLoader) {
+func WithSelector(selector string) Option {
+	return func(l *Loader) {
 		l.selector = selector
 	}
 }
 
-func WithAuto(auto bool) HtmlOption {
-	return func(l *HtmlLoader) {
+func WithAuto(auto bool) Option {
+	return func(l *Loader) {
 		l.auto = auto
 	}
 }
 
-func NewHtmlLoader(opts ...HtmlOption) *HtmlLoader {
-	loader := &HtmlLoader{}
+func NewLoader(opts ...Option) *Loader {
+	loader := &Loader{}
 	for _, opt := range opts {
 		opt(loader)
 	}
@@ -42,17 +42,19 @@ func NewHtmlLoader(opts ...HtmlOption) *HtmlLoader {
 }
 
 // Load loads from a source and returns documents.
-func (l HtmlLoader) Load(ctx context.Context) ([]schema.Document, error) {
+func (l Loader) Load(ctx context.Context) ([]schema.Document, error) {
 	var s scraper
-	if l.selector != "" {
+
+	switch {
+	case l.selector != "":
 		s = selectorScraper{selector: l.selector}
-	} else if l.auto {
+	case l.auto:
 		s = autoScraper{}
-	} else {
+	default:
 		s = pageScraper{}
 	}
 
-	content, err := scrapeFromUrl(ctx, l.url, s)
+	content, err := scrapeFromURL(ctx, l.url, s)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +71,7 @@ func (l HtmlLoader) Load(ctx context.Context) ([]schema.Document, error) {
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
-func (l HtmlLoader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
+func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
 	docs, err := l.Load(ctx)
 	if err != nil {
 		return nil, err
@@ -77,27 +79,27 @@ func (l HtmlLoader) LoadAndSplit(ctx context.Context, splitter textsplitter.Text
 	return textsplitter.SplitDocuments(splitter, docs)
 }
 
-type RecursiveHtmlLoader struct {
-	*HtmlLoader
+type RecursiveHTML struct {
+	*Loader
 	maxPages int
 }
 
-type RecursiveHtmlOption func(*RecursiveHtmlLoader)
+type RecursiveOption func(*RecursiveHTML)
 
-func WithHtmlLoader(loader *HtmlLoader) RecursiveHtmlOption {
-	return func(l *RecursiveHtmlLoader) {
-		l.HtmlLoader = loader
+func WithHTMLLoader(loader *Loader) RecursiveOption {
+	return func(l *RecursiveHTML) {
+		l.Loader = loader
 	}
 }
 
-func WithMaxPages(maxPages int) RecursiveHtmlOption {
-	return func(l *RecursiveHtmlLoader) {
+func WithMaxPages(maxPages int) RecursiveOption {
+	return func(l *RecursiveHTML) {
 		l.maxPages = maxPages
 	}
 }
 
-func NewRecursiveHtmlLoader(opts ...RecursiveHtmlOption) *RecursiveHtmlLoader {
-	loader := &RecursiveHtmlLoader{}
+func NewRecursiveLoader(opts ...RecursiveOption) *RecursiveHTML {
+	loader := &RecursiveHTML{}
 	for _, opt := range opts {
 		opt(loader)
 	}
@@ -105,13 +107,14 @@ func NewRecursiveHtmlLoader(opts ...RecursiveHtmlOption) *RecursiveHtmlLoader {
 }
 
 // Load loads from a source and returns documents.
-func (l RecursiveHtmlLoader) Load(ctx context.Context) ([]schema.Document, error) {
+func (l RecursiveHTML) Load(_ context.Context) ([]schema.Document, error) {
 	var s scraper
-	if l.selector != "" {
+	switch {
+	case l.selector != "":
 		s = selectorScraper{selector: l.selector}
-	} else if l.auto {
+	case l.auto:
 		s = autoScraper{}
-	} else {
+	default:
 		s = pageScraper{}
 	}
 
@@ -131,7 +134,7 @@ func (l RecursiveHtmlLoader) Load(ctx context.Context) ([]schema.Document, error
 		docs = append(docs, schema.Document{
 			PageContent: ct.Markdown,
 			Metadata: map[string]any{
-				"url":      ct.Url,
+				"url":      ct.URL,
 				"title":    ct.Title,
 				"selector": l.selector,
 			},
@@ -142,7 +145,7 @@ func (l RecursiveHtmlLoader) Load(ctx context.Context) ([]schema.Document, error
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
-func (l RecursiveHtmlLoader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
+func (l RecursiveHTML) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
 	docs, err := l.Load(ctx)
 	if err != nil {
 		return nil, err

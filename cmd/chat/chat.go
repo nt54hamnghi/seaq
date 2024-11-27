@@ -19,21 +19,19 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-var (
-	modelName string
-)
+var modelName string
 
 // ChatCmd represents the chat command
 var ChatCmd = &cobra.Command{
 	Use:   "chat",
 	Short: "Open a chat session",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		hiku := config.Hiku
 
 		input, err := util.ReadPipedStdin()
 		if err != nil {
 			if errors.Is(err, util.ErrInteractiveInput) {
-				cmd.Help()
+				_ = cmd.Help()
 				return nil
 			}
 			return err
@@ -86,7 +84,7 @@ func init() {
 	ChatCmd.Flags().SortFlags = false
 
 	ChatCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
-	ChatCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
+	_ = ChatCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
 
 	err := config.Hiku.BindPFlag("model.name", ChatCmd.Flags().Lookup("model"))
 	cobra.CheckErr(err)

@@ -14,16 +14,14 @@ const (
 	promptPlaceHolder = "What's in your mind?"
 )
 
-var (
-	promptStyle = lipgloss.NewStyle().Foreground(promptcolor)
-)
+var promptStyle = lipgloss.NewStyle().Foreground(promptcolor)
 
 type Model struct {
 	textinput.Model
 	history
 }
 
-func New() Model {
+func New() *Model {
 	// create & configure model
 	model := textinput.New()
 	model.Focus()
@@ -31,7 +29,7 @@ func New() Model {
 	model.Prompt = promptStyle.Render(promptIcon)
 	model.CharLimit = 128
 
-	return Model{
+	return &Model{
 		Model:   model,
 		history: newHistory(),
 	}
@@ -41,12 +39,11 @@ func (m Model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.Model, cmd = m.Model.Update(msg)
 
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.Type {
 		case tea.KeyUp:
 			m.SetValue(m.previous())
@@ -56,6 +53,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.SetValue(m.next())
 			m.CursorEnd()
 			return m, nil
+		default:
+			return m, cmd
 		}
 	}
 

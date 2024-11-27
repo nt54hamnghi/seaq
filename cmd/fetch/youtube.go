@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
+	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
 	"github.com/nt54hamnghi/hiku/pkg/loader"
 	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
 	"github.com/spf13/cobra"
@@ -27,8 +27,8 @@ var youtubeCmd = &cobra.Command{
 	Aliases:      []string{"ytb", "y"},
 	Args:         youTubeArgs,
 	SilenceUsage: true,
-	PreRunE:      flagGroup.ValidateGroups(&output),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE:      flaggroup.ValidateGroups(&output),
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -52,7 +52,7 @@ var youtubeCmd = &cobra.Command{
 		}
 
 		youtubeLoader := youtube.NewYouTubeLoader(
-			youtube.WithVideoId(vid),
+			youtube.WithVideoID(vid),
 			youtube.WithMetadata(metadata),
 			youtube.WithStart(startTs),
 			youtube.WithEnd(endTs),
@@ -64,7 +64,7 @@ var youtubeCmd = &cobra.Command{
 		}
 		defer dest.Close()
 
-		return loader.LoadAndWrite(ctx, youtubeLoader, dest, asJson)
+		return loader.LoadAndWrite(ctx, youtubeLoader, dest, asJSON)
 	},
 }
 
@@ -74,9 +74,9 @@ func init() {
 	youtubeCmd.Flags().StringVarP(&start, "start", "s", "", "start time")
 	youtubeCmd.Flags().StringVarP(&end, "end", "e", "", "end time")
 	youtubeCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
-	youtubeCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
+	youtubeCmd.Flags().BoolVarP(&asJSON, "json", "j", false, "output as JSON")
 
-	flagGroup.InitGroups(youtubeCmd, &output)
+	flaggroup.InitGroups(youtubeCmd, &output)
 }
 
 func youTubeArgs(_ *cobra.Command, args []string) error {
@@ -84,7 +84,7 @@ func youTubeArgs(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("accepts 1 arg(s), received %d", len(args))
 	}
 
-	vid, err := youtube.ResolveVideoId(args[0])
+	vid, err := youtube.ResolveVideoID(args[0])
 	if err != nil {
 		return err
 	}

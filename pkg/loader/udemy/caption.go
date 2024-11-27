@@ -23,29 +23,27 @@ import (
 )
 
 const (
-	UDEMY_API_URL = "https://www.udemy.com/api-2.0"
+	UdemyAPIURL = "https://www.udemy.com/api-2.0"
 )
 
-var (
-	englishLocalIds = []string{"en_US", "en_GB"}
-)
+var englishLocalIDs = []string{"en_US", "en_GB"}
 
 // region: --- helpers
 
-func parseUdemyUrl(rawUrl string) (courseName string, lectureId int, err error) {
-	udemyUrl, err := reqx.ParseUrl("www.udemy.com")(rawUrl)
+func parseUdemyURL(rawURL string) (courseName string, lectureID int, err error) {
+	udemyURL, err := reqx.ParseURL("www.udemy.com")(rawURL)
 	if err != nil {
 		return
 	}
 
 	// extract course name and lecture id
-	matches, err := reqx.ParsePath(udemyUrl.Path, "/course/{courseName}/learn/lecture/{lectureId}")
+	matches, err := reqx.ParsePath(udemyURL.Path, "/course/{courseName}/learn/lecture/{lectureId}")
 	if err != nil {
 		return
 	}
 
 	courseName = matches["courseName"]
-	lectureId, err = strconv.Atoi(matches["lectureId"])
+	lectureID, err = strconv.Atoi(matches["lectureId"])
 	if err != nil {
 		return "", 0, fmt.Errorf("invalid lecture ID: %s", matches["lectureId"])
 	}
@@ -195,7 +193,7 @@ func (l *lecture) findCaption(localeIDs ...string) (caption, error) {
 }
 
 func (l *lecture) getCaption() (caption, error) {
-	return l.findCaption(englishLocalIds...)
+	return l.findCaption(englishLocalIDs...)
 }
 
 func (l *lecture) getArticle() (string, error) {
@@ -237,7 +235,6 @@ func (c *caption) download(ctx context.Context) ([]schema.Document, error) {
 }
 
 func subtitleToDocument(subtitle *astisub.Item) (schema.Document, error) {
-
 	if subtitle == nil {
 		return schema.Document{}, errors.New("nil subtitle")
 	}
@@ -257,29 +254,29 @@ func (u *udemyClient) searchCourse(ctx context.Context, courseName string) (cour
 	query := url.Values{}
 	query.Add("fields[course]", "@min")
 
-	target := fmt.Sprintf("%s/courses/%s?%s", UDEMY_API_URL, courseName, query.Encode())
+	target := fmt.Sprintf("%s/courses/%s?%s", UdemyAPIURL, courseName, query.Encode())
 
 	return requestAPI[course](ctx, u, target)
 }
 
 // searchLecture searches for a lecture by course ID and lecture ID
-func (u *udemyClient) searchLecture(ctx context.Context, courseId, lectureId int) (lecture, error) {
+func (u *udemyClient) searchLecture(ctx context.Context, courseID, lectureID int) (lecture, error) {
 	query := url.Values{}
 	query.Add("fields[lecture]", "description,asset")
 	query.Add("fields[asset]", "asset_type,captions,body")
 
 	target := fmt.Sprintf(
 		"%s/users/me/subscribed-courses/%d/lectures/%d/?%s",
-		UDEMY_API_URL, courseId, lectureId, query.Encode(),
+		UdemyAPIURL, courseID, lectureID, query.Encode(),
 	)
 
 	return requestAPI[lecture](ctx, u, target)
 }
 
-// searchLectureByUrl searches for a lecture by URL
-func (u *udemyClient) searchLectureByUrl(ctx context.Context, url string) (lecture, error) {
+// searchLectureByURL searches for a lecture by URL
+func (u *udemyClient) searchLectureByURL(ctx context.Context, url string) (lecture, error) {
 	// parse course name and lecture ID from URL
-	courseName, lectureId, err := parseUdemyUrl(url)
+	courseName, lectureID, err := parseUdemyURL(url)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -291,5 +288,5 @@ func (u *udemyClient) searchLectureByUrl(ctx context.Context, url string) (lectu
 	}
 
 	// search lecture to retrieve caption download URL
-	return u.searchLecture(ctx, course.ID, lectureId)
+	return u.searchLecture(ctx, course.ID, lectureID)
 }

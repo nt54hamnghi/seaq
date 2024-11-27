@@ -8,37 +8,37 @@ import (
 )
 
 var (
-	ErrInvalidTweetId       = errors.New("invalid tweet ID")
-	ErrTweetIdNotFoundInURL = errors.New("tweet id not found in X url")
+	ErrInvalidTweetID       = errors.New("invalid tweet ID")
+	ErrTweetIDNotFoundInURL = errors.New("tweet id not found in X url")
 )
 
-type tweetId = string
+type tweetID = string
 
-func ResolveTweetId(src string) (tweetId, error) {
+func ResolveTweetID(src string) (tweetID, error) {
 	// tweetId is a unique unsigned 64-bit integer
 	// https://developer.x.com/en/docs/x-ids
 	if _, err := strconv.ParseUint(src, 10, 64); err == nil {
 		return src, nil
 	}
 
-	return extractTweetId(src)
+	return extractTweetID(src)
 }
 
-// extractTweetId returns the tweet ID of a provided URL
-func extractTweetId(rawUrl string) (string, error) {
-	xUrl, err := reqx.ParseUrl("x.com")(rawUrl)
+// extractTweetID returns the tweet ID of a provided URL
+func extractTweetID(rawURL string) (string, error) {
+	xURL, err := reqx.ParseURL("x.com")(rawURL)
 	if err != nil {
 		return "", err
 	}
 
-	matches, err := reqx.ParsePath(xUrl.Path, "/{username}/status/{tweetId}")
+	matches, err := reqx.ParsePath(xURL.Path, "/{username}/status/{tweetId}")
 	if err != nil {
-		return "", ErrTweetIdNotFoundInURL
+		return "", ErrTweetIDNotFoundInURL
 	}
 
 	id := matches["tweetId"]
 	if _, err := strconv.ParseUint(id, 10, 64); err != nil {
-		return "", ErrInvalidTweetId
+		return "", ErrInvalidTweetID
 	}
 
 	return id, nil

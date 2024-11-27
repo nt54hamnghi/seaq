@@ -1,4 +1,4 @@
-package flagGroup
+package flaggroup
 
 import "github.com/spf13/cobra"
 

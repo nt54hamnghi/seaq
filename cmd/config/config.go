@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Hiku *HikuConfig = New()
+var Hiku = New()
 
 // HikuConfig is a slim wrapper around an instance of viper.Viper
 type HikuConfig struct {

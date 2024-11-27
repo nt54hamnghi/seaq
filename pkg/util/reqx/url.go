@@ -7,23 +7,21 @@ import (
 	"strings"
 )
 
-var (
-	ErrMismatchedPathTemplate = errors.New("path and template don't match")
-)
+var ErrMismatchedPathTemplate = errors.New("path and template don't match")
 
-type ErrInvalidUrl struct {
+type ErrInvalidURL struct {
 	inner error
 }
 
-func (e ErrInvalidUrl) Error() string {
+func (e ErrInvalidURL) Error() string {
 	return "invalid URL: " + e.inner.Error()
 }
 
-func (e ErrInvalidUrl) Unwrap() error {
+func (e ErrInvalidURL) Unwrap() error {
 	return e.inner
 }
 
-func ParseUrl(host string) func(rawUrl string) (*url.URL, error) {
+func ParseURL(host string) func(rawUrl string) (*url.URL, error) {
 	return func(rawUrl string) (*url.URL, error) {
 		// remove fragment
 		if fidx := strings.Index(rawUrl, "#"); fidx != -1 {
@@ -33,12 +31,12 @@ func ParseUrl(host string) func(rawUrl string) (*url.URL, error) {
 		// parse url
 		parsed, err := url.ParseRequestURI(rawUrl)
 		if err != nil {
-			return nil, ErrInvalidUrl{inner: err}
+			return nil, ErrInvalidURL{inner: err}
 		}
 
 		// validate hostname
 		if parsed.Hostname() != host {
-			return nil, ErrInvalidUrl{
+			return nil, ErrInvalidURL{
 				inner: fmt.Errorf("invalid hostname, expected %q, got %q", host, parsed.Hostname()),
 			}
 		}

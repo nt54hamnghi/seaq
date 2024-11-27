@@ -17,12 +17,17 @@ var useCmd = &cobra.Command{
 	Args:              cobra.ExactArgs(1),
 	SilenceUsage:      true,
 	ValidArgsFunction: CompletePatternArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		name := args[0]
+
 		if err := config.Hiku.UsePattern(name); err != nil {
 			return err
 		}
-		config.Hiku.WriteConfig()
+
+		if err := config.Hiku.WriteConfig(); err != nil {
+			return err
+		}
+
 		fmt.Printf("Successfully set the default pattern to '%s'\n", name)
 		return nil
 	},

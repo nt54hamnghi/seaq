@@ -28,7 +28,7 @@ var ErrCaptionTracksNotFound = errors.New("caption tracks not found")
 // region: --- consts
 
 const (
-	YouTubeWatchUrl = "https://www.youtube.com/watch"
+	YouTubeWatchURL = "https://www.youtube.com/watch"
 )
 
 // endregion: --- consts
@@ -57,7 +57,7 @@ func retry[T any](n int, delay time.Duration, f retryFunc[T]) (T, error) {
 
 // endregion: --- helpers
 
-func fetchCaptionAsDocuments(ctx context.Context, vid videoId, filter *youtubeFilter) ([]schema.Document, error) {
+func fetchCaptionAsDocuments(ctx context.Context, vid videoID, filter *youtubeFilter) ([]schema.Document, error) {
 	// fetch available caption tracks from a YouTube video ID
 	tracks, err := loadCaptionTracks(ctx, vid)
 	if err != nil {
@@ -83,7 +83,6 @@ func fetchCaptionAsDocuments(ctx context.Context, vid videoId, filter *youtubeFi
 // captionTrack represents metadata for a single caption track.
 // It contains information about the track's location, language, type, and available translation.
 type captionTrack struct {
-
 	// NOTE:
 	// YouTube doesn't provide a public API for caption tracks.
 	// This struct is reverse-engineered from a YouTube response.
@@ -98,8 +97,7 @@ type captionTrack struct {
 // TESTME
 
 // loadCaptionTracks fetches the HTML content and extracts the available caption tracks.
-func loadCaptionTracks(ctx context.Context, vid videoId) ([]captionTrack, error) {
-
+func loadCaptionTracks(ctx context.Context, vid videoID) ([]captionTrack, error) {
 	// NOTE:
 	// A GET request to a YouTube watch URL returns an HTML page that
 	// contains a list of available caption tracks, stored in a JSON object.
@@ -109,11 +107,11 @@ func loadCaptionTracks(ctx context.Context, vid videoId) ([]captionTrack, error)
 		return nil, err
 	}
 
-	url := YouTubeWatchUrl + "?v=" + vid
+	url := YouTubeWatchURL + "?v=" + vid
 	client := &http.Client{Jar: jar}
 
 	captionTracks, err := retry(2, 100*time.Millisecond, func() ([]captionTrack, error) {
-		resp, err := reqx.DoWith(client, ctx, http.MethodGet, url, nil, nil)
+		resp, err := reqx.DoWith(ctx, client, http.MethodGet, url, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +124,6 @@ func loadCaptionTracks(ctx context.Context, vid videoId) ([]captionTrack, error)
 		// the Raw HTML content contains a list of available caption tracks
 		return extractCaptionTracks(resp.Body)
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -185,11 +182,10 @@ outerLoop:
 	}
 
 	return captionTracks, nil
-
 }
 
-// asJson3 adds "&fmt=json3" to the base URL of the caption track
-func (ct *captionTrack) asJson3() {
+// asJSON3 adds "&fmt=json3" to the base URL of the caption track
+func (ct *captionTrack) asJSON3() {
 	url := ct.BaseURL
 	if !strings.Contains(url, "?") {
 		url += "?"
@@ -229,7 +225,7 @@ func processCaptionTracks(captionTracks []captionTrack) {
 	for i := 0; i < len(captionTracks); i++ {
 		c := &captionTracks[i]
 
-		c.asJson3()
+		c.asJSON3()
 		// if en or en-US caption track is found, skip the auto-translation check
 		if c.LanguageCode == "en" || c.LanguageCode == "en-US" {
 			continue
@@ -275,7 +271,6 @@ func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 
 // caption represents a collection of caption events.
 type caption struct {
-
 	// NOTE:
 	// YouTube doesn't provide a public API for caption tracks.
 	// This struct is reverse-engineered from a YouTube response.

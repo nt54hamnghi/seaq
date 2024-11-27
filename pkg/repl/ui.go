@@ -20,22 +20,22 @@ import (
 
 // region: --- errors
 
-type ReplError struct {
+type Error struct {
 	inner error
 }
 
-func (e ReplError) Error() string {
+func (e Error) Error() string {
 	return e.inner.Error()
 }
 
-func NewReplError(err error) ReplError {
-	return ReplError{inner: err}
+func NewReplError(err error) Error {
+	return Error{inner: err}
 }
 
 // endregion: --- errors
 
 type components struct {
-	prompt   input.Model
+	prompt   *input.Model
 	renderer *renderer.Renderer
 	spinner  *spinner.Spinner
 }
@@ -53,9 +53,9 @@ type Repl struct {
 	ctx   context.Context
 }
 
-type ReplOption func(*Repl) error
+type Option func(*Repl) error
 
-func WithDefaultStore() ReplOption {
+func WithDefaultStore() Option {
 	return func(r *Repl) (err error) {
 		if r.store, err = rag.NewChromaStore(); err != nil {
 			return err
@@ -64,28 +64,28 @@ func WithDefaultStore() ReplOption {
 	}
 }
 
-func WithStore(store vectorstores.VectorStore) ReplOption {
+func WithStore(store vectorstores.VectorStore) Option {
 	return func(r *Repl) error {
 		r.store = store
 		return nil
 	}
 }
 
-func WithModel(model llms.Model) ReplOption {
+func WithModel(model llms.Model) Option {
 	return func(r *Repl) error {
 		r.model = model
 		return nil
 	}
 }
 
-func WithContext(ctx context.Context) ReplOption {
+func WithContext(ctx context.Context) Option {
 	return func(r *Repl) error {
 		r.ctx = ctx
 		return nil
 	}
 }
 
-func NewRepl(docs []schema.Document, opts ...ReplOption) (*Repl, error) {
+func NewRepl(docs []schema.Document, opts ...Option) (*Repl, error) {
 	if len(docs) == 0 {
 		return nil, errors.New("no documents to load")
 	}
@@ -146,7 +146,7 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	model, inputCmd := r.prompt.Update(msg)
-	if prompt, ok := model.(input.Model); ok {
+	if prompt, ok := model.(*input.Model); ok {
 		r.prompt = prompt
 	}
 	cmds = append(cmds, inputCmd)
@@ -232,7 +232,7 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			tea.Println(output),
 			textinput.Blink,
 		)
-	case ReplError:
+	case Error:
 		r.error = msg
 		return r, tea.Quit
 	}

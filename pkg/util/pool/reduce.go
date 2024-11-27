@@ -7,7 +7,7 @@ import (
 )
 
 type Job[O any] struct {
-	Id     int
+	ID     int
 	Output O
 }
 
@@ -19,8 +19,8 @@ func GetThreadCount(taskCount int) int {
 	if taskCount <= 0 {
 		return 1
 	}
-	numCpu := runtime.NumCPU()
-	return int(math.Min(float64(taskCount), float64(numCpu)))
+	numCPU := runtime.NumCPU()
+	return int(math.Min(float64(taskCount), float64(numCPU)))
 }
 
 // BatchReduce concurrently processes input data in batches.
@@ -57,7 +57,7 @@ func BatchReduce[I, O any](
 
 	res := make([]O, nThreads)
 	for r := range ch {
-		res[r.Id] = r.Output
+		res[r.ID] = r.Output
 	}
 	return res
 }
@@ -70,7 +70,6 @@ func splitIntoBatches[I, O any](
 	ch chan<- Job[O], // channel to collect results
 	wg *sync.WaitGroup,
 ) {
-
 	// Adds nThreads - 1 to len(in)
 	// to ensure that any remainder from the division results in an extra batch being created,
 	// effectively rounding up the division to handle all elements.
@@ -87,10 +86,9 @@ func splitIntoBatches[I, O any](
 			defer wg.Done()
 
 			ch <- Job[O]{
-				Id:     id / batchSize,
+				ID:     id / batchSize,
 				Output: op(s),
 			}
-
 		}(i, in[i:end])
 	}
 }

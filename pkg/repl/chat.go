@@ -70,7 +70,6 @@ type Chain struct {
 }
 
 func NewChain(model llms.Model, store vectorstores.VectorStore) *Chain {
-
 	conversation := memory.NewConversationBuffer(
 		memory.WithChatHistory(memory.NewChatMessageHistory()),
 	)
@@ -103,7 +102,7 @@ func (c *Chain) run(ctx context.Context, question string) error {
 		}
 	}()
 
-	streamFunc := func(ctx context.Context, chunk []byte) error {
+	streamFunc := func(_ context.Context, chunk []byte) error {
 		c.stream <- StreamMsg{
 			content: string(chunk),
 			last:    false,
@@ -126,7 +125,6 @@ func (c *Chain) run(ctx context.Context, question string) error {
 
 func (c *Chain) SendMessage(ctx context.Context, question string) tea.Cmd {
 	return func() tea.Msg {
-
 		if err := c.run(ctx, question); err != nil {
 			return NewChatError(err)
 		}

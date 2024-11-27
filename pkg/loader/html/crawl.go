@@ -12,7 +12,7 @@ import (
 )
 
 type crawler struct {
-	Url      string
+	URL      string
 	MaxPages int
 	urlGlob  glob.Glob
 	mutex    sync.Mutex
@@ -25,6 +25,8 @@ func newCrawler(dest string, maxPages int) (*crawler, error) {
 		return nil, err
 	}
 
+	// Get the effective top-level domain plus one.
+	// For example, for "foo.bar.golang.org", the eTLD+1 is "golang.org".
 	etldPlusOne, err := publicsuffix.EffectiveTLDPlusOne(url.Hostname())
 	if err != nil {
 		return nil, err
@@ -33,7 +35,7 @@ func newCrawler(dest string, maxPages int) (*crawler, error) {
 	gl := glob.MustCompile(`https://*.` + glob.QuoteMeta(etldPlusOne) + `*`)
 
 	return &crawler{
-		Url:      url.String(),
+		URL:      url.String(),
 		MaxPages: maxPages,
 		urlGlob:  gl,
 		mutex:    sync.Mutex{},
@@ -43,7 +45,7 @@ func newCrawler(dest string, maxPages int) (*crawler, error) {
 
 type Content struct {
 	Title    string
-	Url      string
+	URL      string
 	Markdown string
 }
 
@@ -57,18 +59,19 @@ func (crw *crawler) crawl(scr scraper) ([]Content, error) {
 	)
 
 	// Configure the collector
-	c.Limit(&colly.LimitRule{
+	err := c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: runtime.NumCPU(),
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	c.OnRequest(func(r *colly.Request) {
-		// TODO: add logging
-	})
+	// TODO: add logging
+	// c.OnRequest(func(r *colly.Request) {})
 
-	c.OnError(func(r *colly.Response, err error) {
-		// TODO: add logging
-	})
+	// TODO: add logging
+	// c.OnError(func(r *colly.Response, err error) {})
 
 	// On every a element with a href attribute call callback
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
@@ -80,9 +83,14 @@ func (crw *crawler) crawl(scr scraper) ([]Content, error) {
 		}
 
 		link := e.Request.AbsoluteURL(e.Attr("href"))
+
+		// Recursively visit the link
+		// if it matches the glob pattern and `MaxPages` is not reached
 		if crw.urlGlob.Match(link) {
 			crw.visited++
-			c.Visit(link)
+
+			// Ignore the link, if failed to visit
+			_ = c.Visit(link)
 		}
 	})
 
@@ -99,14 +107,17 @@ func (crw *crawler) crawl(scr scraper) ([]Content, error) {
 
 		content := Content{
 			Title:    r.Ctx.Get("title"),
-			Url:      r.Request.URL.String(),
+			URL:      r.Request.URL.String(),
 			Markdown: scraped,
 		}
 
 		contentList = append(contentList, content)
 	})
 
-	c.Visit(crw.Url)
+	// Start the collector
+	if err = c.Visit(crw.URL); err != nil {
+		return nil, err
+	}
 	c.Wait()
 
 	return contentList, nil

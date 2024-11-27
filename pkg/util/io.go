@@ -10,8 +10,10 @@ import (
 
 // region: --- errors
 
-var ErrEmptyPipe = errors.New("piped input is empty")
-var ErrInteractiveInput = errors.New("interactive input is not supported")
+var (
+	ErrEmptyPipe        = errors.New("piped input is empty")
+	ErrInteractiveInput = errors.New("interactive input is not supported")
+)
 
 // endregion: --- errors
 
@@ -23,7 +25,7 @@ func NewTruncateFileWriter(filename string) (*os.File, error) {
 	// os.O_CREATE: Create the file if it doesn't exist.
 	// os.O_TRUNC: If the file exists, truncate it to zero length.
 	// 0644: File permissions (read/write for owner, read for others).
-	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 }
 
 // NewCreateOnlyFileWriter creates a new file for writing
@@ -34,7 +36,7 @@ func NewCreateOnlyFileWriter(filename string) (*os.File, error) {
 		return nil, fmt.Errorf("file %s already exists", filename)
 	}
 	// File doesn't exist, so create it
-	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 }
 
 // IsStdinPiped determines if the standard input is piped or redirected.

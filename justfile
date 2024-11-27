@@ -13,6 +13,11 @@ test:
 
 alias t := test
 
+lint:
+    @golangci-lint run ./cmd/... ./pkg/...
+
+alias l := lint
+
 completion:
     @go run main.go completion zsh > "_hiku"
     @sudo mv _hiku /usr/share/zsh/site-functions/

@@ -127,7 +127,6 @@ func New(name string) (llms.Model, error) {
 	default:
 		panic("unreachable")
 	}
-
 }
 
 func CreateCompletion(
@@ -159,7 +158,7 @@ func CreateStreamCompletion(
 	writer io.Writer,
 	msgs []llms.MessageContent,
 ) error {
-	streamFunc := func(ctx context.Context, chunk []byte) error {
+	streamFunc := func(_ context.Context, chunk []byte) error {
 		_, err := writer.Write(chunk)
 		return err
 	}
@@ -176,7 +175,6 @@ func CreateStreamCompletion(
 	}
 
 	return nil
-
 }
 
 func PrepareMessages(prompt string, content string, hint string) []llms.MessageContent {

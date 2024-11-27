@@ -13,7 +13,7 @@ import (
 	"github.com/nt54hamnghi/hiku/cmd/chat"
 	"github.com/nt54hamnghi/hiku/cmd/config"
 	"github.com/nt54hamnghi/hiku/cmd/fetch"
-	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
+	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
 	"github.com/nt54hamnghi/hiku/cmd/model"
 	"github.com/nt54hamnghi/hiku/cmd/pattern"
 	"github.com/nt54hamnghi/hiku/pkg/llm"
@@ -29,7 +29,7 @@ var (
 	hint        string
 	modelName   string
 	noStream    bool
-	output      flagGroup.Output
+	output      flaggroup.Output
 	patternName string
 	patternRepo string
 	verbose     bool
@@ -54,14 +54,14 @@ var rootCmd = &cobra.Command{
 	Version:      "0.1.0",
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	PreRunE:      flagGroup.ValidateGroups(&output),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE:      flaggroup.ValidateGroups(&output),
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		hiku := config.Hiku
 
 		input, err := util.ReadPipedStdin()
 		if err != nil {
 			if errors.Is(err, util.ErrInteractiveInput) {
-				cmd.Help()
+				_ = cmd.Help()
 				return nil
 			}
 			return err
@@ -97,9 +97,8 @@ var rootCmd = &cobra.Command{
 
 		if noStream {
 			return llm.CreateCompletion(ctx, model, dest, msgs)
-		} else {
-			return llm.CreateStreamCompletion(ctx, model, dest, msgs)
 		}
+		return llm.CreateStreamCompletion(ctx, model, dest, msgs)
 	},
 }
 
@@ -134,11 +133,11 @@ func init() {
 	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
 
 	// register completion function
-	rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
-	rootCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
+	_ = rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
+	_ = rootCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
 
 	// flag groups
-	flagGroup.InitGroups(rootCmd, &output)
+	flaggroup.InitGroups(rootCmd, &output)
 
 	// assign commands to groups
 	// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help

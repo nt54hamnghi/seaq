@@ -9,20 +9,20 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-type UdemyLoader struct {
+type Loader struct {
 	url    string
 	client *udemyClient
 }
 
-type UdemyLoaderOption func(*UdemyLoader)
+type Option func(*Loader)
 
-func WithUrl(url string) UdemyLoaderOption {
-	return func(o *UdemyLoader) {
+func WithURL(url string) Option {
+	return func(o *Loader) {
 		o.url = url
 	}
 }
 
-func NewUdemyLoader(opts ...UdemyLoaderOption) (*UdemyLoader, error) {
+func NewUdemyLoader(opts ...Option) (*Loader, error) {
 	accessToken, err := env.UdemyAccessToken()
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func NewUdemyLoader(opts ...UdemyLoaderOption) (*UdemyLoader, error) {
 
 	client := newUdemyClient()
 	client.setAccessToken(accessToken)
-	loader := &UdemyLoader{
+	loader := &Loader{
 		client: client,
 	}
 
@@ -42,8 +42,8 @@ func NewUdemyLoader(opts ...UdemyLoaderOption) (*UdemyLoader, error) {
 }
 
 // Load loads from a source and returns documents.
-func (l UdemyLoader) Load(ctx context.Context) ([]schema.Document, error) {
-	lec, err := l.client.searchLectureByUrl(ctx, l.url)
+func (l Loader) Load(ctx context.Context) ([]schema.Document, error) {
+	lec, err := l.client.searchLectureByURL(ctx, l.url)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (l UdemyLoader) Load(ctx context.Context) ([]schema.Document, error) {
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
-func (l UdemyLoader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
+func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
 	docs, err := l.Load(ctx)
 	if err != nil {
 		return nil, err

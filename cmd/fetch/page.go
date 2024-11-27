@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/nt54hamnghi/hiku/cmd/flagGroup"
+	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
 	"github.com/nt54hamnghi/hiku/pkg/loader"
 	"github.com/nt54hamnghi/hiku/pkg/loader/html"
 	"github.com/spf13/cobra"
@@ -24,12 +24,12 @@ type recursive struct {
 	MaxPages  int
 }
 
-func (r *recursive) Init(cmd *cobra.Command) {
+func (r *recursive) Init(cmd *cobra.Command) { // nolint: revive
 	pageCmd.Flags().BoolVarP(&r.Recursive, "recursive", "r", false, "recursively fetch content")
 	pageCmd.Flags().IntVarP(&r.MaxPages, "max-pages", "m", 5, "maximum number of pages to fetch")
 }
 
-func (r *recursive) Validate(cmd *cobra.Command, args []string) error {
+func (r *recursive) Validate(cmd *cobra.Command, args []string) error { // nolint: revive
 	maxPagesSet := cmd.Flags().Changed("max-pages")
 	recursiveSet := cmd.Flags().Changed("recursive")
 
@@ -54,22 +54,22 @@ var pageCmd = &cobra.Command{
 	Aliases:      []string{"pg", "p"},
 	Args:         validatePageArgs,
 	SilenceUsage: true,
-	PreRunE:      flagGroup.ValidateGroups(&rc, &output),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE:      flaggroup.ValidateGroups(&rc, &output),
+	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		var htmlLoader documentloaders.Loader
 
-		baseLoader := html.NewHtmlLoader(
-			html.WithUrl(args[0]),
+		baseLoader := html.NewLoader(
+			html.WithURL(args[0]),
 			html.WithSelector(selector),
 			html.WithAuto(auto),
 		)
 
 		if rc.Recursive {
-			htmlLoader = html.NewRecursiveHtmlLoader(
-				html.WithHtmlLoader(baseLoader),
+			htmlLoader = html.NewRecursiveLoader(
+				html.WithHTMLLoader(baseLoader),
 				html.WithMaxPages(rc.MaxPages),
 			)
 		} else {
@@ -82,7 +82,7 @@ var pageCmd = &cobra.Command{
 		}
 		defer dest.Close()
 
-		return loader.LoadAndWrite(ctx, htmlLoader, dest, asJson)
+		return loader.LoadAndWrite(ctx, htmlLoader, dest, asJSON)
 	},
 }
 
@@ -91,12 +91,12 @@ func init() {
 
 	pageCmd.Flags().BoolVarP(&auto, "auto", "a", false, "automatically detect content")
 	pageCmd.Flags().StringVarP(&selector, "selector", "s", "", "filter content by selector")
-	pageCmd.Flags().BoolVarP(&asJson, "json", "j", false, "output as JSON")
+	pageCmd.Flags().BoolVarP(&asJSON, "json", "j", false, "output as JSON")
 
-	flagGroup.InitGroups(pageCmd, &rc, &output)
+	flaggroup.InitGroups(pageCmd, &rc, &output)
 }
 
-func validatePageArgs(cmd *cobra.Command, args []string) error {
+func validatePageArgs(cmd *cobra.Command, args []string) error { // nolint: revive
 	if len(args) != 1 {
 		return fmt.Errorf("accepts 1 arg(s), received %d", len(args))
 	}

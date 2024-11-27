@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOrderedGo(t *testing.T) {
-	var errTest = errors.New("test")
+	errTest := errors.New("test")
 
 	tests := []struct {
 		name  string
@@ -47,7 +48,7 @@ func TestOrderedGo(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			res := OrderedGo(tt.tasks)
 
 			asserts.Equal(tt.want, res)
@@ -56,7 +57,7 @@ func TestOrderedGo(t *testing.T) {
 }
 
 func TestOrderedGoFunc(t *testing.T) {
-	var errTest = errors.New("test")
+	errTest := errors.New("test")
 
 	tests := []struct {
 		name     string
@@ -99,7 +100,7 @@ func TestOrderedGoFunc(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			res := OrderedGoFunc(tt.input, tt.taskFunc)
 			asserts.Equal(tt.want, res)
 		})
@@ -133,20 +134,20 @@ func TestOrderedRun(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			res, err := OrderedRun(tt.input, taskFunc)
-			asserts.Nil(err)
-			asserts.Equal(tt.want, res)
+			requires.NoError(err)
+			requires.Equal(tt.want, res)
 		})
 	}
 }
 
 func TestOrderedRun_Error(t *testing.T) {
 	errTest := errors.New("test")
-	taskFunc := func(i int) (int, error) {
+	taskFunc := func(int) (int, error) {
 		return 0, errTest
 	}
 
@@ -170,7 +171,7 @@ func TestOrderedRun_Error(t *testing.T) {
 	asserts := assert.New(t)
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			_, err := OrderedRun(tt.input, taskFunc)
 			asserts.Equal(tt.wantErr, err)
 		})
