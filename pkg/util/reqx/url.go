@@ -7,19 +7,7 @@ import (
 	"strings"
 )
 
-var ErrMismatchedPathTemplate = errors.New("path and template don't match")
-
-type ErrInvalidURL struct {
-	inner error
-}
-
-func (e ErrInvalidURL) Error() string {
-	return "invalid URL: " + e.inner.Error()
-}
-
-func (e ErrInvalidURL) Unwrap() error {
-	return e.inner
-}
+var ErrInvalidPlaceholder = errors.New("invalid placeholder format")
 
 func ParseURL(host string) func(rawUrl string) (*url.URL, error) {
 	return func(rawUrl string) (*url.URL, error) {
@@ -31,14 +19,12 @@ func ParseURL(host string) func(rawUrl string) (*url.URL, error) {
 		// parse url
 		parsed, err := url.ParseRequestURI(rawUrl)
 		if err != nil {
-			return nil, ErrInvalidURL{inner: err}
+			return nil, fmt.Errorf("failed to parse url: %w", err)
 		}
 
 		// validate hostname
 		if parsed.Hostname() != host {
-			return nil, ErrInvalidURL{
-				inner: fmt.Errorf("invalid hostname, expected %q, got %q", host, parsed.Hostname()),
-			}
+			return nil, fmt.Errorf("invalid hostname, expected %q, got %q", host, parsed.Hostname())
 		}
 
 		return parsed, nil
@@ -58,7 +44,7 @@ func ParsePath(path, tmpl string) (map[string]string, error) {
 	tmplParts := strings.Split(tmpl, "/")
 
 	if len(pathParts) != len(tmplParts) {
-		return nil, ErrMismatchedPathTemplate
+		return nil, errors.New("path and template mismatch")
 	}
 
 	matches := make(map[string]string)
@@ -69,14 +55,11 @@ func ParsePath(path, tmpl string) (map[string]string, error) {
 			continue
 		}
 
-		if !strings.HasPrefix(t, "{") || !strings.HasSuffix(t, "}") {
-			return nil, ErrMismatchedPathTemplate
+		key, err := extract(t)
+		if err != nil {
+			return nil, err
 		}
 
-		key := t[1 : len(t)-1]
-		if key == "" {
-			return nil, fmt.Errorf("invalid template part %q at %d", t, i)
-		}
 		matches[key] = p
 	}
 
@@ -85,4 +68,16 @@ func ParsePath(path, tmpl string) (map[string]string, error) {
 	}
 
 	return matches, nil
+}
+
+func extract(input string) (string, error) {
+	if len(input) < 3 {
+		return "", ErrInvalidPlaceholder
+	}
+
+	if input[0] != '{' || input[len(input)-1] != '}' {
+		return "", ErrInvalidPlaceholder
+	}
+
+	return input[1 : len(input)-1], nil
 }
