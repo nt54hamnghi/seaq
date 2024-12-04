@@ -2,9 +2,11 @@ package youtube
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -13,32 +15,180 @@ import (
 	"github.com/tmc/langchaingo/schema"
 )
 
+func Test_baseURL_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		json    string
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "valid",
+			json:    `{"baseUrl":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}`,
+			want:    "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+			wantErr: false,
+		},
+		{
+			name:    "not www.youtube.com",
+			json:    `{"baseUrl":"https://www.example.com"}`,
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name:    "empty",
+			json:    "",
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	requires := require.New(t)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(*testing.T) {
+			var u struct {
+				BaseURL *baseURL `json:"baseUrl"`
+			}
+			err := json.Unmarshal([]byte(tc.json), &u)
+
+			if tc.wantErr {
+				requires.Error(err)
+			} else {
+				requires.NoError(err)
+				requires.Equal(tc.want, u.BaseURL.String())
+			}
+		})
+	}
+}
+
+func Test_baseURL_setQuery(t *testing.T) {
+	tests := []struct {
+		name    string
+		baseURL *baseURL
+		key     string
+		value   string
+		want    string
+	}{
+		{
+			name:    "add",
+			baseURL: &baseURL{URL: url.URL{Scheme: "https", Host: "www.youtube.com"}},
+			key:     "fmt",
+			value:   "json3",
+			want:    "fmt=json3",
+		},
+		{
+			name:    "replace",
+			baseURL: &baseURL{URL: url.URL{Scheme: "https", Host: "www.youtube.com", RawQuery: "tlang=es"}},
+			key:     "tlang",
+			value:   "en",
+			want:    "tlang=en",
+		},
+	}
+
+	requires := require.New(t)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(*testing.T) {
+			tc.baseURL.setQuery(tc.key, tc.value)
+
+			requires.Contains(tc.baseURL.String(), tc.want)
+		})
+	}
+}
+
+func Test_captionTrack_toEnglish(t *testing.T) {
+	tests := []struct {
+		name    string
+		track   captionTrack
+		wantErr error
+	}{
+		{
+			name: "translatable",
+			track: captionTrack{
+				BaseURL:        &baseURL{URL: url.URL{Scheme: "https", Host: "www.youtube.com", Path: "/watch"}},
+				IsTranslatable: true,
+			},
+			wantErr: nil,
+		},
+		{
+			name:    "not translatable",
+			track:   captionTrack{IsTranslatable: false},
+			wantErr: errors.New("caption track is not translatable"),
+		},
+	}
+
+	requires := require.New(t)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(*testing.T) {
+			err := tc.track.toEnglish()
+			if tc.wantErr != nil {
+				requires.Equal(tc.wantErr, err)
+			} else {
+				requires.NoError(err)
+				requires.Contains(tc.track.BaseURL.RawQuery, "tlang=en")
+			}
+		})
+	}
+}
+
 func Test_extractCaptionTracks(t *testing.T) {
 	tests := []struct {
-		name string
-		body string
-		want []captionTrack
+		name    string
+		body    string
+		want    []captionTrack
+		wantErr string
 	}{
 		{
 			name: "valid",
-			body: `
-			{
-				"captionTracks": [
-					{
-						"baseUrl": "https://www.example.com",
-						"kind": "asr",
-						"languageCode": "en"
-					}
-				]
-			}
-			`,
+			body: `{"captionTracks":[{"baseUrl":"https://www.youtube.com","kind":"asr","languageCode":"en"}]}`,
 			want: []captionTrack{
 				{
-					BaseURL:      "https://www.example.com",
+					BaseURL: &baseURL{
+						URL: url.URL{Scheme: "https", Host: "www.youtube.com"},
+					},
 					LanguageCode: "en",
 					Kind:         "asr",
 				},
 			},
+		},
+		{
+			name: "multiple tracks",
+			body: `{"captionTracks":[
+                {"baseUrl":"https://www.youtube.com","kind":"asr","languageCode":"en"},
+                {"baseUrl":"https://www.youtube.com","kind":"asr","languageCode":"es"}
+            ]}`,
+			want: []captionTrack{
+				{
+					BaseURL: &baseURL{
+						URL: url.URL{Scheme: "https", Host: "www.youtube.com"},
+					},
+					LanguageCode: "en",
+					Kind:         "asr",
+				},
+				{
+					BaseURL: &baseURL{
+						URL: url.URL{Scheme: "https", Host: "www.youtube.com"},
+					},
+					LanguageCode: "es",
+					Kind:         "asr",
+				},
+			},
+		},
+		{
+			name:    "empty body",
+			body:    "",
+			wantErr: "caption tracks not found",
+		},
+		{
+			name:    "malformed JSON",
+			body:    `{"captionTracks":[INVALID]}`,
+			wantErr: "malformed caption tracks",
+		},
+		{
+			name:    "no caption tracks",
+			body:    `{"something":"else"}`,
+			wantErr: "caption tracks not found",
 		},
 	}
 
@@ -49,66 +199,75 @@ func Test_extractCaptionTracks(t *testing.T) {
 			body := strings.NewReader(tt.body)
 			actual, err := extractCaptionTracks(body)
 
-			requires.NoError(err)
-			requires.Equal(tt.want, actual)
+			if tt.wantErr != "" {
+				requires.Error(err)
+				requires.Contains(err.Error(), tt.wantErr)
+			} else {
+				requires.NoError(err)
+				requires.Equal(tt.want, actual)
+			}
 		})
 	}
 }
 
-func Test_extractCaptionTracks_Error(t *testing.T) {
+func TestSelectCaptionTrack(t *testing.T) {
+	baseURL := &baseURL{URL: url.URL{Scheme: "https", Host: "www.youtube.com", Path: "/watch"}}
+
 	tests := []struct {
-		name string
-		body string
-		err  error
+		name    string
+		tracks  []captionTrack
+		want    *captionTrack
+		wantErr bool
 	}{
 		{
-			name: "empty",
-			body: "",
-			err:  ErrCaptionTracksNotFound,
+			name: "manual captions",
+			tracks: []captionTrack{
+				{BaseURL: baseURL, VssID: ".en"},
+				{BaseURL: baseURL, VssID: "a.en"},
+			},
+			want:    &captionTrack{BaseURL: baseURL, VssID: ".en"},
+			wantErr: false,
+		},
+		{
+			name: "auto-generated captions",
+			tracks: []captionTrack{
+				{BaseURL: baseURL, VssID: "a.en"},
+				{BaseURL: baseURL, VssID: ".es"},
+			},
+			want:    &captionTrack{BaseURL: baseURL, VssID: "a.en"},
+			wantErr: false,
+		},
+		{
+			name: "translatable track",
+			tracks: []captionTrack{
+				{BaseURL: baseURL, VssID: ".fr", IsTranslatable: false},
+				{BaseURL: baseURL, VssID: ".es", IsTranslatable: true},
+			},
+			want:    &captionTrack{BaseURL: baseURL, VssID: ".es", IsTranslatable: true},
+			wantErr: false,
+		},
+		{
+			name: "no suitable track",
+			tracks: []captionTrack{
+				{BaseURL: baseURL, VssID: ".es"},
+			},
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
-	asserts := assert.New(t)
+	requires := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
-			body := strings.NewReader(tt.body)
-			_, err := extractCaptionTracks(body)
-			asserts.Equal(err, tt.err)
+			got, err := selectCaptionTrack(tt.tracks)
+			if tt.wantErr {
+				requires.Error(err)
+			} else {
+				requires.NoError(err)
+				requires.Equal(tt.want, got)
+			}
 		})
-	}
-}
-
-func Ok(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-}
-
-func Test_processCaptionTracks(t *testing.T) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/ok", Ok)
-	mux.HandleFunc("/not-found", http.NotFound)
-
-	server := httptest.NewServer(mux)
-	defer server.Close()
-
-	tracks := []captionTrack{
-		{BaseURL: server.URL + "/ok"},
-		{BaseURL: server.URL + "/not-found"},
-	}
-
-	processCaptionTracks(tracks)
-
-	asserts := assert.New(t)
-	for _, r := range tracks {
-		asserts.Contains(r.BaseURL, "fmt=json3")
-
-		if strings.Contains(r.BaseURL, "not-found") {
-			asserts.False(r.HasAutoTranslation)
-			asserts.NotContains(r.BaseURL, "tlang=en")
-		} else {
-			asserts.True(r.HasAutoTranslation)
-			asserts.Contains(r.BaseURL, "tlang=en")
-		}
 	}
 }
 
@@ -116,99 +275,52 @@ func Test_loadCaption(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		// nolint: errcheck
-		w.Write([]byte(`
-		{
-			"events": [
-				{
-					"dDurationMs": 1249390,
-					"id": 1
-				}
-			]
-		}
-		`))
+		_, _ = w.Write([]byte(`{"events":[{"dDurationMs":1249390,"id":1}]}`))
 	})
 
 	server := httptest.NewServer(mux)
+	serverHost := server.Listener.Addr().String()
 	defer server.Close()
 
-	testCases := []struct {
+	tests := []struct {
 		name         string
 		captionTrack []captionTrack
 		want         caption
+		wantErr      error
 	}{
 		{
 			name: "valid",
 			captionTrack: []captionTrack{
 				{
-					BaseURL:      server.URL + "?fmt=json3",
-					LanguageCode: "en",
+					BaseURL: &baseURL{URL: url.URL{Scheme: "http", Host: serverHost}},
+					VssID:   ".en",
 				},
 			},
 			want: caption{Events: []event{
 				{DDurationMs: 1249390, ID: 1},
 			}},
+			wantErr: nil,
 		},
 		{
-			name: "hasTranslation",
-			captionTrack: []captionTrack{
-				{
-					BaseURL:            server.URL + "?fmt=json3&tlang=en",
-					LanguageCode:       "en",
-					HasAutoTranslation: true,
-				},
-			},
-			want: caption{Events: []event{
-				{DDurationMs: 1249390, ID: 1},
-			}},
+			name:         "empty",
+			captionTrack: []captionTrack{},
+			want:         caption{},
+			wantErr:      errors.New("caption tracks list is empty"),
 		},
 	}
 
 	requires := require.New(t)
 
-	for _, tc := range testCases {
+	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			c, err := loadCaption(context.TODO(), tc.captionTrack)
-			requires.NoError(err)
-			requires.Equal(tc.want, c)
-		})
-	}
-}
 
-func Test_loadCaption_Error(t *testing.T) {
-	testCases := []struct {
-		name         string
-		captionTrack []captionTrack
-		err          error
-	}{
-		{
-			name:         "empty",
-			captionTrack: []captionTrack{},
-			err:          errors.New("caption tracks must not be empty"),
-		},
-		{
-			name: "noEnglish",
-			captionTrack: []captionTrack{
-				{LanguageCode: "es"},
-				{LanguageCode: "en", Kind: "unknown"},
-			},
-			err: errors.New("no English caption track found"),
-		},
-		{
-			name: "noEnglishTranslation",
-			captionTrack: []captionTrack{
-				{LanguageCode: "es", HasAutoTranslation: false},
-			},
-			err: errors.New("no English caption track found"),
-		},
-	}
-
-	asserts := assert.New(t)
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(*testing.T) {
-			_, err := loadCaption(context.TODO(), tc.captionTrack)
-			asserts.Equal(err, tc.err)
+			if tc.wantErr != nil {
+				requires.Equal(tc.wantErr, err)
+			} else {
+				requires.NoError(err)
+				requires.Equal(tc.want, c)
+			}
 		})
 	}
 }

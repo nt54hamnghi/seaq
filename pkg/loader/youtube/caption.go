@@ -8,10 +8,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/nt54hamnghi/hiku/pkg/util/pool"
@@ -19,19 +19,7 @@ import (
 	"github.com/tmc/langchaingo/schema"
 )
 
-// region: --- errors
-
-var ErrCaptionTracksNotFound = errors.New("caption tracks not found")
-
-// endregion: --- errors
-
-// region: --- consts
-
-const (
-	YouTubeWatchURL = "https://www.youtube.com/watch"
-)
-
-// endregion: --- consts
+const YouTubeWatchURL = "https://www.youtube.com/watch"
 
 // region: --- helpers
 
@@ -80,202 +68,187 @@ func fetchCaptionAsDocuments(ctx context.Context, vid videoID, filter *youtubeFi
 	return caption.getFullCaption(), nil
 }
 
-// captionTrack represents metadata for a single caption track.
-// It contains information about the track's location, language, type, and available translation.
-type captionTrack struct {
-	// NOTE:
-	// YouTube doesn't provide a public API for caption tracks.
-	// This struct is reverse-engineered from a YouTube response.
-	// Thus, they're subject to change without notice.
-
-	BaseURL            string `json:"baseUrl"`            // URL to fetch the caption track
-	LanguageCode       string `json:"languageCode"`       // 2-letter language code
-	Kind               string `json:"kind,omitempty"`     // empty if user-added caption, "asr" if Automatic Speech Recognition, etc.
-	HasAutoTranslation bool   `json:"hasAutoTranslation"` // added property to check if the caption track has an English auto-translation
+type baseURL struct {
+	url.URL
 }
 
-// TESTME
+// baseURL implements the json.Unmarshaler interface
+// it marshals a JSON URL string into an url.URL object
+func (u *baseURL) UnmarshalJSON(data []byte) error {
+	// Unmarshal the data into a string
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
 
-// loadCaptionTracks fetches the HTML content and extracts the available caption tracks.
+	// Parse URL
+	parsed, err := reqx.ParseURL("www.youtube.com")(str)
+	if err != nil {
+		return err
+	}
+
+	// Assign the parsed URL to the baseURL
+	*u = baseURL{URL: *parsed}
+
+	return nil
+}
+
+func (u *baseURL) setQuery(key, value string) {
+	q := u.Query()
+	q.Set(key, value)
+	u.RawQuery = q.Encode()
+}
+
+// captionTrack represents metadata for a single caption track.
+// Reverse-engineered from a YouTube response.
+type captionTrack struct {
+	BaseURL        *baseURL `json:"baseUrl"`      // URL to fetch the caption track.
+	VssID          string   `json:"vssId"`        // type and language (e.g., "a.en" for English automatic captions, ".en" for English manual captions).
+	LanguageCode   string   `json:"languageCode"` // language code in ISO 639-1 format (e.g., "ar" for Arabic, "en" for English).
+	Kind           string   `json:"kind"`         // type of the caption track (e.g., "asr" for auto-generated captions).
+	IsTranslatable bool     `json:"isTranslatable"`
+}
+
+// asJSON3 adds "fmt=json3" to the base URL's query parameters.
+func (ct *captionTrack) asJSON3() {
+	ct.BaseURL.setQuery("fmt", "json3")
+}
+
+// toEnglish adds "tlang=en" to the base URL's query parameters
+// if the captionTrack is translatable.
+func (ct *captionTrack) toEnglish() error {
+	if !ct.IsTranslatable {
+		return errors.New("caption track is not translatable")
+	}
+	ct.BaseURL.setQuery("tlang", "en")
+	return nil
+}
+
+// loadCaptionTracks fetches the HTML page and extracts available caption tracks.
+// A GET request to a YouTube watch URL returns an HTML page that
+// contains a list of available caption tracks, stored in a JSON object.
 func loadCaptionTracks(ctx context.Context, vid videoID) ([]captionTrack, error) {
-	// NOTE:
-	// A GET request to a YouTube watch URL returns an HTML page that
-	// contains a list of available caption tracks, stored in a JSON object.
+	const (
+		maxAttempts = 2
+		maxDelay    = 100 * time.Millisecond
+	)
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	url := YouTubeWatchURL + "?v=" + vid
+	vidURL := YouTubeWatchURL + "?v=" + vid
 	client := &http.Client{Jar: jar}
 
-	captionTracks, err := retry(2, 100*time.Millisecond, func() ([]captionTrack, error) {
-		resp, err := reqx.DoWith(ctx, client, http.MethodGet, url, nil, nil)
-		if err != nil {
+	tracks, err := retry(maxAttempts, maxDelay, func() ([]captionTrack, error) {
+		res, err := reqx.DoWith(ctx, client, http.MethodGet, vidURL, nil, nil)
+		if err != nil || !res.IsSuccess() {
 			return nil, err
 		}
-		defer resp.Body.Close()
+		defer res.Body.Close()
 
-		if err = resp.ExpectSuccess(); err != nil {
-			return nil, err
-		}
-
-		// the Raw HTML content contains a list of available caption tracks
-		return extractCaptionTracks(resp.Body)
+		return extractCaptionTracks(res.Body)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	processCaptionTracks(captionTracks)
-	return captionTracks, nil
+	return tracks, nil
 }
 
-// extractCaptionTracks read the HTML body
-// and returns the list of caption tracks available for a YouTube video
+// extractCaptionTracks reads a HTML body and returns a list of available caption tracks.
 func extractCaptionTracks(body io.Reader) ([]captionTrack, error) {
-	// compile the regex and panic if the pattern is invalid
+	// regex pattern to capture the caption tracks JSON object
 	re := regexp.MustCompile(`"captionTracks":\s*(\[[^\]]+\])`)
+	// a YouTube HTML is around 1.4MB, allocate 4MB to avoid resizing
+	buf := make([]byte, 0, 1<<22)
+	// each iteration reads 256KB
+	tmp := make([]byte, 1<<18)
 
-	var found bool
-	var match string
-	buf := make([]byte, 0, 1<<22) // a YouTube HTML is around 1.4MB, allocate 4MB to avoid resizing
-	tmp := make([]byte, 1<<18)    // each iteration reads 256KB
-
-	// read until the regex pattern is found
-	// to avoid reading the entire body ahead of time
-outerLoop:
+	// read until regex matches, to avoid reading the entire body
 	for {
 		// override the entire tmp buffer
 		n, err := io.ReadFull(body, tmp)
-
 		switch err {
+		// if no error or read less than tmp's size, append to the buf
 		case nil, io.ErrUnexpectedEOF:
-			// FIXME: expensive, can be optimized
 			buf = append(buf, tmp[:n]...)
 		case io.EOF:
-			break outerLoop
+			return nil, errors.New("caption tracks not found")
 		default:
 			return nil, err
 		}
 
-		// the first element is the entire match
-		// the rest are the captured groups
-		matches := re.FindStringSubmatch(string(buf))
-
-		// if we find the match and at least one group
-		if len(matches) >= 2 {
-			found, match = true, matches[1]
-			break
-		}
-	}
-
-	if !found {
-		return nil, ErrCaptionTracksNotFound
-	}
-
-	var captionTracks []captionTrack
-	err := json.Unmarshal([]byte(match), &captionTracks)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal: %w", err)
-	}
-
-	return captionTracks, nil
-}
-
-// asJSON3 adds "&fmt=json3" to the base URL of the caption track
-func (ct *captionTrack) asJSON3() {
-	url := ct.BaseURL
-	if !strings.Contains(url, "?") {
-		url += "?"
-	}
-	url += "&fmt=json3" // TODO: prepend "&" might be incorrect here
-
-	ct.BaseURL = url
-}
-
-// hasTranslation checks if the caption track has an English auto-translation
-// if true, add "&tlang=en" to the base URL and set HasAutoTranslation to true
-func (ct *captionTrack) hasTranslation() bool {
-	url := ct.BaseURL
-	if !strings.Contains(url, "?") {
-		url += "?"
-	}
-	url += "&tlang=en"
-
-	resp, err := http.Get(url)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return false
-	}
-	defer resp.Body.Close()
-
-	ct.BaseURL = url
-	ct.HasAutoTranslation = true
-
-	return true
-}
-
-// processCaptionTracks add "&fmt=json3" to the base URL of each caption track
-// it also checks if the caption track has an English auto-translation
-// if true, add "&tlang=en" to the base URL of the caption track and set HasAutoTranslation to true
-func processCaptionTracks(captionTracks []captionTrack) {
-	wg := sync.WaitGroup{}
-
-	for i := 0; i < len(captionTracks); i++ {
-		c := &captionTracks[i]
-
-		c.asJSON3()
-		// if en or en-US caption track is found, skip the auto-translation check
-		if c.LanguageCode == "en" || c.LanguageCode == "en-US" {
+		matches := re.FindSubmatch(buf)
+		// if less than 1 match + 1 capture group, keep reading
+		if len(matches) < 2 {
 			continue
 		}
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			c.hasTranslation()
-		}()
+		var tracks []captionTrack
+		if err := json.Unmarshal(matches[1], &tracks); err != nil {
+			return nil, fmt.Errorf("malformed caption tracks: %w", err)
+		}
+		return tracks, nil
 	}
-
-	wg.Wait()
 }
 
-// loadCaption returns the caption of a YouTube video from a list of available caption tracks.
-// It only supports English captions and prioritizes user-added caption
-// over ASR (Automatic Speech Recognition) caption.
+// selectCaptionTrack selects based on `VssID`:
+// 1. ".en" for user-added captions in English
+// 2. "a.en" for auto-generated captions in English
+// 3. English translatable track as fallback
+func selectCaptionTrack(tracks []captionTrack) (*captionTrack, error) {
+	// Priority: .en > a.en > translatable track
+	var fallback *captionTrack
+
+	for _, track := range tracks {
+		// Priority 1: Manual captions (`.en`)
+		if track.VssID == ".en" {
+			return &track, nil
+		}
+		// Priority 2: Auto-generated captions (`a.en`)
+		if track.VssID == "a.en" {
+			return &track, nil
+		}
+		// Priority 3: Translatable track (as fallback)
+		if fallback == nil && track.IsTranslatable {
+			fallback = &track
+		}
+	}
+
+	// No suitable track found
+	if fallback == nil {
+		return nil, fmt.Errorf("no English caption track found")
+	}
+
+	// Attempt to translate the fallback track into English
+	if err := fallback.toEnglish(); err != nil {
+		return nil, err
+	}
+
+	return fallback, nil
+}
+
+// loadCaption returns a caption from a list of available caption tracks.
+// Only English caption tracks are supported.
 func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
 	if len(tracks) == 0 {
-		return caption{}, errors.New("caption tracks must not be empty")
+		return caption{}, errors.New("caption tracks list is empty")
 	}
 
-	var ct *captionTrack
-
-	for _, t := range tracks {
-		if t.LanguageCode == "en" && (t.Kind == "asr" || t.Kind == "") {
-			ct = &t
-			break
-		}
-		if t.HasAutoTranslation {
-			ct = &t
-			break
-		}
+	ct, err := selectCaptionTrack(tracks)
+	if err != nil {
+		return caption{}, err
 	}
 
-	if ct == nil {
-		return caption{}, errors.New("no English caption track found")
-	}
-
-	return reqx.GetAs[caption](ctx, ct.BaseURL, nil)
+	ct.asJSON3()
+	return reqx.GetAs[caption](ctx, ct.BaseURL.String(), nil)
 }
 
 // caption represents a collection of caption events.
+// Reverse-engineered from a YouTube response.
 type caption struct {
-	// NOTE:
-	// YouTube doesn't provide a public API for caption tracks.
-	// This struct is reverse-engineered from a YouTube response.
-	// Thus, they're subject to change without notice.
-
 	Events []event `json:"events"`
 }
 

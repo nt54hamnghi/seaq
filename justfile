@@ -9,7 +9,7 @@ dev:
 alias d := dev
 
 test:
-    @go test ./...
+    @go test ./cmd/... ./pkg/...
 
 alias t := test
 
