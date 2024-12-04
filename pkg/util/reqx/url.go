@@ -19,7 +19,7 @@ func ParseURL(host string) func(rawUrl string) (*url.URL, error) {
 		// parse url
 		parsed, err := url.ParseRequestURI(rawUrl)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse url: %w", err)
+			return nil, fmt.Errorf("failed to parse URL: %w", err)
 		}
 
 		// validate hostname
