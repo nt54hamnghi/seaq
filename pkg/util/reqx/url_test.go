@@ -155,6 +155,13 @@ func TestParsePath_Error(t *testing.T) {
 			tmpl:    "/entity}",
 			wantErr: ErrInvalidPlaceholder,
 		},
+
+		{
+			name:    "missing parts",
+			path:    "/users//orders/456",
+			tmpl:    "/users/{userId}/orders/{orderId}",
+			wantErr: errors.New("empty path part"),
+		},
 	}
 
 	requires := require.New(t)

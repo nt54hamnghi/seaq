@@ -55,7 +55,11 @@ func ParsePath(path, tmpl string) (map[string]string, error) {
 			continue
 		}
 
-		key, err := extract(t)
+		if p == "" {
+			return nil, errors.New("empty path part")
+		}
+
+		key, err := extractKey(t)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +74,7 @@ func ParsePath(path, tmpl string) (map[string]string, error) {
 	return matches, nil
 }
 
-func extract(input string) (string, error) {
+func extractKey(input string) (string, error) {
 	if len(input) < 3 {
 		return "", ErrInvalidPlaceholder
 	}
