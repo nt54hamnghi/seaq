@@ -2,9 +2,17 @@ package youtube
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
+)
+
+var (
+	ErrInvalidTimestamp     = errors.New("invalid timestamp string")
+	minutesSecondsRegex     = regexp.MustCompile(`^([0-5]?[0-9]):([0-5][0-9])$`)
+	hoursMinutesSecondRegex = regexp.MustCompile(`^([0-9]|[01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$`)
 )
 
 type Timestamp struct {
@@ -21,26 +29,67 @@ func (ts Timestamp) ToMsDuration() int64 {
 	return hour + minute + second
 }
 
+// ParseTimestamp parses a string in the format "M:SS" or "MM:SS" or "H:MM:SS" or "HH:MM:SS" into a Timestamp.
+// It returns an error if the input format is invalid or the values are out of range.
 func ParseTimestamp(input string) (*Timestamp, error) {
-	re := regexp.MustCompile(`^(?:([01]\d|2[0-3]):)?([0-5]\d):([0-5]\d)$`)
-	matches := re.FindStringSubmatch(input)
+	switch c := strings.Count(input, ":"); c {
+	case 1:
+		return parseMinutesSeconds(input)
+	case 2:
+		return parseHoursMinutesSeconds(input)
+	default:
+		return nil, ErrInvalidTimestamp
+	}
+}
+
+// parseMinutesSeconds parses a string in the format "M:SS" or "MM:SS" into a Timestamp.
+// It returns an error if the input format is invalid or the values are out of range.
+func parseMinutesSeconds(input string) (*Timestamp, error) {
+	matches := minutesSecondsRegex.FindStringSubmatch(input)
 	if matches == nil {
-		return nil, errors.New("invalid timestamp string")
+		return nil, ErrInvalidTimestamp
 	}
 
-	// due to the regex, matches will always have at least 3 and at most 4 elements
-	// matches[0] is always the full match
-	switch len(matches) {
-	case 3:
-		minute, _ := strconv.Atoi(matches[1])
-		second, _ := strconv.Atoi(matches[2])
-		return &Timestamp{Minute: minute, Second: second}, nil
-	case 4:
-		hour, _ := strconv.Atoi(matches[1])
-		minute, _ := strconv.Atoi(matches[2])
-		second, _ := strconv.Atoi(matches[3])
-		return &Timestamp{Hour: hour, Minute: minute, Second: second}, nil
-	default:
-		panic("unreachable")
+	// if matches, there will always be 3 elements
+	// full match + 2 groups
+
+	minute, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse minute: %w", err)
 	}
+
+	second, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse second: %w", err)
+	}
+
+	return &Timestamp{Minute: minute, Second: second}, nil
+}
+
+// parseHoursMinutesSeconds parses a string in the format "H:MM:SS" or "HH:MM:SS" into a Timestamp.
+// It returns an error if the input format is invalid or the values are out of range.
+func parseHoursMinutesSeconds(input string) (*Timestamp, error) {
+	matches := hoursMinutesSecondRegex.FindStringSubmatch(input)
+	if matches == nil {
+		return nil, ErrInvalidTimestamp
+	}
+
+	// if matches, there will always be 4 elements
+	// full match + 3 groups
+	hour, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse hour: %w", err)
+	}
+
+	minute, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse minute: %w", err)
+	}
+
+	second, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse second: %w", err)
+	}
+
+	return &Timestamp{Hour: hour, Minute: minute, Second: second}, nil
 }

@@ -210,7 +210,7 @@ func Test_extractCaptionTracks(t *testing.T) {
 	}
 }
 
-func TestSelectCaptionTrack(t *testing.T) {
+func Test_selectCaptionTrack(t *testing.T) {
 	baseURL := &baseURL{URL: url.URL{Scheme: "https", Host: "www.youtube.com", Path: "/watch"}}
 
 	tests := []struct {
