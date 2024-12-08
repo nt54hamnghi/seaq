@@ -30,13 +30,13 @@ func TestResolveTweetId(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			vid, err := ResolveTweetID(tc.src)
-			requires.NoError(err)
-			requires.Equal(tc.want, vid)
+			r.NoError(err)
+			r.Equal(tc.want, vid)
 		})
 	}
 }
@@ -59,13 +59,13 @@ func Test_extractTweetId(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			actual, err := extractTweetID(tc.url)
-			requires.NoError(err)
-			requires.Equal(tc.want, actual)
+			r.NoError(err)
+			r.Equal(tc.want, actual)
 		})
 	}
 }
@@ -98,12 +98,12 @@ func Test_extractTweetId_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			_, err := extractTweetID(tc.url)
-			asserts.Equal(tc.wantErr, err)
+			a.Equal(tc.wantErr, err)
 		})
 	}
 }

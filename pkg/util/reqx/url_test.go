@@ -25,15 +25,15 @@ func TestParseURL(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			u, err := ParseURL(host)(tt.rawURL)
 
-			requires.NoError(err)
-			requires.NotNil(u)
-			requires.Equal(host, u.Hostname())
+			r.NoError(err)
+			r.NotNil(u)
+			r.Equal(host, u.Hostname())
 		})
 	}
 }
@@ -55,14 +55,14 @@ func TestParseURL_Error(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			u, err := ParseURL(host)(tt.rawURL)
 
-			requires.Error(err)
-			requires.Nil(u)
+			r.Error(err)
+			r.Nil(u)
 		})
 	}
 }
@@ -94,14 +94,14 @@ func TestParsePath(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			result, err := ParsePath(tt.path, tt.tmpl)
 
-			requires.NoError(err)
-			requires.Equal(tt.want, result)
+			r.NoError(err)
+			r.Equal(tt.want, result)
 		})
 	}
 }
@@ -164,13 +164,13 @@ func TestParsePath_Error(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			_, err := ParsePath(tt.path, tt.tmpl)
 
-			requires.Equal(tt.wantErr, err)
+			r.Equal(tt.wantErr, err)
 		})
 	}
 }

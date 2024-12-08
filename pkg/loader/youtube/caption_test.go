@@ -42,7 +42,7 @@ func Test_baseURL_UnmarshalJSON(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
@@ -52,10 +52,10 @@ func Test_baseURL_UnmarshalJSON(t *testing.T) {
 			err := json.Unmarshal([]byte(tc.json), &u)
 
 			if tc.wantErr {
-				requires.Error(err)
+				r.Error(err)
 			} else {
-				requires.NoError(err)
-				requires.Equal(tc.want, u.BaseURL.String())
+				r.NoError(err)
+				r.Equal(tc.want, u.BaseURL.String())
 			}
 		})
 	}
@@ -85,13 +85,13 @@ func Test_baseURL_setQuery(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			tc.baseURL.setQuery(tc.key, tc.value)
 
-			requires.Contains(tc.baseURL.String(), tc.want)
+			r.Contains(tc.baseURL.String(), tc.want)
 		})
 	}
 }
@@ -117,16 +117,16 @@ func Test_captionTrack_toEnglish(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			err := tc.track.toEnglish()
 			if tc.wantErr != nil {
-				requires.Equal(tc.wantErr, err)
+				r.Equal(tc.wantErr, err)
 			} else {
-				requires.NoError(err)
-				requires.Contains(tc.track.BaseURL.RawQuery, "tlang=en")
+				r.NoError(err)
+				r.Contains(tc.track.BaseURL.RawQuery, "tlang=en")
 			}
 		})
 	}
@@ -192,7 +192,7 @@ func Test_extractCaptionTracks(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
@@ -200,11 +200,11 @@ func Test_extractCaptionTracks(t *testing.T) {
 			actual, err := extractCaptionTracks(body)
 
 			if tt.wantErr != "" {
-				requires.Error(err)
-				requires.Contains(err.Error(), tt.wantErr)
+				r.Error(err)
+				r.Contains(err.Error(), tt.wantErr)
 			} else {
-				requires.NoError(err)
-				requires.Equal(tt.want, actual)
+				r.NoError(err)
+				r.Equal(tt.want, actual)
 			}
 		})
 	}
@@ -256,16 +256,16 @@ func Test_selectCaptionTrack(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := selectCaptionTrack(tt.tracks)
 			if tt.wantErr {
-				requires.Error(err)
+				r.Error(err)
 			} else {
-				requires.NoError(err)
-				requires.Equal(tt.want, got)
+				r.NoError(err)
+				r.Equal(tt.want, got)
 			}
 		})
 	}
@@ -309,17 +309,17 @@ func Test_loadCaption(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(*testing.T) {
 			c, err := loadCaption(context.TODO(), tc.captionTrack)
 
 			if tc.wantErr != nil {
-				requires.Equal(tc.wantErr, err)
+				r.Equal(tc.wantErr, err)
 			} else {
-				requires.NoError(err)
-				requires.Equal(tc.want, c)
+				r.NoError(err)
+				r.Equal(tc.want, c)
 			}
 		})
 	}
@@ -363,14 +363,14 @@ func Test_caption_filterStart(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			c := &caption{Events: tt.events}
 			c.filterStart(tt.start)
 
-			asserts.Equal(tt.want, c.Events)
+			a.Equal(tt.want, c.Events)
 		})
 	}
 }
@@ -413,14 +413,14 @@ func Test_caption_filterEnd(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			c := &caption{Events: tt.events}
 			c.filterEnd(tt.end)
 
-			asserts.Equal(tt.want, c.Events)
+			a.Equal(tt.want, c.Events)
 		})
 	}
 }
@@ -456,14 +456,14 @@ func Test_event_toDocument(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := tt.event.toDocument()
-			requires.NoError(err)
-			requires.Equal("hello world", got.PageContent)
-			requires.Equal(int64(240), got.Metadata["startMs"])
-			requires.Equal(int64(4880), got.Metadata["durationMs"])
+			r.NoError(err)
+			r.Equal("hello world", got.PageContent)
+			r.Equal(int64(240), got.Metadata["startMs"])
+			r.Equal(int64(4880), got.Metadata["durationMs"])
 		})
 	}
 }
@@ -485,11 +485,11 @@ func Test_event_toDocument_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			_, err := tt.event.toDocument()
-			asserts.Equal(tt.wantErr, err)
+			a.Equal(tt.wantErr, err)
 		})
 	}
 }

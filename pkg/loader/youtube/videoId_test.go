@@ -25,13 +25,13 @@ func TestResolveVideoId(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			vid, err := ResolveVideoID(tc.src)
-			requires.NoError(err)
-			requires.Equal(tc.want, vid)
+			r.NoError(err)
+			r.Equal(tc.want, vid)
 		})
 	}
 }
@@ -47,12 +47,12 @@ func TestResolveVideoId_Error(t *testing.T) {
 		{name: "invalidChars", src: "!!!!!!!!!!!", err: ErrInvalidYouTubeURL},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			_, err := ResolveVideoID(tc.src)
-			asserts.Equal(err, tc.err)
+			a.Equal(err, tc.err)
 		})
 	}
 }
@@ -80,13 +80,13 @@ func Test_extractVideoId(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			actual, err := extractVideoID(tc.url)
-			requires.NoError(err)
-			requires.Equal(tc.want, actual)
+			r.NoError(err)
+			r.Equal(tc.want, actual)
 		})
 	}
 }
@@ -134,12 +134,12 @@ func Test_extractVideoId_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			_, err := extractVideoID(tc.url)
-			asserts.Equal(err, tc.err)
+			a.Equal(err, tc.err)
 		})
 	}
 }

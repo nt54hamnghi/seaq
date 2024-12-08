@@ -115,19 +115,19 @@ func (s *HTTPSuite) TestDo() {
 
 func TestResponse_Expec_Nil_Response(t *testing.T) {
 	resp := &Response{Response: nil}
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	err := resp.ExpectSuccess()
-	asserts.Equal(ErrNilResponse, err)
-	asserts.False(resp.IsSuccess())
+	a.Equal(ErrNilResponse, err)
+	a.False(resp.IsSuccess())
 
 	err = resp.ExpectStatusCode(http.StatusOK)
-	asserts.Equal(ErrNilResponse, err)
-	asserts.False(resp.HasStatusCode(http.StatusOK))
+	a.Equal(ErrNilResponse, err)
+	a.False(resp.HasStatusCode(http.StatusOK))
 
 	err = resp.ExpectContentType("application/json")
-	asserts.Equal(ErrNilResponse, err)
-	asserts.False(resp.HasContentType("application/json"))
+	a.Equal(ErrNilResponse, err)
+	a.False(resp.HasContentType("application/json"))
 }
 
 func TestResponse_ExpectSuccess(t *testing.T) {
@@ -145,7 +145,7 @@ func TestResponse_ExpectSuccess(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -154,8 +154,8 @@ func TestResponse_ExpectSuccess(t *testing.T) {
 
 		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectSuccess()
-			requires.NoError(err)
-			requires.True(resp.IsSuccess())
+			r.NoError(err)
+			r.True(resp.IsSuccess())
 		})
 	}
 }
@@ -175,7 +175,7 @@ func TestResponse_ExpectSuccess_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -186,8 +186,8 @@ func TestResponse_ExpectSuccess_Error(t *testing.T) {
 
 		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectSuccess()
-			asserts.Equal(want, err)
-			asserts.False(resp.IsSuccess())
+			a.Equal(want, err)
+			a.False(resp.IsSuccess())
 		})
 	}
 }
@@ -207,7 +207,7 @@ func TestResponse_ExpectStatusCode(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -216,8 +216,8 @@ func TestResponse_ExpectStatusCode(t *testing.T) {
 
 		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectStatusCode(tt.statusCode)
-			requires.NoError(err)
-			requires.True(resp.HasStatusCode(tt.statusCode))
+			r.NoError(err)
+			r.True(resp.HasStatusCode(tt.statusCode))
 		})
 	}
 }
@@ -240,7 +240,7 @@ func TestResponse_ExpectStatusCode_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -251,8 +251,8 @@ func TestResponse_ExpectStatusCode_Error(t *testing.T) {
 
 		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectStatusCode(tt.want)
-			asserts.Equal(want, err)
-			asserts.False(resp.HasStatusCode(tt.want))
+			a.Equal(want, err)
+			a.False(resp.HasStatusCode(tt.want))
 		})
 	}
 }
@@ -275,7 +275,7 @@ func TestResponse_ExpectContentType(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -286,8 +286,8 @@ func TestResponse_ExpectContentType(t *testing.T) {
 
 		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectContentType(tt.want)
-			requires.NoError(err)
-			requires.True(resp.HasContentType(tt.want))
+			r.NoError(err)
+			r.True(resp.HasContentType(tt.want))
 		})
 	}
 }
@@ -310,7 +310,7 @@ func TestResponse_ExpectContentType_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -323,8 +323,8 @@ func TestResponse_ExpectContentType_Error(t *testing.T) {
 
 		t.Run(tt.name, func(*testing.T) {
 			err := resp.ExpectContentType(tt.want)
-			asserts.Equal(want, err)
-			asserts.False(resp.HasContentType(tt.want))
+			a.Equal(want, err)
+			a.False(resp.HasContentType(tt.want))
 		})
 	}
 }
@@ -347,7 +347,7 @@ func TestResponse_Bytes(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -358,8 +358,8 @@ func TestResponse_Bytes(t *testing.T) {
 		}
 		t.Run(tt.name, func(*testing.T) {
 			res, err := resp.Bytes()
-			requires.NoError(err)
-			requires.Equal(tt.want, res)
+			r.NoError(err)
+			r.Equal(tt.want, res)
 		})
 	}
 }
@@ -382,7 +382,7 @@ func TestResponse_String(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range testCases {
 		resp := &Response{
@@ -393,8 +393,8 @@ func TestResponse_String(t *testing.T) {
 		}
 		t.Run(tt.name, func(*testing.T) {
 			res, err := resp.String()
-			requires.NoError(err)
-			requires.Equal(tt.want, res)
+			r.NoError(err)
+			r.Equal(tt.want, res)
 		})
 	}
 }
@@ -416,11 +416,11 @@ func TestInto(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	res, err := Into[message](resp)
-	requires.NoError(err)
-	requires.Equal(message{Message: "hello"}, res)
+	r.NoError(err)
+	r.Equal(message{Message: "hello"}, res)
 }
 
 func TestInto_Error(t *testing.T) {
@@ -437,8 +437,8 @@ func TestInto_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	_, err := Into[message](resp)
-	asserts.Error(err)
+	a.Error(err)
 }

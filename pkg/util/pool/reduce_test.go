@@ -19,12 +19,12 @@ func TestGetThreadCount(t *testing.T) {
 		{name: "large", taskCount: 1024, want: runtime.NumCPU()},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			actual := GetThreadCount(tc.taskCount)
-			asserts.Equal(tc.want, actual)
+			a.Equal(tc.want, actual)
 		})
 	}
 }
@@ -74,18 +74,18 @@ func TestBatchReduce(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			res := BatchReduce(tc.nThreads, tc.in, tc.op)
 			if len(tc.in) == 0 {
-				asserts.Empty(res)
+				a.Empty(res)
 			} else {
-				asserts.Len(res, tc.nThreads)
+				a.Len(res, tc.nThreads)
 			}
 
-			asserts.Equal(tc.want, res)
+			a.Equal(tc.want, res)
 		})
 	}
 }

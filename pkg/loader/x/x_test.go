@@ -74,12 +74,12 @@ func Test_toDocument_tweet(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got, _ := tweetToDocument(tt.tweet)
-			asserts.Equal(tt.want, got)
+			a.Equal(tt.want, got)
 		})
 	}
 }
@@ -97,12 +97,12 @@ func Test_toDocument_tweet_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			_, err := tweetToDocument(tt.tweet)
-			asserts.Error(err)
+			a.Error(err)
 		})
 	}
 }

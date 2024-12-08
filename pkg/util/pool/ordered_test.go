@@ -45,13 +45,13 @@ func TestOrderedGo(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			res := OrderedGo(tt.tasks)
 
-			asserts.Equal(tt.want, res)
+			a.Equal(tt.want, res)
 		})
 	}
 }
@@ -97,12 +97,12 @@ func TestOrderedGoFunc(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			res := OrderedGoFunc(tt.input, tt.taskFunc)
-			asserts.Equal(tt.want, res)
+			a.Equal(tt.want, res)
 		})
 	}
 }
@@ -134,13 +134,13 @@ func TestOrderedRun(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			res, err := OrderedRun(tt.input, taskFunc)
-			requires.NoError(err)
-			requires.Equal(tt.want, res)
+			r.NoError(err)
+			r.Equal(tt.want, res)
 		})
 	}
 }
@@ -168,12 +168,12 @@ func TestOrderedRun_Error(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			_, err := OrderedRun(tt.input, taskFunc)
-			asserts.Equal(tt.wantErr, err)
+			a.Equal(tt.wantErr, err)
 		})
 	}
 }

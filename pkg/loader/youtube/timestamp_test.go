@@ -41,12 +41,12 @@ func TestTimestamp_ToMsDuration(t *testing.T) {
 		},
 	}
 
-	asserts := assert.New(t)
+	a := assert.New(t)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			msDuration := tt.timestamp.ToMsDuration()
-			asserts.Equal(tt.want, msDuration)
+			a.Equal(tt.want, msDuration)
 		})
 	}
 }
@@ -115,19 +115,19 @@ func Test_parseMinutesSeconds(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := parseMinutesSeconds(tt.input)
 			if tt.wantErr != nil {
-				requires.Equal(tt.wantErr, err)
-				requires.Nil(got)
+				r.Equal(tt.wantErr, err)
+				r.Nil(got)
 				return
 			}
 
-			requires.NoError(err)
-			requires.Equal(tt.want, got)
+			r.NoError(err)
+			r.Equal(tt.want, got)
 		})
 	}
 }
@@ -211,19 +211,19 @@ func Test_parseHoursMinutesSeconds(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := parseHoursMinutesSeconds(tt.input)
 			if tt.wantErr != nil {
-				requires.Equal(tt.wantErr, err)
-				requires.Nil(got)
+				r.Equal(tt.wantErr, err)
+				r.Nil(got)
 				return
 			}
 
-			requires.NoError(err)
-			requires.Equal(tt.want, got)
+			r.NoError(err)
+			r.Equal(tt.want, got)
 		})
 	}
 }
@@ -277,19 +277,19 @@ func TestParseTimestamp(t *testing.T) {
 		},
 	}
 
-	requires := require.New(t)
+	r := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := ParseTimestamp(tt.input)
 			if tt.wantErr != nil {
-				requires.Equal(tt.wantErr, err)
-				requires.Nil(got)
+				r.Equal(tt.wantErr, err)
+				r.Nil(got)
 				return
 			}
 
-			requires.NoError(err)
-			requires.Equal(tt.want, got)
+			r.NoError(err)
+			r.Equal(tt.want, got)
 		})
 	}
 }
