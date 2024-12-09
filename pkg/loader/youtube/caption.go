@@ -137,12 +137,11 @@ func loadCaptionTracks(ctx context.Context, vid videoID) ([]captionTrack, error)
 	if err != nil {
 		return nil, err
 	}
-
+	req := reqx.WithClient(&http.Client{Jar: jar})
 	vidURL := YouTubeWatchURL + "?v=" + vid
-	client := &http.Client{Jar: jar}
 
 	tracks, err := retry(maxAttempts, maxDelay, func() ([]captionTrack, error) {
-		res, err := reqx.DoWith(ctx, client, http.MethodGet, vidURL, nil, nil)
+		res, err := req(ctx, http.MethodGet, vidURL, nil, nil)
 		if err != nil || !res.IsSuccess() {
 			return nil, err
 		}

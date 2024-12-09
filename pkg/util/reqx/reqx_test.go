@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -17,23 +16,27 @@ import (
 type HTTPSuite struct {
 	suite.Suite
 	server *httptest.Server
+	client *http.Client
 }
 
-func TestHttpSuite(t *testing.T) {
+func TestHTTPSuite(t *testing.T) {
 	suite.Run(t, &HTTPSuite{})
 }
 
 func (s *HTTPSuite) SetupSuite() {
 	mux := http.NewServeMux()
 
+	// endpoint for GET and POST
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `{"message": "%s called"}`, r.Method)
 	})
 
+	// endpoint for testing headers
 	mux.HandleFunc("/with-headers", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `{"message": "%s"}`, r.Header.Get("Test"))
+		fmt.Fprintf(w, `{"message": "%s"}`, r.Header.Get("X-Test"))
 	})
 
+	// endpoint for testing body
 	mux.HandleFunc("/with-body", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		if len(body) == 0 {
@@ -42,20 +45,16 @@ func (s *HTTPSuite) SetupSuite() {
 		fmt.Fprintf(w, `{"message": %s}`, body)
 	})
 
-	mux.HandleFunc("/not-found", http.NotFound)
-
 	s.server = httptest.NewServer(mux)
+	s.client = s.server.Client()
 }
 
 func (s *HTTPSuite) TearDownSuite() {
 	s.server.Close()
 }
 
-func (s *HTTPSuite) TestDo() {
-	// replace the real URL with the mock server's URL
-	url := s.server.URL
-
-	testCases := []struct {
+func (s *HTTPSuite) TestWithClient() {
+	tests := []struct {
 		name     string
 		method   string
 		endpoint string
@@ -77,10 +76,8 @@ func (s *HTTPSuite) TestDo() {
 			name:     "getWithHeaders",
 			method:   http.MethodGet,
 			endpoint: "/with-headers",
-			headers: map[string][]string{
-				"Test": {"with headers"},
-			},
-			want: []byte(`{"message": "with headers"}`),
+			headers:  map[string][]string{"X-Test": {"with headers"}},
+			want:     []byte(`{"message": "with headers"}`),
 		},
 		{
 			name:     "postWithBody",
@@ -99,302 +96,72 @@ func (s *HTTPSuite) TestDo() {
 	}
 
 	ctx := context.Background()
-	t := s.T()
+	url := s.server.URL
+	makeRequest := WithClient(s.client)
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(*testing.T) {
-			res, err := Do(ctx, tc.method, url+tc.endpoint, tc.body, tc.headers)
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			res, err := makeRequest(ctx, tt.method, url+tt.endpoint, tt.headers, tt.body)
 			if s.NoError(err) {
 				body, _ := io.ReadAll(res.Body)
-				s.Equal(tc.want, body)
+				s.Equal(tt.want, body)
 			}
 			defer res.Body.Close()
 		})
 	}
 }
 
-func TestResponse_Expec_Nil_Response(t *testing.T) {
-	resp := &Response{Response: nil}
-	a := assert.New(t)
-
-	err := resp.ExpectSuccess()
-	a.Equal(ErrNilResponse, err)
-	a.False(resp.IsSuccess())
-
-	err = resp.ExpectStatusCode(http.StatusOK)
-	a.Equal(ErrNilResponse, err)
-	a.False(resp.HasStatusCode(http.StatusOK))
-
-	err = resp.ExpectContentType("application/json")
-	a.Equal(ErrNilResponse, err)
-	a.False(resp.HasContentType("application/json"))
-}
-
-func TestResponse_ExpectSuccess(t *testing.T) {
-	testCases := []struct {
-		name       string
-		statusCode int
+func (s *HTTPSuite) TestWithClient__InputValidation() {
+	tests := []struct {
+		name    string
+		client  *http.Client
+		ctx     context.Context
+		method  string
+		url     string
+		wantErr string
 	}{
 		{
-			name:       "OK",
-			statusCode: http.StatusOK,
+			name:    "nil client",
+			client:  nil,
+			ctx:     context.Background(),
+			method:  http.MethodGet,
+			url:     "http://example.com",
+			wantErr: "client cannot be nil",
 		},
 		{
-			name:       "No Content",
-			statusCode: http.StatusNoContent,
+			name:    "nil context",
+			client:  s.client,
+			ctx:     nil,
+			method:  http.MethodGet,
+			url:     "http://example.com",
+			wantErr: "context cannot be nil",
+		},
+		{
+			name:    "empty url",
+			client:  s.client,
+			ctx:     context.Background(),
+			method:  http.MethodGet,
+			url:     "",
+			wantErr: "url cannot be empty",
+		},
+		{
+			name:    "unsupported method",
+			client:  s.client,
+			ctx:     context.Background(),
+			method:  http.MethodPatch,
+			url:     "http://example.com",
+			wantErr: "unsupported method: PATCH",
 		},
 	}
 
-	r := require.New(t)
+	r := s.Require()
 
-	for _, tt := range testCases {
-		resp := &Response{
-			Response: &http.Response{StatusCode: tt.statusCode},
-		}
-
-		t.Run(tt.name, func(*testing.T) {
-			err := resp.ExpectSuccess()
-			r.NoError(err)
-			r.True(resp.IsSuccess())
-		})
-	}
-}
-
-func TestResponse_ExpectSuccess_Error(t *testing.T) {
-	testCases := []struct {
-		name       string
-		statusCode int
-	}{
-		{
-			name:       "Not Found",
-			statusCode: http.StatusNotFound,
-		},
-		{
-			name:       "Internal Server Error",
-			statusCode: http.StatusInternalServerError,
-		},
-	}
-
-	a := assert.New(t)
-
-	for _, tt := range testCases {
-		resp := &Response{
-			Response: &http.Response{StatusCode: tt.statusCode},
-		}
-
-		want := fmt.Errorf("unexpected status code: %s", resp.Status)
-
-		t.Run(tt.name, func(*testing.T) {
-			err := resp.ExpectSuccess()
-			a.Equal(want, err)
-			a.False(resp.IsSuccess())
-		})
-	}
-}
-
-func TestResponse_ExpectStatusCode(t *testing.T) {
-	testCases := []struct {
-		name       string
-		statusCode int
-	}{
-		{
-			name:       "OK",
-			statusCode: http.StatusOK,
-		},
-		{
-			name:       "No Content",
-			statusCode: http.StatusNoContent,
-		},
-	}
-
-	r := require.New(t)
-
-	for _, tt := range testCases {
-		resp := &Response{
-			Response: &http.Response{StatusCode: tt.statusCode},
-		}
-
-		t.Run(tt.name, func(*testing.T) {
-			err := resp.ExpectStatusCode(tt.statusCode)
-			r.NoError(err)
-			r.True(resp.HasStatusCode(tt.statusCode))
-		})
-	}
-}
-
-func TestResponse_ExpectStatusCode_Error(t *testing.T) {
-	testCases := []struct {
-		name   string
-		actual int
-		want   int
-	}{
-		{
-			name:   "Not Found",
-			actual: http.StatusNotFound,
-			want:   http.StatusOK,
-		},
-		{
-			name:   "Internal Server Error",
-			actual: http.StatusInternalServerError,
-			want:   http.StatusOK,
-		},
-	}
-
-	a := assert.New(t)
-
-	for _, tt := range testCases {
-		resp := &Response{
-			Response: &http.Response{StatusCode: tt.actual},
-		}
-
-		want := fmt.Errorf("unexpected status code: %d", tt.actual)
-
-		t.Run(tt.name, func(*testing.T) {
-			err := resp.ExpectStatusCode(tt.want)
-			a.Equal(want, err)
-			a.False(resp.HasStatusCode(tt.want))
-		})
-	}
-}
-
-func TestResponse_ExpectContentType(t *testing.T) {
-	testCases := []struct {
-		name   string
-		actual string
-		want   string
-	}{
-		{
-			name:   "normal",
-			actual: "text/html",
-			want:   "text/html",
-		},
-		{
-			name:   "with charset",
-			actual: "text/html; charset=utf-8",
-			want:   "text/html",
-		},
-	}
-
-	r := require.New(t)
-
-	for _, tt := range testCases {
-		resp := &Response{
-			Response: &http.Response{
-				Header: http.Header{"Content-Type": []string{tt.actual}},
-			},
-		}
-
-		t.Run(tt.name, func(*testing.T) {
-			err := resp.ExpectContentType(tt.want)
-			r.NoError(err)
-			r.True(resp.HasContentType(tt.want))
-		})
-	}
-}
-
-func TestResponse_ExpectContentType_Error(t *testing.T) {
-	testCases := []struct {
-		name   string
-		actual string
-		want   string
-	}{
-		{
-			name:   "normal",
-			actual: "text/plain",
-			want:   "text/html",
-		},
-		{
-			name:   "with charset",
-			actual: "application/xml; charset=utf-8",
-			want:   "application/json",
-		},
-	}
-
-	a := assert.New(t)
-
-	for _, tt := range testCases {
-		resp := &Response{
-			Response: &http.Response{
-				Header: http.Header{"Content-Type": []string{tt.actual}},
-			},
-		}
-
-		want := fmt.Errorf("unexpected content type: %s", tt.actual)
-
-		t.Run(tt.name, func(*testing.T) {
-			err := resp.ExpectContentType(tt.want)
-			a.Equal(want, err)
-			a.False(resp.HasContentType(tt.want))
-		})
-	}
-}
-
-func TestResponse_Bytes(t *testing.T) {
-	testCases := []struct {
-		name   string
-		actual []byte
-		want   []byte
-	}{
-		{
-			name:   "empty",
-			actual: []byte{},
-			want:   []byte{},
-		},
-		{
-			name:   "normal",
-			actual: []byte(`{"message": "hello"}`),
-			want:   []byte(`{"message": "hello"}`),
-		},
-	}
-
-	r := require.New(t)
-
-	for _, tt := range testCases {
-		resp := &Response{
-			Response: &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       io.NopCloser(bytes.NewBuffer(tt.actual)),
-			},
-		}
-		t.Run(tt.name, func(*testing.T) {
-			res, err := resp.Bytes()
-			r.NoError(err)
-			r.Equal(tt.want, res)
-		})
-	}
-}
-
-func TestResponse_String(t *testing.T) {
-	testCases := []struct {
-		name   string
-		actual string
-		want   string
-	}{
-		{
-			name:   "empty",
-			actual: "",
-			want:   "",
-		},
-		{
-			name:   "normal",
-			actual: `{"message": "hello"}`,
-			want:   `{"message": "hello"}`,
-		},
-	}
-
-	r := require.New(t)
-
-	for _, tt := range testCases {
-		resp := &Response{
-			Response: &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       io.NopCloser(bytes.NewBufferString(tt.actual)),
-			},
-		}
-		t.Run(tt.name, func(*testing.T) {
-			res, err := resp.String()
-			r.NoError(err)
-			r.Equal(tt.want, res)
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			req := WithClient(tt.client)
+			_, err := req(tt.ctx, tt.method, tt.url, nil, nil)
+			r.Error(err)
+			r.Contains(err.Error(), tt.wantErr)
 		})
 	}
 }
@@ -404,41 +171,260 @@ func TestInto(t *testing.T) {
 		Message string `json:"message"`
 	}
 
-	resp := &Response{
-		Response: &http.Response{
-			StatusCode: http.StatusOK,
-			Body: io.NopCloser(
-				bytes.NewBufferString(`{"message": "hello"}`),
-			),
-			Header: http.Header{
-				"Content-Type": []string{"application/json"},
+	tests := []struct {
+		name       string
+		raw        *http.Response
+		want       message
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name: "valid JSON",
+			raw: &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(bytes.NewBufferString(`{"message": "hello"}`)),
 			},
+			want:    message{Message: "hello"},
+			wantErr: false,
+		},
+		{
+			name: "invalid JSON",
+			raw: &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(bytes.NewBufferString(`{"message": invalid}`)),
+			},
+			wantErr:    true,
+			errMessage: "failed to unmarshal response body",
+		},
+		{
+			name: "unexpected content type",
+			raw: &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"text/plain"}},
+				Body:       io.NopCloser(bytes.NewBufferString(`{"message": "hello"}`)),
+			},
+			wantErr:    true,
+			errMessage: "unexpected content type",
+		},
+		{
+			name: "non-success status code",
+			raw: &http.Response{
+				StatusCode: http.StatusInternalServerError,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(bytes.NewBufferString(`{"message": "error"}`)),
+			},
+			wantErr:    true,
+			errMessage: "unexpected status code",
 		},
 	}
 
 	r := require.New(t)
 
-	res, err := Into[message](resp)
-	r.NoError(err)
-	r.Equal(message{Message: "hello"}, res)
+	for _, tt := range tests {
+		t.Run(tt.name, func(*testing.T) {
+			got, err := Into[message](&Response{Response: tt.raw})
+			if tt.wantErr {
+				r.Error(err)
+				r.Contains(err.Error(), tt.errMessage)
+				return
+			}
+
+			r.NoError(err)
+			r.Equal(tt.want, got)
+		})
+	}
 }
 
-func TestInto_Error(t *testing.T) {
-	type message struct {
-		Message string `json:"message"`
-	}
-
-	resp := &Response{
-		Response: &http.Response{
-			StatusCode: http.StatusOK,
-			Body: io.NopCloser(
-				bytes.NewBufferString(`{"message": "hello"}`),
-			),
+func TestResponse_ExpectContentType(t *testing.T) {
+	testCases := []struct {
+		name        string
+		actual      *http.Response
+		contentType string
+		wantErr     bool
+	}{
+		{
+			name: "match",
+			actual: &http.Response{
+				Header: http.Header{"Content-Type": []string{"application/json"}},
+			},
+			contentType: "application/json",
+			wantErr:     false,
+		},
+		{
+			name: "not match",
+			actual: &http.Response{
+				Header: http.Header{"Content-Type": []string{"text/plain"}},
+			},
+			contentType: "application/json",
+			wantErr:     true,
+		},
+		{
+			name:    "nil response",
+			actual:  nil,
+			wantErr: true,
 		},
 	}
 
-	a := assert.New(t)
+	r := require.New(t)
 
-	_, err := Into[message](resp)
-	a.Error(err)
+	for _, tt := range testCases {
+		res := &Response{Response: tt.actual}
+
+		t.Run(tt.name, func(*testing.T) {
+			err := res.ExpectContentType(tt.contentType)
+			if tt.actual == nil {
+				r.Equal(ErrNilResponse, err)
+				return
+			}
+
+			if tt.wantErr {
+				r.Error(err)
+				return
+			}
+
+			r.NoError(err)
+			r.True(res.HasContentType(tt.contentType))
+		})
+	}
+}
+
+func TestResponse_ExpectStatusCode(t *testing.T) {
+	testCases := []struct {
+		name       string
+		actual     *http.Response
+		statusCode int
+		wantErr    bool
+	}{
+		{
+			name:       "match",
+			actual:     &http.Response{StatusCode: http.StatusOK},
+			statusCode: http.StatusOK,
+			wantErr:    false,
+		},
+		{
+			name:       "not match",
+			actual:     &http.Response{StatusCode: http.StatusNotFound},
+			statusCode: http.StatusOK,
+			wantErr:    true,
+		},
+		{
+			name:    "nil response",
+			actual:  nil,
+			wantErr: true,
+		},
+	}
+
+	r := require.New(t)
+
+	for _, tt := range testCases {
+		res := &Response{Response: tt.actual}
+
+		t.Run(tt.name, func(*testing.T) {
+			err := res.ExpectStatusCode(tt.statusCode)
+			if tt.actual == nil {
+				r.Equal(ErrNilResponse, err)
+				return
+			}
+
+			if tt.wantErr {
+				r.Error(err)
+				return
+			}
+
+			r.NoError(err)
+			r.True(res.HasStatusCode(tt.statusCode))
+		})
+	}
+}
+
+func TestResponse_ExpectSuccess(t *testing.T) {
+	tests := []struct {
+		name    string
+		raw     *http.Response
+		wantErr bool
+	}{
+		{
+			name: "OK",
+			raw:  &http.Response{StatusCode: http.StatusOK},
+		},
+		{
+			name: "NoContent",
+			raw:  &http.Response{StatusCode: http.StatusNoContent},
+		},
+		{
+			name:    "NotFound",
+			raw:     &http.Response{StatusCode: http.StatusNotFound},
+			wantErr: true,
+		},
+		{
+			name:    "InternalServerError",
+			raw:     &http.Response{StatusCode: http.StatusInternalServerError},
+			wantErr: true,
+		},
+		{
+			name:    "nil response",
+			raw:     nil,
+			wantErr: true,
+		},
+	}
+
+	r := require.New(t)
+
+	for _, tt := range tests {
+		res := &Response{Response: tt.raw}
+
+		t.Run(tt.name, func(*testing.T) {
+			err := res.ExpectSuccess()
+
+			if tt.raw == nil {
+				r.Equal(ErrNilResponse, err)
+				return
+			}
+
+			if tt.wantErr {
+				r.Error(err)
+				return
+			}
+
+			r.NoError(err)
+			r.True(res.IsSuccess())
+		})
+	}
+}
+
+func TestResponse_Bytes(t *testing.T) {
+	testCases := []struct {
+		name string
+		raw  *http.Response
+		want []byte
+	}{
+		{
+			name: "empty",
+			raw: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewBuffer(nil)),
+			},
+			want: []byte{},
+		},
+		{
+			name: "normal",
+			raw: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(bytes.NewBufferString(`{"message": "hello"}`)),
+			},
+			want: []byte(`{"message": "hello"}`),
+		},
+	}
+
+	r := require.New(t)
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(*testing.T) {
+			got, err := (&Response{Response: tt.raw}).Bytes()
+			r.NoError(err)
+			r.Equal(tt.want, got)
+		})
+	}
 }
