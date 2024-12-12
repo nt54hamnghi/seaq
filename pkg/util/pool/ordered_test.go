@@ -19,7 +19,7 @@ func TestOrderedGo(t *testing.T) {
 		{
 			name:  "empty",
 			tasks: []Task[int]{},
-			want:  []Result[int]{},
+			want:  nil,
 		},
 		{
 			name: "one",
@@ -68,7 +68,7 @@ func TestOrderedGoFunc(t *testing.T) {
 		{
 			name:  "empty",
 			input: []int{},
-			want:  []Result[int]{},
+			want:  nil,
 		},
 		{
 			name:  "one",
@@ -120,7 +120,7 @@ func TestOrderedRun(t *testing.T) {
 		{
 			name:  "empty",
 			input: []int{},
-			want:  []int{},
+			want:  nil,
 		},
 		{
 			name:  "one",
