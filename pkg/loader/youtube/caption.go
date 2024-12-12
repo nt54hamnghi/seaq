@@ -16,6 +16,7 @@ import (
 
 	"github.com/nt54hamnghi/hiku/pkg/util/pool"
 	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
+	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 )
 
@@ -45,7 +46,7 @@ func retry[T any](n int, delay time.Duration, f retryFunc[T]) (T, error) {
 
 // endregion: --- helpers
 
-func fetchCaptionAsDocuments(ctx context.Context, vid videoID, filter *youtubeFilter) ([]schema.Document, error) {
+func fetchCaptionAsDocuments(ctx context.Context, vid videoID, filter *filter) ([]schema.Document, error) {
 	// fetch available caption tracks from a YouTube video ID
 	tracks, err := loadCaptionTracks(ctx, vid)
 	if err != nil {
@@ -296,7 +297,7 @@ func (e event) toDocument() (schema.Document, error) {
 	return doc, nil
 }
 
-func (c *caption) filter(opt *youtubeFilter) {
+func (c *caption) filter(opt *filter) {
 	if opt.start != nil {
 		c.filterStart(opt.start)
 	}
@@ -305,36 +306,38 @@ func (c *caption) filter(opt *youtubeFilter) {
 	}
 }
 
-func (c *caption) filterStart(start *Timestamp) {
+// filterStart filters out caption events that begin before the specified timestamp.
+func (c *caption) filterStart(start *timestamp.Timestamp) {
 	if start == nil {
 		return
 	}
 
 	startMs := start.ToMsDuration()
-	newEvents := make([]event, 0, len(c.Events))
+	events := make([]event, 0, len(c.Events))
 	for _, e := range c.Events {
 		if e.TStartMs >= startMs {
-			newEvents = append(newEvents, e)
+			events = append(events, e)
 		}
 	}
 
-	c.Events = newEvents
+	c.Events = events
 }
 
-func (c *caption) filterEnd(end *Timestamp) {
+// filterEnd filters out caption events that begin after the specified timestamp.
+func (c *caption) filterEnd(end *timestamp.Timestamp) {
 	if end == nil {
 		return
 	}
 
 	endMs := end.ToMsDuration()
-	newEvents := make([]event, 0, len(c.Events))
+	events := make([]event, 0, len(c.Events))
 	for _, e := range c.Events {
 		if e.TStartMs <= endMs {
-			newEvents = append(newEvents, e)
+			events = append(events, e)
 		}
 	}
 
-	c.Events = newEvents
+	c.Events = events
 }
 
 // getFullCaption returns the full caption text of a YouTube video.

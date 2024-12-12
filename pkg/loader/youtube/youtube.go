@@ -5,17 +5,18 @@ import (
 	"slices"
 
 	"github.com/nt54hamnghi/hiku/pkg/util/pool"
+	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-type youtubeFilter struct {
-	start *Timestamp
-	end   *Timestamp
+type filter struct {
+	start *timestamp.Timestamp
+	end   *timestamp.Timestamp
 }
 
 type Loader struct {
-	youtubeFilter
+	filter
 	videoID         string
 	includeMetadata bool
 }
@@ -28,13 +29,13 @@ func WithVideoID(src string) Option {
 	}
 }
 
-func WithStart(start *Timestamp) Option {
+func WithStart(start *timestamp.Timestamp) Option {
 	return func(o *Loader) {
 		o.start = start
 	}
 }
 
-func WithEnd(end *Timestamp) Option {
+func WithEnd(end *timestamp.Timestamp) Option {
 	return func(o *Loader) {
 		o.end = end
 	}
@@ -58,7 +59,7 @@ func NewYouTubeLoader(opts ...Option) *Loader {
 func (l Loader) Load(ctx context.Context) ([]schema.Document, error) {
 	tasks := []pool.Task[[]schema.Document]{
 		func() ([]schema.Document, error) {
-			return fetchCaptionAsDocuments(ctx, l.videoID, &l.youtubeFilter)
+			return fetchCaptionAsDocuments(ctx, l.videoID, &l.filter)
 		},
 	}
 

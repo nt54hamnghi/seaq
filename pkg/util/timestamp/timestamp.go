@@ -1,4 +1,4 @@
-package youtube
+package timestamp
 
 import (
 	"errors"

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tmc/langchaingo/schema"
@@ -329,13 +330,13 @@ func Test_caption_filterStart(t *testing.T) {
 	testCases := []struct {
 		name   string
 		events []event
-		start  *Timestamp
+		start  *timestamp.Timestamp
 		want   []event
 	}{
 		{
 			name:   "empty",
 			events: []event{},
-			start:  &Timestamp{Second: 1},
+			start:  &timestamp.Timestamp{Second: 1},
 			want:   []event{},
 		},
 		{
@@ -355,7 +356,7 @@ func Test_caption_filterStart(t *testing.T) {
 				{ID: 2, TStartMs: 1000},
 				{ID: 3, TStartMs: 2000},
 			},
-			start: &Timestamp{Second: 1},
+			start: &timestamp.Timestamp{Second: 1},
 			want: []event{
 				{ID: 2, TStartMs: 1000},
 				{ID: 3, TStartMs: 2000},
@@ -379,13 +380,13 @@ func Test_caption_filterEnd(t *testing.T) {
 	testCases := []struct {
 		name   string
 		events []event
-		end    *Timestamp
+		end    *timestamp.Timestamp
 		want   []event
 	}{
 		{
 			name:   "empty",
 			events: []event{},
-			end:    &Timestamp{Second: 1},
+			end:    &timestamp.Timestamp{Second: 1},
 			want:   []event{},
 		},
 		{
@@ -405,7 +406,7 @@ func Test_caption_filterEnd(t *testing.T) {
 				{ID: 2, TStartMs: 1000},
 				{ID: 3, TStartMs: 10000},
 			},
-			end: &Timestamp{Second: 1},
+			end: &timestamp.Timestamp{Second: 1},
 			want: []event{
 				{ID: 1, TStartMs: 0},
 				{ID: 2, TStartMs: 1000},

@@ -11,6 +11,7 @@ import (
 	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
 	"github.com/nt54hamnghi/hiku/pkg/loader"
 	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
+	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
 	"github.com/spf13/cobra"
 )
 
@@ -35,17 +36,17 @@ var youtubeCmd = &cobra.Command{
 		vid := args[0]
 
 		var err error
-		var startTs, endTs *youtube.Timestamp
+		var startTs, endTs *timestamp.Timestamp
 
 		if start != "" {
-			startTs, err = youtube.ParseTimestamp(start)
+			startTs, err = timestamp.ParseTimestamp(start)
 			if err != nil {
 				return fmt.Errorf("failed to parse start time: %w", err)
 			}
 		}
 
 		if end != "" {
-			endTs, err = youtube.ParseTimestamp(end)
+			endTs, err = timestamp.ParseTimestamp(end)
 			if err != nil {
 				return fmt.Errorf("failed to parse end time: %w", err)
 			}
