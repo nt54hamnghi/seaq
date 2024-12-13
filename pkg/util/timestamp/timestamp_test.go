@@ -52,7 +52,7 @@ func TestTimestamp_AsDuration(t *testing.T) {
 }
 
 func Test_parseMinutesSeconds(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		input   string
 		want    Timestamp
@@ -117,7 +117,7 @@ func Test_parseMinutesSeconds(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := parseMinutesSeconds(tt.input)
 			if tt.wantErr != nil {
@@ -132,7 +132,7 @@ func Test_parseMinutesSeconds(t *testing.T) {
 }
 
 func Test_parseHoursMinutesSeconds(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		input   string
 		want    Timestamp
@@ -212,7 +212,7 @@ func Test_parseHoursMinutesSeconds(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := parseHoursMinutesSeconds(tt.input)
 			if tt.wantErr != nil {
@@ -227,7 +227,7 @@ func Test_parseHoursMinutesSeconds(t *testing.T) {
 }
 
 func TestParseTimestamp(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		input   string
 		want    Timestamp
@@ -277,7 +277,7 @@ func TestParseTimestamp(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := ParseTimestamp(tt.input)
 			if tt.wantErr != nil {
@@ -298,7 +298,7 @@ func (t second) AsDuration() time.Duration {
 }
 
 func TestBefore(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name string
 		ts   Timestamp
 		secs []second
@@ -332,7 +332,7 @@ func TestBefore(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got := Before(tt.ts, tt.secs)
 			r.Equal(tt.want, got)
@@ -341,7 +341,7 @@ func TestBefore(t *testing.T) {
 }
 
 func TestAfter(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name string
 		ts   Timestamp
 		secs []second
@@ -375,10 +375,73 @@ func TestAfter(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got := After(tt.ts, tt.secs)
 			r.Equal(tt.want, got)
+		})
+	}
+}
+
+func TestTimestamp_String(t *testing.T) {
+	testCases := []struct {
+		name      string
+		timestamp Timestamp
+		want      string
+	}{
+		{
+			name:      "zero timestamp",
+			timestamp: Timestamp{},
+			want:      "",
+		},
+		{
+			name:      "without hour",
+			timestamp: Timestamp{Minute: 1, Second: 30},
+			want:      "01:30",
+		},
+		{
+			name:      "with hour",
+			timestamp: Timestamp{Hour: 1, Minute: 1, Second: 30},
+			want:      "01:01:30",
+		},
+	}
+
+	a := assert.New(t)
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(*testing.T) {
+			got := tt.timestamp.String()
+			a.Equal(tt.want, got)
+		})
+	}
+}
+
+func TestTimestamp_Set(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input string
+		want  Timestamp
+	}{
+		{
+			name:  "empty string",
+			input: "",
+			want:  Timestamp{},
+		},
+		{
+			name:  "normal",
+			input: "01:02:03",
+			want:  Timestamp{Hour: 1, Minute: 2, Second: 3},
+		},
+	}
+
+	r := require.New(t)
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(*testing.T) {
+			var ts Timestamp
+			err := ts.Set(tt.input)
+			r.NoError(err)
+			r.Equal(tt.want, ts)
 		})
 	}
 }

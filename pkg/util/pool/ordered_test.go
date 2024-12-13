@@ -11,7 +11,7 @@ import (
 func TestOrderedGo(t *testing.T) {
 	errTest := errors.New("test")
 
-	tests := []struct {
+	testCases := []struct {
 		name  string
 		tasks []Task[int]
 		want  []Result[int]
@@ -47,7 +47,7 @@ func TestOrderedGo(t *testing.T) {
 
 	a := assert.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			res := OrderedGo(tt.tasks)
 
@@ -59,7 +59,7 @@ func TestOrderedGo(t *testing.T) {
 func TestOrderedGoFunc(t *testing.T) {
 	errTest := errors.New("test")
 
-	tests := []struct {
+	testCases := []struct {
 		name     string
 		input    []int
 		taskFunc func(int) (int, error)
@@ -99,7 +99,7 @@ func TestOrderedGoFunc(t *testing.T) {
 
 	a := assert.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			res := OrderedGoFunc(tt.input, tt.taskFunc)
 			a.Equal(tt.want, res)
@@ -112,7 +112,7 @@ func TestOrderedRun(t *testing.T) {
 		return i, nil
 	}
 
-	tests := []struct {
+	testCases := []struct {
 		name  string
 		input []int
 		want  []int
@@ -136,7 +136,7 @@ func TestOrderedRun(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			res, err := OrderedRun(tt.input, taskFunc)
 			r.NoError(err)
@@ -151,7 +151,7 @@ func TestOrderedRun_Error(t *testing.T) {
 		return 0, errTest
 	}
 
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		input   []int
 		wantErr error
@@ -170,7 +170,7 @@ func TestOrderedRun_Error(t *testing.T) {
 
 	a := assert.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			_, err := OrderedRun(tt.input, taskFunc)
 			a.Equal(tt.wantErr, err)

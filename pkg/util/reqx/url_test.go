@@ -11,7 +11,7 @@ import (
 func TestParseURL(t *testing.T) {
 	const host = "example.com"
 
-	tests := []struct {
+	testCases := []struct {
 		name   string
 		rawURL string
 	}{
@@ -27,7 +27,7 @@ func TestParseURL(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			u, err := ParseURL(host)(tt.rawURL)
 
@@ -41,7 +41,7 @@ func TestParseURL(t *testing.T) {
 func TestParseURL_Error(t *testing.T) {
 	const host = "example.com"
 
-	tests := []struct {
+	testCases := []struct {
 		name   string
 		rawURL string
 	}{
@@ -57,7 +57,7 @@ func TestParseURL_Error(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			u, err := ParseURL(host)(tt.rawURL)
 
@@ -68,7 +68,7 @@ func TestParseURL_Error(t *testing.T) {
 }
 
 func TestParsePath(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name string
 		path string
 		tmpl string
@@ -96,7 +96,7 @@ func TestParsePath(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			result, err := ParsePath(tt.path, tt.tmpl)
 
@@ -107,7 +107,7 @@ func TestParsePath(t *testing.T) {
 }
 
 func TestParsePath_Error(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		path    string
 		tmpl    string
@@ -166,7 +166,7 @@ func TestParsePath_Error(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			_, err := ParsePath(tt.path, tt.tmpl)
 

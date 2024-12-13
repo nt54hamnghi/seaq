@@ -27,6 +27,8 @@ var udemyCmd = &cobra.Command{
 
 		udemyLoader, err := udemy.NewUdemyLoader(
 			udemy.WithURL(args[0]),
+			udemy.WithStart(interval.Start),
+			udemy.WithEnd(interval.End),
 		)
 		if err != nil {
 			return err
@@ -43,7 +45,10 @@ var udemyCmd = &cobra.Command{
 }
 
 func init() {
-	udemyCmd.Flags().SortFlags = false
+	flags := udemyCmd.Flags()
 
-	udemyCmd.Flags().BoolVarP(&asJSON, "json", "j", false, "output as JSON")
+	flags.SortFlags = false
+	flags.BoolVarP(&asJSON, "json", "j", false, "output as JSON")
+
+	flaggroup.InitGroups(udemyCmd, &output, &interval)
 }

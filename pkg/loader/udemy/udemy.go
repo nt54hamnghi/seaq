@@ -5,11 +5,18 @@ import (
 	"errors"
 
 	"github.com/nt54hamnghi/hiku/pkg/env"
+	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
+type filter struct {
+	start timestamp.Timestamp
+	end   timestamp.Timestamp
+}
+
 type Loader struct {
+	filter
 	url    string
 	client *udemyClient
 }
@@ -19,6 +26,18 @@ type Option func(*Loader)
 func WithURL(url string) Option {
 	return func(o *Loader) {
 		o.url = url
+	}
+}
+
+func WithStart(start timestamp.Timestamp) Option {
+	return func(o *Loader) {
+		o.start = start
+	}
+}
+
+func WithEnd(end timestamp.Timestamp) Option {
+	return func(o *Loader) {
+		o.end = end
 	}
 }
 
@@ -50,12 +69,20 @@ func (l Loader) Load(ctx context.Context) ([]schema.Document, error) {
 
 	switch lec.Asset.Type {
 	case video:
+		// get caption from the lecture
 		caption, err := lec.getCaption()
 		if err != nil {
 			return nil, err
 		}
-		return caption.download(ctx)
+		// download the caption
+		if err := caption.download(ctx); err != nil {
+			return nil, err
+		}
+		// filter the caption based on the start and end time
+		caption.filter(&l.filter)
+		return caption.toDocuments()
 	case article:
+		// get article from the lecture
 		article, err := lec.getArticle()
 		if err != nil {
 			return nil, err

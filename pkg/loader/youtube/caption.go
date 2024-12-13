@@ -46,7 +46,7 @@ func retry[T any](n int, delay time.Duration, f retryFunc[T]) (T, error) {
 
 // endregion: --- helpers
 
-func fetchCaptionAsDocuments(ctx context.Context, vid videoID, filter *filter) ([]schema.Document, error) {
+func getCaptionAsDocuments(ctx context.Context, vid videoID, filter *filter) ([]schema.Document, error) {
 	// fetch available caption tracks from a YouTube video ID
 	tracks, err := loadCaptionTracks(ctx, vid)
 	if err != nil {
@@ -65,8 +65,7 @@ func fetchCaptionAsDocuments(ctx context.Context, vid videoID, filter *filter) (
 	}
 
 	// convert the caption to a list of documents
-	// TODO: add video ID to the metadata
-	return caption.getFullCaption(), nil
+	return caption.toDocuments(), nil
 }
 
 type baseURL struct {
@@ -305,16 +304,18 @@ func (c *caption) filter(opt *filter) {
 	if opt == nil {
 		return
 	}
-	if opt.start != nil {
-		c.Events = timestamp.After(*opt.start, c.Events)
+
+	if !opt.start.IsZero() {
+		c.Events = timestamp.After(opt.start, c.Events)
 	}
-	if opt.end != nil {
-		c.Events = timestamp.Before(*opt.end, c.Events)
+
+	if !opt.end.IsZero() {
+		c.Events = timestamp.Before(opt.end, c.Events)
 	}
 }
 
-// getFullCaption returns the full caption text of a YouTube video.
-func (c *caption) getFullCaption() []schema.Document {
+// toDocuments returns the full caption text of a YouTube video.
+func (c *caption) toDocuments() []schema.Document {
 	events := c.Events
 	nThreads := pool.GetThreadCount(len(events))
 

@@ -11,8 +11,8 @@ import (
 )
 
 type filter struct {
-	start *timestamp.Timestamp
-	end   *timestamp.Timestamp
+	start timestamp.Timestamp
+	end   timestamp.Timestamp
 }
 
 type Loader struct {
@@ -29,13 +29,13 @@ func WithVideoID(src string) Option {
 	}
 }
 
-func WithStart(start *timestamp.Timestamp) Option {
+func WithStart(start timestamp.Timestamp) Option {
 	return func(o *Loader) {
 		o.start = start
 	}
 }
 
-func WithEnd(end *timestamp.Timestamp) Option {
+func WithEnd(end timestamp.Timestamp) Option {
 	return func(o *Loader) {
 		o.end = end
 	}
@@ -59,13 +59,13 @@ func NewYouTubeLoader(opts ...Option) *Loader {
 func (l Loader) Load(ctx context.Context) ([]schema.Document, error) {
 	tasks := []pool.Task[[]schema.Document]{
 		func() ([]schema.Document, error) {
-			return fetchCaptionAsDocuments(ctx, l.videoID, &l.filter)
+			return getCaptionAsDocuments(ctx, l.videoID, &l.filter)
 		},
 	}
 
 	if l.includeMetadata {
 		tasks = append(tasks, func() ([]schema.Document, error) {
-			doc, err := fetchMetadtaAsDocument(ctx, l.videoID)
+			doc, err := getMetadataAsDocument(ctx, l.videoID)
 			return []schema.Document{doc}, err
 		})
 	}

@@ -23,6 +23,47 @@ type Timestamp struct {
 	Second int
 }
 
+// IsZero returns true if the timestamp is zero (00:00:00).
+func (ts Timestamp) IsZero() bool {
+	return ts.Hour == 0 && ts.Minute == 0 && ts.Second == 0
+}
+
+// String returns string representation of the timestamp.
+// Implement pflag.Value interface, to use with cobra.
+func (ts *Timestamp) String() string {
+	if ts.IsZero() {
+		return ""
+	}
+
+	if ts.Hour > 0 {
+		return fmt.Sprintf("%02d:%02d:%02d", ts.Hour, ts.Minute, ts.Second)
+	}
+
+	return fmt.Sprintf("%02d:%02d", ts.Minute, ts.Second)
+}
+
+// Set parses the input string into a Timestamp.
+// Implement pflag.Value interface, to use with cobra.
+func (ts *Timestamp) Set(value string) error {
+	if value == "" {
+		return nil
+	}
+
+	parsed, err := ParseTimestamp(value)
+	if err != nil {
+		return err
+	}
+
+	*ts = parsed
+	return nil
+}
+
+// Type returns the description of the flag type.
+// Implement pflag.Value interface, to use with cobra.
+func (ts *Timestamp) Type() string {
+	return "timestamp (HH:MM:SS or MM:SS)"
+}
+
 // AsDuration converts the timestamp into a time.Duration.
 func (ts Timestamp) AsDuration() time.Duration {
 	hour := time.Duration(ts.Hour) * time.Hour

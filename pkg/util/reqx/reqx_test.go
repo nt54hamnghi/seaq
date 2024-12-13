@@ -54,7 +54,7 @@ func (s *HTTPSuite) TearDownSuite() {
 }
 
 func (s *HTTPSuite) TestWithClient() {
-	tests := []struct {
+	testCases := []struct {
 		name     string
 		method   string
 		endpoint string
@@ -99,7 +99,7 @@ func (s *HTTPSuite) TestWithClient() {
 	url := s.server.URL
 	makeRequest := WithClient(s.client)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		s.Run(tt.name, func() {
 			res, err := makeRequest(ctx, tt.method, url+tt.endpoint, tt.headers, tt.body)
 			if s.NoError(err) {
@@ -112,7 +112,7 @@ func (s *HTTPSuite) TestWithClient() {
 }
 
 func (s *HTTPSuite) TestWithClient__InputValidation() {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		client  *http.Client
 		ctx     context.Context
@@ -156,7 +156,7 @@ func (s *HTTPSuite) TestWithClient__InputValidation() {
 
 	r := s.Require()
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		s.Run(tt.name, func() {
 			req := WithClient(tt.client)
 			_, err := req(tt.ctx, tt.method, tt.url, nil, nil)
@@ -171,7 +171,7 @@ func TestInto(t *testing.T) {
 		Message string `json:"message"`
 	}
 
-	tests := []struct {
+	testCases := []struct {
 		name       string
 		raw        *http.Response
 		want       message
@@ -222,7 +222,7 @@ func TestInto(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := Into[message](&Response{Response: tt.raw})
 			if tt.wantErr {
@@ -340,7 +340,7 @@ func TestResponse_ExpectStatusCode(t *testing.T) {
 }
 
 func TestResponse_ExpectSuccess(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		raw     *http.Response
 		wantErr bool
@@ -372,7 +372,7 @@ func TestResponse_ExpectSuccess(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		res := &Response{Response: tt.raw}
 
 		t.Run(tt.name, func(*testing.T) {

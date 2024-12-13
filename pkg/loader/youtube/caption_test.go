@@ -17,7 +17,7 @@ import (
 )
 
 func Test_baseURL_UnmarshalJSON(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		json    string
 		want    string
@@ -45,7 +45,7 @@ func Test_baseURL_UnmarshalJSON(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			var u struct {
 				BaseURL *baseURL `json:"baseUrl"`
@@ -63,7 +63,7 @@ func Test_baseURL_UnmarshalJSON(t *testing.T) {
 }
 
 func Test_baseURL_setQuery(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		baseURL *baseURL
 		key     string
@@ -88,7 +88,7 @@ func Test_baseURL_setQuery(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			tc.baseURL.setQuery(tc.key, tc.value)
 
@@ -98,7 +98,7 @@ func Test_baseURL_setQuery(t *testing.T) {
 }
 
 func Test_captionTrack_toEnglish(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		track   captionTrack
 		wantErr error
@@ -120,7 +120,7 @@ func Test_captionTrack_toEnglish(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			err := tc.track.toEnglish()
 			if tc.wantErr != nil {
@@ -134,7 +134,7 @@ func Test_captionTrack_toEnglish(t *testing.T) {
 }
 
 func Test_extractCaptionTracks(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		body    string
 		want    []captionTrack
@@ -195,7 +195,7 @@ func Test_extractCaptionTracks(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			body := strings.NewReader(tt.body)
 			actual, err := extractCaptionTracks(body)
@@ -214,7 +214,7 @@ func Test_extractCaptionTracks(t *testing.T) {
 func Test_selectCaptionTrack(t *testing.T) {
 	baseURL := &baseURL{URL: url.URL{Scheme: "https", Host: "www.youtube.com", Path: "/watch"}}
 
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		tracks  []captionTrack
 		want    *captionTrack
@@ -259,7 +259,7 @@ func Test_selectCaptionTrack(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tt := range tests {
+	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
 			got, err := selectCaptionTrack(tt.tracks)
 			if tt.wantErr {
@@ -283,7 +283,7 @@ func Test_loadCaption(t *testing.T) {
 	serverHost := server.Listener.Addr().String()
 	defer server.Close()
 
-	tests := []struct {
+	testCases := []struct {
 		name         string
 		captionTrack []captionTrack
 		want         caption
@@ -312,7 +312,7 @@ func Test_loadCaption(t *testing.T) {
 
 	r := require.New(t)
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(*testing.T) {
 			c, err := loadCaption(context.TODO(), tc.captionTrack)
 
@@ -347,7 +347,7 @@ func Test_caption_filter(t *testing.T) {
 		{
 			name: "valid start",
 			filterOpts: &filter{
-				start: &timestamp.Timestamp{Second: 2},
+				start: timestamp.Timestamp{Second: 2},
 			},
 			want: []event{
 				{ID: 3, TStartMs: 2000},
@@ -357,7 +357,7 @@ func Test_caption_filter(t *testing.T) {
 		{
 			name: "valid end",
 			filterOpts: &filter{
-				end: &timestamp.Timestamp{Second: 1},
+				end: timestamp.Timestamp{Second: 1},
 			},
 			want: []event{
 				{ID: 1, TStartMs: 0},
@@ -367,8 +367,8 @@ func Test_caption_filter(t *testing.T) {
 		{
 			name: "valid start and end",
 			filterOpts: &filter{
-				start: &timestamp.Timestamp{Second: 1},
-				end:   &timestamp.Timestamp{Second: 2},
+				start: timestamp.Timestamp{Second: 1},
+				end:   timestamp.Timestamp{Second: 2},
 			},
 			want: []event{
 				{ID: 2, TStartMs: 1000},

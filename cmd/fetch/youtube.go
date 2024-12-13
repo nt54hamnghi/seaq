@@ -11,15 +11,10 @@ import (
 	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
 	"github.com/nt54hamnghi/hiku/pkg/loader"
 	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
-	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
 	"github.com/spf13/cobra"
 )
 
-var (
-	metadata bool
-	start    string
-	end      string
-)
+var metadata bool
 
 // youtubeCmd represents the caption command
 var youtubeCmd = &cobra.Command{
@@ -33,33 +28,11 @@ var youtubeCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		vid := args[0]
-
-		var err error
-		// using pointers as an indicator for optional value
-		var startTs, endTs *timestamp.Timestamp
-
-		if start != "" {
-			ts, err := timestamp.ParseTimestamp(start)
-			if err != nil {
-				return fmt.Errorf("failed to parse start time: %w", err)
-			}
-			startTs = &ts
-		}
-
-		if end != "" {
-			ts, err := timestamp.ParseTimestamp(end)
-			if err != nil {
-				return fmt.Errorf("failed to parse end time: %w", err)
-			}
-			endTs = &ts
-		}
-
 		youtubeLoader := youtube.NewYouTubeLoader(
-			youtube.WithVideoID(vid),
+			youtube.WithVideoID(args[0]),
 			youtube.WithMetadata(metadata),
-			youtube.WithStart(startTs),
-			youtube.WithEnd(endTs),
+			youtube.WithStart(interval.Start),
+			youtube.WithEnd(interval.End),
 		)
 
 		dest, err := output.Writer()
@@ -73,14 +46,13 @@ var youtubeCmd = &cobra.Command{
 }
 
 func init() {
-	youtubeCmd.Flags().SortFlags = false
+	flags := youtubeCmd.Flags()
 
-	youtubeCmd.Flags().StringVarP(&start, "start", "s", "", "start time")
-	youtubeCmd.Flags().StringVarP(&end, "end", "e", "", "end time")
-	youtubeCmd.Flags().BoolVarP(&metadata, "metadata", "m", false, "include metadata in the output")
-	youtubeCmd.Flags().BoolVarP(&asJSON, "json", "j", false, "output as JSON")
+	flags.SortFlags = false
+	flags.BoolVarP(&metadata, "metadata", "m", false, "to include metadata")
+	flags.BoolVarP(&asJSON, "json", "j", false, "output as JSON")
 
-	flaggroup.InitGroups(youtubeCmd, &output)
+	flaggroup.InitGroups(youtubeCmd, &output, &interval)
 }
 
 func youTubeArgs(_ *cobra.Command, args []string) error {

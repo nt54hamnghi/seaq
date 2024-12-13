@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	output flaggroup.Output
-	asJSON bool
+	output   flaggroup.Output
+	interval flaggroup.Interval
+	asJSON   bool
 )
 
 // FetchCmd represents the scrape command

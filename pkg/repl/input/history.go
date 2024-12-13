@@ -1,6 +1,6 @@
 package input
 
-// TESTME: add tests for history.go
+// TESTME: add testCases for history.go
 type history struct {
 	inputs []string
 	cursor int

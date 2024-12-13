@@ -1,24 +1,20 @@
 package udemy
 
-// TESTME: this entire package
-// TODO: add comments to functions and types
-
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"slices"
 	"strconv"
 	"time"
 
 	"github.com/asticode/go-astisub"
 	"github.com/nt54hamnghi/hiku/pkg/util/pool"
 	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
+	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 )
 
@@ -30,16 +26,18 @@ var englishLocalIDs = []string{"en_US", "en_GB"}
 
 // region: --- helpers
 
+// parseUdemyURL extracts the course name and lecture ID from a Udemy URL.
+// Expected format: https://www.udemy.com/course/{courseName}/learn/lecture/{lectureId}
 func parseUdemyURL(rawURL string) (courseName string, lectureID int, err error) {
 	udemyURL, err := reqx.ParseURL("www.udemy.com")(rawURL)
 	if err != nil {
-		return
+		return "", 0, err
 	}
 
 	// extract course name and lecture id
 	matches, err := reqx.ParsePath(udemyURL.Path, "/course/{courseName}/learn/lecture/{lectureId}")
 	if err != nil {
-		return
+		return "", 0, err
 	}
 
 	courseName = matches["courseName"]
@@ -48,37 +46,21 @@ func parseUdemyURL(rawURL string) (courseName string, lectureID int, err error) 
 		return "", 0, fmt.Errorf("invalid lecture ID: %s", matches["lectureId"])
 	}
 
-	return
+	return courseName, lectureID, nil
 }
 
 func requestAPI[T any](ctx context.Context, u *udemyClient, target string) (T, error) {
-	var t T
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
-	if err != nil {
-		return t, err
-	}
-
-	res, err := u.Do(req)
-	if err != nil {
-		return t, err
-	}
-	defer res.Body.Close()
-
-	return reqx.Into[T](
-		&reqx.Response{
-			Response: res,
-			Request:  res.Request,
-		},
-	)
+	return reqx.WithClientAs[T](u.Client)(ctx, http.MethodGet, target, nil, nil)
 }
 
 // endregion: --- helpers
 
+// udemyClient is a client for the Udemy API
 type udemyClient struct {
 	*http.Client
 }
 
+// newUdemyClient creates a new Udemy client with a cookie jar for storing access tokens
 func newUdemyClient() *udemyClient {
 	jar, _ := cookiejar.New(nil)
 	return &udemyClient{
@@ -89,6 +71,7 @@ func newUdemyClient() *udemyClient {
 	}
 }
 
+// setAccessToken sets the access token in the udemyClient's cookie jar
 func (u *udemyClient) setAccessToken(token string) {
 	cookies := []*http.Cookie{
 		{
@@ -105,6 +88,7 @@ func (u *udemyClient) setAccessToken(token string) {
 	u.setCookies(cookies)
 }
 
+// setCookies sets the cookies in the udemyClient's cookie jar
 func (u *udemyClient) setCookies(cookies []*http.Cookie) {
 	url := &url.URL{
 		Scheme: "https",
@@ -168,41 +152,31 @@ type asset struct {
 	Captions []caption `json:"captions,omitempty"`
 }
 
+// findCaption returns a caption matching any of the given locale IDs,
+// or an error if no caption is found.
 func (l *lecture) findCaption(localeIDs ...string) (caption, error) {
-	captions := l.Asset.Captions
-
-	if len(captions) == 0 {
-		return caption{}, errors.New("no captions available")
-	}
-
-	idx := slices.IndexFunc(captions,
-		func(c caption) bool {
-			for _, id := range localeIDs {
-				if c.LocaleID == id {
-					return true
-				}
+	for _, c := range l.Asset.Captions {
+		for _, id := range localeIDs {
+			if c.LocaleID == id {
+				return c, nil
 			}
-			return false
-		},
-	)
-	if idx == -1 {
-		return caption{}, fmt.Errorf("no caption found for locale ID: %q", localeIDs)
+		}
 	}
 
-	return captions[idx], nil
+	return caption{}, fmt.Errorf("no caption found for locale IDs: %v", localeIDs)
 }
 
+// getCaption returns a caption in English.
 func (l *lecture) getCaption() (caption, error) {
 	return l.findCaption(englishLocalIDs...)
 }
 
+// getArticle returns the lecture's article content.
 func (l *lecture) getArticle() (string, error) {
-	article := l.Asset.Body
-	if article == "" {
+	if l.Asset.Body == "" {
 		return "", errors.New("no article available")
 	}
-
-	return article, nil
+	return l.Asset.Body, nil
 }
 
 type caption struct {
@@ -216,43 +190,98 @@ type caption struct {
 	LocaleID   string    `json:"locale_id"`
 	VideoLabel string    `json:"video_label"`
 	AssetID    int       `json:"asset_id"`
+	events     []event
 }
 
-func (c *caption) download(ctx context.Context) ([]schema.Document, error) {
-	// download caption content
-	resp, err := reqx.Get(ctx, c.URL, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	sub, err := astisub.ReadFromWebVTT(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return pool.OrderedRun(sub.Items, subtitleToDocument)
+type event struct {
+	*astisub.Item
 }
 
-func subtitleToDocument(subtitle *astisub.Item) (schema.Document, error) {
-	if subtitle == nil {
-		return schema.Document{}, errors.New("nil subtitle")
+func (c *caption) filter(opt *filter) {
+	if opt == nil {
+		return
+	}
+
+	if !opt.start.IsZero() {
+		c.events = timestamp.After(opt.start, c.events)
+	}
+	if !opt.end.IsZero() {
+		c.events = timestamp.Before(opt.end, c.events)
+	}
+}
+
+// download retrieves and parses the caption's WebVTT content.
+func (c *caption) download(ctx context.Context) error {
+	// TESTME: download
+	res, err := reqx.Get(ctx, c.URL, nil)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	sub, err := astisub.ReadFromWebVTT(res.Body)
+	if err != nil {
+		return err
+	}
+
+	c.events = make([]event, 0, len(sub.Items))
+	for _, item := range sub.Items {
+		if item != nil {
+			c.events = append(c.events, event{Item: item})
+		}
+	}
+
+	return nil
+}
+
+// toDocuments converts a caption into a list of documents.
+func (c *caption) toDocuments() ([]schema.Document, error) {
+	return pool.OrderedRun(c.events, event.toDocument)
+}
+
+func (e event) AsDuration() time.Duration {
+	return e.StartAt
+}
+
+// toDocument converts an event into a document.
+func (e event) toDocument() (schema.Document, error) {
+	if e.Item == nil {
+		return schema.Document{}, errors.New("nil event")
 	}
 
 	return schema.Document{
-		PageContent: subtitle.String(),
+		PageContent: e.String(),
 		Metadata: map[string]any{
-			"Comment": subtitle.Comments,
-			"StartAt": subtitle.StartAt,
-			"EndAt":   subtitle.EndAt,
+			"Comment": e.Comments,
+			"StartAt": e.StartAt,
+			"EndAt":   e.EndAt,
 		},
 		Score: 0,
 	}, nil
 }
 
+// searchLectureByURL searches for a lecture by URL
+func (u *udemyClient) searchLectureByURL(ctx context.Context, url string) (lecture, error) {
+	// parse course name and lecture ID from URL
+	courseName, lectureID, err := parseUdemyURL(url)
+	if err != nil {
+		return lecture{}, fmt.Errorf("parse Udemy URL: %w", err)
+	}
+
+	// search course to retrieve course ID
+	course, err := u.searchCourse(ctx, courseName)
+	if err != nil {
+		return lecture{}, fmt.Errorf("search course: %w", err)
+	}
+
+	// search lecture to retrieve caption download URL
+	return u.searchLecture(ctx, course.ID, lectureID)
+}
+
 func (u *udemyClient) searchCourse(ctx context.Context, courseName string) (course, error) {
-	query := url.Values{}
-	query.Add("fields[course]", "@min")
+	query := url.Values{
+		"fields[course]": {"@min"},
+	}
 
 	target := fmt.Sprintf("%s/courses/%s?%s", UdemyAPIURL, courseName, query.Encode())
 
@@ -261,9 +290,10 @@ func (u *udemyClient) searchCourse(ctx context.Context, courseName string) (cour
 
 // searchLecture searches for a lecture by course ID and lecture ID
 func (u *udemyClient) searchLecture(ctx context.Context, courseID, lectureID int) (lecture, error) {
-	query := url.Values{}
-	query.Add("fields[lecture]", "description,asset")
-	query.Add("fields[asset]", "asset_type,captions,body")
+	query := url.Values{
+		"fields[lecture]": {"description,asset"},
+		"fields[asset]":   {"asset_type,captions,body"},
+	}
 
 	target := fmt.Sprintf(
 		"%s/users/me/subscribed-courses/%d/lectures/%d/?%s",
@@ -271,22 +301,4 @@ func (u *udemyClient) searchLecture(ctx context.Context, courseID, lectureID int
 	)
 
 	return requestAPI[lecture](ctx, u, target)
-}
-
-// searchLectureByURL searches for a lecture by URL
-func (u *udemyClient) searchLectureByURL(ctx context.Context, url string) (lecture, error) {
-	// parse course name and lecture ID from URL
-	courseName, lectureID, err := parseUdemyURL(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// search course to retrieve course ID
-	course, err := u.searchCourse(ctx, courseName)
-	if err != nil {
-		return lecture{}, fmt.Errorf("failed to search course: %w", err)
-	}
-
-	// search lecture to retrieve caption download URL
-	return u.searchLecture(ctx, course.ID, lectureID)
 }
