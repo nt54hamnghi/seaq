@@ -36,20 +36,23 @@ var youtubeCmd = &cobra.Command{
 		vid := args[0]
 
 		var err error
+		// using pointers as an indicator for optional value
 		var startTs, endTs *timestamp.Timestamp
 
 		if start != "" {
-			startTs, err = timestamp.ParseTimestamp(start)
+			ts, err := timestamp.ParseTimestamp(start)
 			if err != nil {
 				return fmt.Errorf("failed to parse start time: %w", err)
 			}
+			startTs = &ts
 		}
 
 		if end != "" {
-			endTs, err = timestamp.ParseTimestamp(end)
+			ts, err := timestamp.ParseTimestamp(end)
 			if err != nil {
 				return fmt.Errorf("failed to parse end time: %w", err)
 			}
+			endTs = &ts
 		}
 
 		youtubeLoader := youtube.NewYouTubeLoader(

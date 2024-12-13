@@ -1,6 +1,6 @@
 module github.com/nt54hamnghi/hiku
 
-go 1.22.4
+go 1.23.4
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0

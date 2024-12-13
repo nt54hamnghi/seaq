@@ -261,6 +261,10 @@ type event struct {
 	Segs        []segment `json:"segs,omitempty"`
 }
 
+func (e event) AsDuration() time.Duration {
+	return time.Duration(e.TStartMs) * time.Millisecond
+}
+
 type segment struct {
 	AcAsrConf int    `json:"acAsrConf"` // confidence of the ASR caption
 	Utf8      string `json:"utf8"`      // caption text in UTF-8
@@ -298,46 +302,15 @@ func (e event) toDocument() (schema.Document, error) {
 }
 
 func (c *caption) filter(opt *filter) {
+	if opt == nil {
+		return
+	}
 	if opt.start != nil {
-		c.filterStart(opt.start)
+		c.Events = timestamp.After(*opt.start, c.Events)
 	}
 	if opt.end != nil {
-		c.filterEnd(opt.end)
+		c.Events = timestamp.Before(*opt.end, c.Events)
 	}
-}
-
-// filterStart filters out caption events that begin before the specified timestamp.
-func (c *caption) filterStart(start *timestamp.Timestamp) {
-	if start == nil {
-		return
-	}
-
-	startMs := start.ToMsDuration()
-	events := make([]event, 0, len(c.Events))
-	for _, e := range c.Events {
-		if e.TStartMs >= startMs {
-			events = append(events, e)
-		}
-	}
-
-	c.Events = events
-}
-
-// filterEnd filters out caption events that begin after the specified timestamp.
-func (c *caption) filterEnd(end *timestamp.Timestamp) {
-	if end == nil {
-		return
-	}
-
-	endMs := end.ToMsDuration()
-	events := make([]event, 0, len(c.Events))
-	for _, e := range c.Events {
-		if e.TStartMs <= endMs {
-			events = append(events, e)
-		}
-	}
-
-	c.Events = events
 }
 
 // getFullCaption returns the full caption text of a YouTube video.

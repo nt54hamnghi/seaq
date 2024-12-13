@@ -326,37 +326,50 @@ func Test_loadCaption(t *testing.T) {
 	}
 }
 
-func Test_caption_filterStart(t *testing.T) {
+func Test_caption_filter(t *testing.T) {
+	events := []event{
+		{ID: 1, TStartMs: 0},
+		{ID: 2, TStartMs: 1000},
+		{ID: 3, TStartMs: 2000},
+		{ID: 4, TStartMs: 10000},
+	}
+
 	testCases := []struct {
-		name   string
-		events []event
-		start  *timestamp.Timestamp
-		want   []event
+		name       string
+		filterOpts *filter
+		want       []event
 	}{
 		{
-			name:   "empty",
-			events: []event{},
-			start:  &timestamp.Timestamp{Second: 1},
-			want:   []event{},
+			name:       "nil filter",
+			filterOpts: nil,
+			want:       events,
 		},
 		{
-			name: "noStart",
-			events: []event{
-				{ID: 1, TStartMs: 0},
+			name: "valid start",
+			filterOpts: &filter{
+				start: &timestamp.Timestamp{Second: 2},
 			},
-			start: nil,
+			want: []event{
+				{ID: 3, TStartMs: 2000},
+				{ID: 4, TStartMs: 10000},
+			},
+		},
+		{
+			name: "valid end",
+			filterOpts: &filter{
+				end: &timestamp.Timestamp{Second: 1},
+			},
 			want: []event{
 				{ID: 1, TStartMs: 0},
+				{ID: 2, TStartMs: 1000},
 			},
 		},
 		{
-			name: "valid",
-			events: []event{
-				{ID: 1, TStartMs: 0},
-				{ID: 2, TStartMs: 1000},
-				{ID: 3, TStartMs: 2000},
+			name: "valid start and end",
+			filterOpts: &filter{
+				start: &timestamp.Timestamp{Second: 1},
+				end:   &timestamp.Timestamp{Second: 2},
 			},
-			start: &timestamp.Timestamp{Second: 1},
 			want: []event{
 				{ID: 2, TStartMs: 1000},
 				{ID: 3, TStartMs: 2000},
@@ -368,58 +381,8 @@ func Test_caption_filterStart(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
-			c := &caption{Events: tt.events}
-			c.filterStart(tt.start)
-
-			a.Equal(tt.want, c.Events)
-		})
-	}
-}
-
-func Test_caption_filterEnd(t *testing.T) {
-	testCases := []struct {
-		name   string
-		events []event
-		end    *timestamp.Timestamp
-		want   []event
-	}{
-		{
-			name:   "empty",
-			events: []event{},
-			end:    &timestamp.Timestamp{Second: 1},
-			want:   []event{},
-		},
-		{
-			name: "noStart",
-			events: []event{
-				{ID: 1, TStartMs: 0},
-			},
-			end: nil,
-			want: []event{
-				{ID: 1, TStartMs: 0},
-			},
-		},
-		{
-			name: "valid",
-			events: []event{
-				{ID: 1, TStartMs: 0},
-				{ID: 2, TStartMs: 1000},
-				{ID: 3, TStartMs: 10000},
-			},
-			end: &timestamp.Timestamp{Second: 1},
-			want: []event{
-				{ID: 1, TStartMs: 0},
-				{ID: 2, TStartMs: 1000},
-			},
-		},
-	}
-
-	a := assert.New(t)
-
-	for _, tt := range testCases {
-		t.Run(tt.name, func(*testing.T) {
-			c := &caption{Events: tt.events}
-			c.filterEnd(tt.end)
+			c := &caption{Events: events}
+			c.filter(tt.filterOpts)
 
 			a.Equal(tt.want, c.Events)
 		})

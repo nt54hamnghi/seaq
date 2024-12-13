@@ -8,36 +8,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTimestamp_ToMsDuration(t *testing.T) {
+func TestTimestamp_AsDuration(t *testing.T) {
 	testCases := []struct {
 		name      string
 		timestamp Timestamp
-		want      int64
+		want      time.Duration
 	}{
 		{
 			name:      "zero",
 			timestamp: Timestamp{},
-			want:      0,
+			want:      time.Duration(0),
 		},
 		{
 			name:      "onlySecond",
 			timestamp: Timestamp{Second: 22},
-			want:      (time.Second * 22).Milliseconds(),
+			want:      time.Second * 22,
 		},
 		{
 			name:      "onlyMinute",
 			timestamp: Timestamp{Minute: 22},
-			want:      (time.Minute * 22).Milliseconds(),
+			want:      time.Minute * 22,
 		},
 		{
 			name:      "onlyHour",
 			timestamp: Timestamp{Hour: 22},
-			want:      (time.Hour * 22).Milliseconds(),
+			want:      time.Hour * 22,
 		},
 		{
 			name:      "combined",
 			timestamp: Timestamp{Hour: 22, Minute: 22, Second: 22},
-			want:      80542000,
+			want:      time.Hour*22 + time.Minute*22 + time.Second*22,
 		},
 	}
 
@@ -45,8 +45,8 @@ func TestTimestamp_ToMsDuration(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
-			msDuration := tt.timestamp.ToMsDuration()
-			a.Equal(tt.want, msDuration)
+			got := tt.timestamp.AsDuration()
+			a.Equal(tt.want, got)
 		})
 	}
 }
@@ -55,23 +55,23 @@ func Test_parseMinutesSeconds(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		want    *Timestamp
+		want    Timestamp
 		wantErr error
 	}{
 		{
 			name:  "valid MM:SS",
 			input: "59:59",
-			want:  &Timestamp{Minute: 59, Second: 59},
+			want:  Timestamp{Minute: 59, Second: 59},
 		},
 		{
 			name:  "valid M:SS",
 			input: "5:59",
-			want:  &Timestamp{Minute: 5, Second: 59},
+			want:  Timestamp{Minute: 5, Second: 59},
 		},
 		{
 			name:  "zero values",
 			input: "0:00",
-			want:  &Timestamp{Minute: 0, Second: 0},
+			want:  Timestamp{Minute: 0, Second: 0},
 		},
 		{
 			name:    "invalid minutes too high",
@@ -122,7 +122,6 @@ func Test_parseMinutesSeconds(t *testing.T) {
 			got, err := parseMinutesSeconds(tt.input)
 			if tt.wantErr != nil {
 				r.Equal(tt.wantErr, err)
-				r.Nil(got)
 				return
 			}
 
@@ -136,23 +135,23 @@ func Test_parseHoursMinutesSeconds(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		want    *Timestamp
+		want    Timestamp
 		wantErr error
 	}{
 		{
 			name:  "valid HH:MM:SS",
 			input: "23:59:59",
-			want:  &Timestamp{Hour: 23, Minute: 59, Second: 59},
+			want:  Timestamp{Hour: 23, Minute: 59, Second: 59},
 		},
 		{
 			name:  "valid H:MM:SS",
 			input: "5:59:59",
-			want:  &Timestamp{Hour: 5, Minute: 59, Second: 59},
+			want:  Timestamp{Hour: 5, Minute: 59, Second: 59},
 		},
 		{
 			name:  "zero values",
 			input: "0:00:00",
-			want:  &Timestamp{Hour: 0, Minute: 0, Second: 0},
+			want:  Timestamp{Hour: 0, Minute: 0, Second: 0},
 		},
 		{
 			name:    "invalid hours too high",
@@ -218,7 +217,6 @@ func Test_parseHoursMinutesSeconds(t *testing.T) {
 			got, err := parseHoursMinutesSeconds(tt.input)
 			if tt.wantErr != nil {
 				r.Equal(tt.wantErr, err)
-				r.Nil(got)
 				return
 			}
 
@@ -232,18 +230,18 @@ func TestParseTimestamp(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		want    *Timestamp
+		want    Timestamp
 		wantErr error
 	}{
 		{
 			name:  "one colon - valid",
 			input: "59:59",
-			want:  &Timestamp{Minute: 59, Second: 59},
+			want:  Timestamp{Minute: 59, Second: 59},
 		},
 		{
 			name:  "two colons - valid",
 			input: "23:59:59",
-			want:  &Timestamp{Hour: 23, Minute: 59, Second: 59},
+			want:  Timestamp{Hour: 23, Minute: 59, Second: 59},
 		},
 		{
 			name:    "no colons",
@@ -284,11 +282,102 @@ func TestParseTimestamp(t *testing.T) {
 			got, err := ParseTimestamp(tt.input)
 			if tt.wantErr != nil {
 				r.Equal(tt.wantErr, err)
-				r.Nil(got)
 				return
 			}
 
 			r.NoError(err)
+			r.Equal(tt.want, got)
+		})
+	}
+}
+
+type second int64
+
+func (t second) AsDuration() time.Duration {
+	return time.Duration(t) * time.Second
+}
+
+func TestBefore(t *testing.T) {
+	tests := []struct {
+		name string
+		ts   Timestamp
+		secs []second
+		want []second
+	}{
+		{
+			name: "empty sequence",
+			ts:   Timestamp{Minute: 1},
+			secs: []second{},
+			want: nil,
+		},
+		{
+			name: "all before",
+			ts:   Timestamp{Second: 5},
+			secs: []second{1, 2, 3},
+			want: []second{1, 2, 3},
+		},
+		{
+			name: "some before",
+			ts:   Timestamp{Second: 2},
+			secs: []second{1, 2, 3},
+			want: []second{1, 2},
+		},
+		{
+			name: "none before",
+			ts:   Timestamp{Second: 3},
+			secs: []second{4, 5, 6},
+			want: nil,
+		},
+	}
+
+	r := require.New(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(*testing.T) {
+			got := Before(tt.ts, tt.secs)
+			r.Equal(tt.want, got)
+		})
+	}
+}
+
+func TestAfter(t *testing.T) {
+	tests := []struct {
+		name string
+		ts   Timestamp
+		secs []second
+		want []second
+	}{
+		{
+			name: "empty sequence",
+			ts:   Timestamp{Minute: 1},
+			secs: []second{},
+			want: nil,
+		},
+		{
+			name: "all after",
+			ts:   Timestamp{Second: 1},
+			secs: []second{1, 2, 3},
+			want: []second{1, 2, 3},
+		},
+		{
+			name: "some after",
+			ts:   Timestamp{Second: 2},
+			secs: []second{1, 2, 3},
+			want: []second{2, 3},
+		},
+		{
+			name: "none after",
+			ts:   Timestamp{Second: 5},
+			secs: []second{1, 2, 3},
+			want: nil,
+		},
+	}
+
+	r := require.New(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(*testing.T) {
+			got := After(tt.ts, tt.secs)
 			r.Equal(tt.want, got)
 		})
 	}

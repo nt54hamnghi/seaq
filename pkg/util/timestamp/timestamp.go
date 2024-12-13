@@ -3,7 +3,9 @@ package timestamp
 import (
 	"errors"
 	"fmt"
+	"iter"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -21,33 +23,34 @@ type Timestamp struct {
 	Second int
 }
 
-func (ts Timestamp) ToMsDuration() int64 {
-	hour := int64(ts.Hour) * time.Hour.Milliseconds()
-	minute := int64(ts.Minute) * time.Minute.Milliseconds()
-	second := int64(ts.Second) * time.Second.Milliseconds()
+// AsDuration converts the timestamp into a time.Duration.
+func (ts Timestamp) AsDuration() time.Duration {
+	hour := time.Duration(ts.Hour) * time.Hour
+	minute := time.Duration(ts.Minute) * time.Minute
+	second := time.Duration(ts.Second) * time.Second
 
 	return hour + minute + second
 }
 
 // ParseTimestamp parses a string in the format "M:SS" or "MM:SS" or "H:MM:SS" or "HH:MM:SS" into a Timestamp.
 // It returns an error if the input format is invalid or the values are out of range.
-func ParseTimestamp(input string) (*Timestamp, error) {
+func ParseTimestamp(input string) (Timestamp, error) {
 	switch c := strings.Count(input, ":"); c {
 	case 1:
 		return parseMinutesSeconds(input)
 	case 2:
 		return parseHoursMinutesSeconds(input)
 	default:
-		return nil, ErrInvalidTimestamp
+		return Timestamp{}, ErrInvalidTimestamp
 	}
 }
 
 // parseMinutesSeconds parses a string in the format "M:SS" or "MM:SS" into a Timestamp.
 // It returns an error if the input format is invalid or the values are out of range.
-func parseMinutesSeconds(input string) (*Timestamp, error) {
+func parseMinutesSeconds(input string) (Timestamp, error) {
 	matches := minutesSecondsRegex.FindStringSubmatch(input)
 	if matches == nil {
-		return nil, ErrInvalidTimestamp
+		return Timestamp{}, ErrInvalidTimestamp
 	}
 
 	// if matches, there will always be 3 elements
@@ -55,41 +58,95 @@ func parseMinutesSeconds(input string) (*Timestamp, error) {
 
 	minute, err := strconv.Atoi(matches[1])
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse minute: %w", err)
+		return Timestamp{}, fmt.Errorf("failed to parse minute: %w", err)
 	}
 
 	second, err := strconv.Atoi(matches[2])
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse second: %w", err)
+		return Timestamp{}, fmt.Errorf("failed to parse second: %w", err)
 	}
 
-	return &Timestamp{Minute: minute, Second: second}, nil
+	return Timestamp{Minute: minute, Second: second}, nil
 }
 
 // parseHoursMinutesSeconds parses a string in the format "H:MM:SS" or "HH:MM:SS" into a Timestamp.
 // It returns an error if the input format is invalid or the values are out of range.
-func parseHoursMinutesSeconds(input string) (*Timestamp, error) {
+func parseHoursMinutesSeconds(input string) (Timestamp, error) {
 	matches := hoursMinutesSecondRegex.FindStringSubmatch(input)
 	if matches == nil {
-		return nil, ErrInvalidTimestamp
+		return Timestamp{}, ErrInvalidTimestamp
 	}
 
 	// if matches, there will always be 4 elements
 	// full match + 3 groups
 	hour, err := strconv.Atoi(matches[1])
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse hour: %w", err)
+		return Timestamp{}, fmt.Errorf("failed to parse hour: %w", err)
 	}
 
 	minute, err := strconv.Atoi(matches[2])
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse minute: %w", err)
+		return Timestamp{}, fmt.Errorf("failed to parse minute: %w", err)
 	}
 
 	second, err := strconv.Atoi(matches[3])
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse second: %w", err)
+		return Timestamp{}, fmt.Errorf("failed to parse second: %w", err)
 	}
 
-	return &Timestamp{Hour: hour, Minute: minute, Second: second}, nil
+	return Timestamp{Hour: hour, Minute: minute, Second: second}, nil
+}
+
+// AsDuration represents types that can be converted to time.Duration.
+type AsDuration interface {
+	AsDuration() time.Duration
+}
+
+// Before returns a new slice containing
+// elements that occur before the specified timestamp.
+func Before[D AsDuration](ts Timestamp, d []D) []D {
+	return slices.Collect(KeepBefore(ts, TimeSequence(d)))
+}
+
+// After returns a new slice containing
+// elements that occur after the specified timestamp.
+func After[D AsDuration](ts Timestamp, d []D) []D {
+	return slices.Collect(KeepAfter(ts, TimeSequence(d)))
+}
+
+// TimeSequence returns an iterator that yields elements in the slice.
+func TimeSequence[D AsDuration](s []D) iter.Seq[D] {
+	return func(yield func(D) bool) {
+		for _, v := range s {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
+// KeepBefore returns a sequence with elements ending at or before the timestamp.
+func KeepBefore[D AsDuration](limit Timestamp, seq iter.Seq[D]) iter.Seq[D] {
+	return func(yield func(D) bool) {
+		for v := range seq {
+			if v.AsDuration() <= limit.AsDuration() {
+				if !yield(v) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// KeepAfter returns a sequence with elements starting at or after the timestamp.
+func KeepAfter[D AsDuration](limit Timestamp, seq iter.Seq[D]) iter.Seq[D] {
+	return func(yield func(D) bool) {
+		for v := range seq {
+			if v.AsDuration() >= limit.AsDuration() {
+				if !yield(v) {
+					return
+				}
+			}
+		}
+	}
 }
