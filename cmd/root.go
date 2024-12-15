@@ -118,19 +118,21 @@ func init() {
 	})
 
 	// flags setting
-	rootCmd.Flags().SortFlags = false
+	flags := rootCmd.Flags()
+	pFlags := rootCmd.PersistentFlags()
 
 	// flags definition
 	// persistent flags are global and available to all commands
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "verbose output")
+	pFlags.StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
+	pFlags.BoolVarP(&verbose, "verbose", "V", false, "verbose output")
 
 	// local flags are only available to the root command
-	rootCmd.Flags().StringVarP(&hint, "hint", "i", "", "optional context to guide the LLM's focus")
-	rootCmd.Flags().BoolVar(&noStream, "no-stream", false, "disable streaming mode")
-	rootCmd.Flags().StringVarP(&patternRepo, "repo", "r", "", "path to the pattern repository")
-	rootCmd.Flags().StringVarP(&patternName, "pattern", "p", "", "pattern to use")
-	rootCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
+	flags.SortFlags = false
+	flags.StringVarP(&hint, "hint", "i", "", "optional context to guide the LLM's focus")
+	flags.BoolVar(&noStream, "no-stream", false, "disable streaming mode")
+	flags.StringVarP(&patternRepo, "repo", "r", "", "path to the pattern repository")
+	flags.StringVarP(&patternName, "pattern", "p", "", "pattern to use")
+	flags.StringVarP(&modelName, "model", "m", "", "model to use")
 
 	// register completion function
 	_ = rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
@@ -174,14 +176,14 @@ func initConfig() error {
 	}
 
 	// bind flags to viper
-	flgs := rootCmd.Flags()
-	if err := hiku.BindPFlag("pattern.name", flgs.Lookup("pattern")); err != nil {
+	flags := rootCmd.Flags()
+	if err := hiku.BindPFlag("pattern.name", flags.Lookup("pattern")); err != nil {
 		return err
 	}
-	if err := hiku.BindPFlag("pattern.repo", flgs.Lookup("repo")); err != nil {
+	if err := hiku.BindPFlag("pattern.repo", flags.Lookup("repo")); err != nil {
 		return err
 	}
-	if err := hiku.BindPFlag("model.name", flgs.Lookup("model")); err != nil {
+	if err := hiku.BindPFlag("model.name", flags.Lookup("model")); err != nil {
 		return err
 	}
 

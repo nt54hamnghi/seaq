@@ -48,10 +48,12 @@ var xCmd = &cobra.Command{
 }
 
 func init() {
-	xCmd.Flags().SortFlags = false
+	flags := xCmd.Flags()
 
-	xCmd.Flags().BoolVar(&onlyTweet, "tweet", false, "get a single tweet")
-	xCmd.Flags().BoolVarP(&asJSON, "json", "j", false, "output as JSON")
+	flags.SortFlags = false
+
+	flags.BoolVar(&onlyTweet, "tweet", false, "get a single tweet")
+	flags.BoolVarP(&asJSON, "json", "j", false, "output as JSON")
 }
 
 func xArgs(_ *cobra.Command, args []string) error {

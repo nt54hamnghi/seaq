@@ -38,6 +38,7 @@ func (o *Output) Validate(cmd *cobra.Command, args []string) error { // nolint: 
 }
 
 func (o *Output) Init(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&o.File, "output", "o", "", "output file")
-	cmd.Flags().BoolVarP(&o.Force, "force", "f", false, "overwrite existing file")
+	flags := cmd.Flags()
+	flags.StringVarP(&o.File, "output", "o", "", "output file")
+	flags.BoolVarP(&o.Force, "force", "f", false, "overwrite existing file")
 }

@@ -81,11 +81,12 @@ var ChatCmd = &cobra.Command{
 }
 
 func init() {
-	ChatCmd.Flags().SortFlags = false
+	flags := ChatCmd.Flags()
 
-	ChatCmd.Flags().StringVarP(&modelName, "model", "m", "", "model to use")
+	flags.SortFlags = false
+	flags.StringVarP(&modelName, "model", "m", "", "model to use")
 	_ = ChatCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
 
-	err := config.Hiku.BindPFlag("model.name", ChatCmd.Flags().Lookup("model"))
+	err := config.Hiku.BindPFlag("model.name", flags.Lookup("model"))
 	cobra.CheckErr(err)
 }
