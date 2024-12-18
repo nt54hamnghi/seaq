@@ -134,10 +134,19 @@ func CreateCompletion(
 	model llms.Model,
 	writer io.Writer,
 	msgs []llms.MessageContent,
-) error {
+) (err error) {
+	// temporary workaround:
+	// anthropic.generateMessagesContent() panics when it fails or returns no content
+	// https://github.com/tmc/langchaingo/issues/993
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("stream completion panic: %v", r)
+		}
+	}()
+
 	resp, err := model.GenerateContent(ctx, msgs)
 	if err != nil {
-		return err
+		return fmt.Errorf("generate content: %w", err)
 	}
 
 	if len(resp.Choices) == 0 {
@@ -157,7 +166,16 @@ func CreateStreamCompletion(
 	model llms.Model,
 	writer io.Writer,
 	msgs []llms.MessageContent,
-) error {
+) (err error) {
+	// temporary workaround:
+	// anthropic.generateMessagesContent() panics when it fails or returns no content
+	// https://github.com/tmc/langchaingo/issues/993
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("stream completion panic: %v", r)
+		}
+	}()
+
 	streamFunc := func(_ context.Context, chunk []byte) error {
 		_, err := writer.Write(chunk)
 		return err
@@ -167,7 +185,7 @@ func CreateStreamCompletion(
 		llms.WithStreamingFunc(streamFunc),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("generate stream content: %w", err)
 	}
 
 	if len(resp.Choices) == 0 {
