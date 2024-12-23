@@ -1,5 +1,7 @@
 package input
 
+import "strings"
+
 // TESTME: add testCases for history.go
 type history struct {
 	inputs []string
@@ -13,24 +15,30 @@ func newHistory() history {
 	}
 }
 
-func (h *history) append(input string) *history {
+func (h *history) append(input string) {
+	input = strings.TrimSpace(input)
+
+	// Skip empty inputs
+	if input == "" {
+		return
+	}
+
+	// Skip duplicate inputs
 	if len(h.inputs) > 0 {
-		latest := h.inputs[len(h.inputs)-1]
-		if latest == input {
+		if last := h.inputs[len(h.inputs)-1]; last == input {
 			h.cursor = len(h.inputs)
-			return h
+			return
 		}
 	}
 
 	h.inputs = append(h.inputs, input)
 	h.cursor = len(h.inputs)
-
-	return h
 }
 
 func (h *history) next() string {
 	// at latest history entry or ready for new input
 	if h.cursor >= len(h.inputs)-1 {
+		h.cursor = len(h.inputs)
 		return ""
 	}
 
