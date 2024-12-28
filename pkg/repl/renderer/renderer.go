@@ -34,11 +34,11 @@ func renderMessage(msg string, style lipgloss.Style, prefix string) string {
 // endregion: --- helpers
 
 type Renderer struct {
-	content *glamour.TermRenderer
-	success lipgloss.Style
-	warning lipgloss.Style
-	error   lipgloss.Style
-	help    lipgloss.Style
+	*glamour.TermRenderer // markdown renderer
+	success               lipgloss.Style
+	warning               lipgloss.Style
+	error                 lipgloss.Style
+	help                  lipgloss.Style
 }
 
 func New(options ...glamour.TermRendererOption) *Renderer {
@@ -48,11 +48,11 @@ func New(options ...glamour.TermRendererOption) *Renderer {
 	}
 
 	return &Renderer{
-		content: contentRenderer,
-		success: lipgloss.NewStyle().Foreground(successColor),
-		warning: lipgloss.NewStyle().Foreground(warningColor),
-		error:   lipgloss.NewStyle().Foreground(errorColor),
-		help:    lipgloss.NewStyle().Foreground(helpColor).Italic(true),
+		TermRenderer: contentRenderer,
+		success:      lipgloss.NewStyle().Foreground(successColor),
+		warning:      lipgloss.NewStyle().Foreground(warningColor),
+		error:        lipgloss.NewStyle().Foreground(errorColor),
+		help:         lipgloss.NewStyle().Foreground(helpColor).Italic(true),
 	}
 }
 
@@ -63,28 +63,28 @@ func Default() *Renderer {
 	)
 }
 
+// RenderContent renders the content using the glamour renderer
 func (r *Renderer) RenderContent(content string) string {
-	out, _ := r.content.Render(content)
-
+	out, _ := r.Render(content)
 	return out
 }
 
+// RenderSuccess renders a success message
 func (r *Renderer) RenderSuccess(msg string) string {
 	return renderMessage(msg, r.success, successPrefix)
 }
 
+// RenderWarning renders a warning message
 func (r *Renderer) RenderWarning(msg string) string {
 	return renderMessage(msg, r.warning, warningPrefix)
 }
 
+// RenderError renders an error message
 func (r *Renderer) RenderError(msg string) string {
 	return renderMessage(msg, r.error, errorPrefix)
 }
 
-func (r *Renderer) RenderHelp(msg string) string {
-	return r.help.Render(msg)
-}
-
+// RenderHelpMessage renders a help message
 func (r *Renderer) RenderHelpMessage() string {
 	help := "**Help**\n"
 	help += "\n"
