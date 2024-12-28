@@ -10,11 +10,12 @@ import (
 
 const (
 	promptIcon        = "> "
-	promptcolor       = lipgloss.Color("#66b3ff")
+	promptColor       = lipgloss.Color("#66b3ff")
 	promptPlaceHolder = "What's in your mind?"
+	defaultCharLimit  = 4096
 )
 
-var promptStyle = lipgloss.NewStyle().Foreground(promptcolor)
+var promptStyle = lipgloss.NewStyle().Foreground(promptColor)
 
 type Model struct {
 	textinput.Model
@@ -24,10 +25,10 @@ type Model struct {
 func New() *Model {
 	// create & configure model
 	model := textinput.New()
-	model.Focus()
-	model.Placeholder = promptPlaceHolder
-	model.Prompt = promptStyle.Render(promptIcon)
-	model.CharLimit = 128
+	model.Focus()                                 // Immediately focus the input
+	model.Placeholder = promptPlaceHolder         // Set placeholder text
+	model.Prompt = promptStyle.Render(promptIcon) // Set styled prompt
+	model.CharLimit = defaultCharLimit
 
 	return &Model{
 		Model:   model,
