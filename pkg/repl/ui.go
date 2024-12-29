@@ -157,7 +157,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return r, nil
 	case spin.TickMsg:
-		if r.spinner.Running() {
+		if r.spinner.IsRunning() {
 			r.spinner.Model, spinnerCmd = r.spinner.Update(msg)
 			cmds = append(cmds, spinnerCmd)
 		}
@@ -198,21 +198,18 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-	case streamMsg:
-		if msg.last {
-			output := r.renderer.RenderContent(r.chain.buffer)
-			r.chain.buffer = ""
-			r.prompt.Focus()
+	case streamContentMsg:
+		r.spinner.Stop()
+		cmds = append(cmds, r.chain.awaitNext())
+	case streamEndMsg:
+		output := r.renderer.RenderContent(r.chain.buffer)
+		r.chain.buffer = ""
 
-			return r, tea.Sequence(
-				tea.Println(output),
-				textinput.Blink,
-			)
-		} else {
-			// TODO: spinner should be stopped after the first message
-			r.spinner.Stop()
-			cmds = append(cmds, r.chain.awaitNext())
-		}
+		return r, tea.Sequence(
+			tea.Println(output),
+			r.prompt.Focus(),
+			textinput.Blink,
+		)
 	case chatError:
 		output := r.renderer.RenderError(msg.Error())
 		r.prompt.Focus()
@@ -235,7 +232,7 @@ func (r REPL) View() string {
 		return r.renderer.RenderError(r.error.Error())
 	}
 
-	if r.spinner.Running() {
+	if r.spinner.IsRunning() {
 		return r.renderer.RenderContent(r.spinner.View() + "\n")
 	}
 
