@@ -66,8 +66,8 @@ var ChatCmd = &cobra.Command{
 			return err
 		}
 
-		// initialize repl
-		repl, err := repl.NewRepl(docs,
+		// initialize chatREPL
+		chatREPL, err := repl.New(docs,
 			repl.WithContext(ctx),
 			repl.WithModel(model),
 			repl.WithDefaultStore(),
@@ -76,7 +76,7 @@ var ChatCmd = &cobra.Command{
 			return err
 		}
 
-		return repl.Run()
+		return chatREPL.Run()
 	},
 }
 

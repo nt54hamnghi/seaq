@@ -18,45 +18,25 @@ import (
 	"github.com/tmc/langchaingo/vectorstores"
 )
 
-// region: --- errors
-
-type Error struct {
-	inner error
-}
-
-func (e Error) Error() string {
-	return e.inner.Error()
-}
-
-func NewReplError(err error) Error {
-	return Error{inner: err}
-}
-
-// endregion: --- errors
-
-type components struct {
+type ui struct {
 	prompt   *input.Model
 	renderer *renderer.Renderer
 	spinner  *spinner.Spinner
 }
 
-type resources struct {
+type REPL struct {
+	ui
 	model llms.Model
 	store vectorstores.VectorStore
-}
-
-type Repl struct {
-	components
-	resources
-	chain *Chain
+	chain *chain
 	error error // Critical error
 	ctx   context.Context
 }
 
-type Option func(*Repl) error
+type Option func(*REPL) error
 
 func WithDefaultStore() Option {
-	return func(r *Repl) (err error) {
+	return func(r *REPL) (err error) {
 		if r.store, err = rag.NewChromaStore(); err != nil {
 			return err
 		}
@@ -65,34 +45,34 @@ func WithDefaultStore() Option {
 }
 
 func WithStore(store vectorstores.VectorStore) Option {
-	return func(r *Repl) error {
+	return func(r *REPL) error {
 		r.store = store
 		return nil
 	}
 }
 
 func WithModel(model llms.Model) Option {
-	return func(r *Repl) error {
+	return func(r *REPL) error {
 		r.model = model
 		return nil
 	}
 }
 
 func WithContext(ctx context.Context) Option {
-	return func(r *Repl) error {
+	return func(r *REPL) error {
 		r.ctx = ctx
 		return nil
 	}
 }
 
-func NewRepl(docs []schema.Document, opts ...Option) (*Repl, error) {
+func New(docs []schema.Document, opts ...Option) (*REPL, error) {
 	if len(docs) == 0 {
 		return nil, errors.New("no documents to load")
 	}
 
-	// initialize the repl
-	repl := Repl{
-		components: components{
+	// initialize the r
+	r := REPL{
+		ui: ui{
 			prompt:   input.New(),
 			renderer: renderer.Default(),
 			spinner:  spinner.New(),
@@ -102,35 +82,35 @@ func NewRepl(docs []schema.Document, opts ...Option) (*Repl, error) {
 	// apply options, if any
 	// return as soon as an error is encountered
 	for _, opt := range opts {
-		if err := opt(&repl); err != nil {
+		if err := opt(&r); err != nil {
 			return nil, err
 		}
 	}
 
-	if repl.ctx == nil {
+	if r.ctx == nil {
 		return nil, errors.New("context is nil")
 	}
 
-	if repl.model == nil {
+	if r.model == nil {
 		return nil, errors.New("model is nil")
 	}
 
-	if repl.store == nil {
+	if r.store == nil {
 		return nil, errors.New("store is nil")
 	}
 
 	// add documents to the store
-	if _, err := repl.store.AddDocuments(repl.ctx, docs); err != nil {
+	if _, err := r.store.AddDocuments(r.ctx, docs); err != nil {
 		return nil, err
 	}
 
 	// initialize the chain
-	repl.chain = NewChain(repl.model, repl.store)
+	r.chain = newChain(r.model, r.store)
 
-	return &repl, nil
+	return &r, nil
 }
 
-func (r Repl) Init() tea.Cmd {
+func (r REPL) Init() tea.Cmd {
 	return tea.Batch(
 		tea.ClearScreen,
 		tea.Println(r.renderer.RenderHelpMessage()),
@@ -138,7 +118,7 @@ func (r Repl) Init() tea.Cmd {
 	)
 }
 
-func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmds       []tea.Cmd
 		inputCmd   tea.Cmd
@@ -202,13 +182,13 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						cmds,
 						tea.Println(input),
 						r.spinner.Tick, // advance spinner
-						r.chain.SendMessage(r.ctx, rawInput),
-						r.chain.AwaitNext(),
+						r.chain.run(r.ctx, rawInput),
+						r.chain.awaitNext(),
 					)
 				}
 			}
 		}
-	case StreamMsg:
+	case streamMsg:
 		if msg.last {
 			output := r.renderer.RenderContent(r.chain.buffer)
 			r.chain.buffer = ""
@@ -221,9 +201,9 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			// TODO: spinner should be stopped after the first message
 			r.spinner.Stop()
-			cmds = append(cmds, r.chain.AwaitNext())
+			cmds = append(cmds, r.chain.awaitNext())
 		}
-	case ChatError:
+	case chatError:
 		output := r.renderer.RenderError(msg.Error())
 		r.prompt.Focus()
 
@@ -232,7 +212,7 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			tea.Println(output),
 			textinput.Blink,
 		)
-	case Error:
+	case error:
 		r.error = msg
 		return r, tea.Quit
 	}
@@ -240,7 +220,7 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return r, tea.Batch(cmds...)
 }
 
-func (r Repl) View() string {
+func (r REPL) View() string {
 	if r.error != nil {
 		return r.renderer.RenderError(r.error.Error())
 	}
@@ -256,12 +236,8 @@ func (r Repl) View() string {
 	return r.prompt.View() + "\n"
 }
 
-func (r *Repl) Run() error {
-	// f, err := tea.LogToFile("debug.log", "debug")
-	// if err != nil {
-	// 	return err
-	// }
-	// defer f.Close()
+func (r *REPL) Run() error {
+	// debug()
 
 	p := tea.NewProgram(r,
 		tea.WithMouseCellMotion(),
@@ -270,6 +246,17 @@ func (r *Repl) Run() error {
 	if _, err := p.Run(); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// nolint:unused
+func debug() error {
+	f, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
 	return nil
 }

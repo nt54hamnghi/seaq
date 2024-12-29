@@ -30,16 +30,12 @@ Helpful Answer:`
 // region: --- error
 
 // recoverable error during chat
-type ChatError struct {
+type chatError struct {
 	inner error
 }
 
-func (e ChatError) Error() string {
+func (e chatError) Error() string {
 	return e.inner.Error()
-}
-
-func NewChatError(err error) ChatError {
-	return ChatError{inner: err}
 }
 
 // endregion: --- error
@@ -58,23 +54,23 @@ func loadCombinedDocumentChain(model llms.Model) chains.StuffDocuments {
 
 // region: --- Engine
 
-type StreamMsg struct {
+type streamMsg struct {
 	content string
 	last    bool
 }
 
-type Chain struct {
+type chain struct {
 	chains.ConversationalRetrievalQA
 	buffer string
-	stream chan StreamMsg
+	stream chan streamMsg
 }
 
-func NewChain(model llms.Model, store vectorstores.VectorStore) *Chain {
+func newChain(model llms.Model, store vectorstores.VectorStore) *chain {
 	conversation := memory.NewConversationBuffer(
 		memory.WithChatHistory(memory.NewChatMessageHistory()),
 	)
 
-	return &Chain{
+	return &chain{
 		ConversationalRetrievalQA: chains.NewConversationalRetrievalQA(
 			loadCombinedDocumentChain(model),
 			chains.LoadCondenseQuestionGenerator(model),
@@ -82,11 +78,11 @@ func NewChain(model llms.Model, store vectorstores.VectorStore) *Chain {
 			conversation,
 		),
 		buffer: "",
-		stream: make(chan StreamMsg),
+		stream: make(chan streamMsg),
 	}
 }
 
-func (c *Chain) AwaitNext() tea.Cmd {
+func (c *chain) awaitNext() tea.Cmd {
 	return func() tea.Msg {
 		output := <-c.stream
 		c.buffer += output.content
@@ -94,16 +90,16 @@ func (c *Chain) AwaitNext() tea.Cmd {
 	}
 }
 
-func (c *Chain) run(ctx context.Context, question string) error {
+func (c *chain) call(ctx context.Context, question string) error {
 	defer func() {
-		c.stream <- StreamMsg{
+		c.stream <- streamMsg{
 			content: "",
 			last:    true,
 		}
 	}()
 
 	streamFunc := func(_ context.Context, chunk []byte) error {
-		c.stream <- StreamMsg{
+		c.stream <- streamMsg{
 			content: string(chunk),
 			last:    false,
 		}
@@ -123,10 +119,10 @@ func (c *Chain) run(ctx context.Context, question string) error {
 	return nil
 }
 
-func (c *Chain) SendMessage(ctx context.Context, question string) tea.Cmd {
+func (c *chain) run(ctx context.Context, question string) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.run(ctx, question); err != nil {
-			return NewChatError(err)
+		if err := c.call(ctx, question); err != nil {
+			return chatError{inner: err}
 		}
 
 		return nil
