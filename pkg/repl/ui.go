@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
+	"github.com/nt54hamnghi/hiku/pkg/llm"
 	"github.com/nt54hamnghi/hiku/pkg/rag"
 	"github.com/nt54hamnghi/hiku/pkg/repl/input"
 	"github.com/nt54hamnghi/hiku/pkg/repl/renderer"
@@ -35,17 +36,11 @@ type REPL struct {
 
 type Option func(*REPL) error
 
-func WithDefaultStore() Option {
-	return func(r *REPL) (err error) {
-		if r.store, err = rag.NewChromaStore(); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
 func WithStore(store vectorstores.VectorStore) Option {
 	return func(r *REPL) error {
+		if store == nil {
+			return errors.New("store is nil")
+		}
 		r.store = store
 		return nil
 	}
@@ -53,6 +48,9 @@ func WithStore(store vectorstores.VectorStore) Option {
 
 func WithModel(model llms.Model) Option {
 	return func(r *REPL) error {
+		if model == nil {
+			return errors.New("model is nil")
+		}
 		r.model = model
 		return nil
 	}
@@ -60,9 +58,37 @@ func WithModel(model llms.Model) Option {
 
 func WithContext(ctx context.Context) Option {
 	return func(r *REPL) error {
+		if ctx == nil {
+			return errors.New("context is nil")
+		}
 		r.ctx = ctx
 		return nil
 	}
+}
+
+func Default() (*REPL, error) {
+	store, err := rag.NewChromaStore()
+	if err != nil {
+		return nil, err
+	}
+
+	model, err := llm.New(llm.Claude35Sonnet)
+	if err != nil {
+		return nil, err
+	}
+
+	r := REPL{
+		ui: ui{
+			prompt:   input.New(),
+			renderer: renderer.Default(),
+			spinner:  spinner.New(),
+		},
+		model: model,
+		store: store,
+		ctx:   context.Background(),
+	}
+
+	return &r, nil
 }
 
 func New(docs []schema.Document, opts ...Option) (*REPL, error) {
@@ -70,33 +96,17 @@ func New(docs []schema.Document, opts ...Option) (*REPL, error) {
 		return nil, errors.New("no documents to load")
 	}
 
-	// initialize the r
-	r := REPL{
-		ui: ui{
-			prompt:   input.New(),
-			renderer: renderer.Default(),
-			spinner:  spinner.New(),
-		},
+	// initialize the REPL
+	r, err := Default()
+	if err != nil {
+		return nil, err
 	}
 
-	// apply options, if any
-	// return as soon as an error is encountered
+	// apply options, return on first error
 	for _, opt := range opts {
-		if err := opt(&r); err != nil {
+		if err := opt(r); err != nil {
 			return nil, err
 		}
-	}
-
-	if r.ctx == nil {
-		return nil, errors.New("context is nil")
-	}
-
-	if r.model == nil {
-		return nil, errors.New("model is nil")
-	}
-
-	if r.store == nil {
-		return nil, errors.New("store is nil")
 	}
 
 	// add documents to the store
@@ -107,7 +117,7 @@ func New(docs []schema.Document, opts ...Option) (*REPL, error) {
 	// initialize the chain
 	r.chain = newChain(r.model, r.store)
 
-	return &r, nil
+	return r, nil
 }
 
 func (r REPL) Init() tea.Cmd {

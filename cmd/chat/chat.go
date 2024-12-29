@@ -70,7 +70,6 @@ var ChatCmd = &cobra.Command{
 		chatREPL, err := repl.New(docs,
 			repl.WithContext(ctx),
 			repl.WithModel(model),
-			repl.WithDefaultStore(),
 		)
 		if err != nil {
 			return err
