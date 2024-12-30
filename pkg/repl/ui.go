@@ -198,14 +198,21 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.spinner.Stop()
 		cmds = append(cmds, r.chain.awaitNext())
 	case streamEndMsg:
-		output := r.renderer.RenderContent(r.chain.buffer)
-		r.chain.buffer = ""
+		output := r.chain.buffer
+		cmds := []tea.Cmd{}
 
-		return r, tea.Sequence(
-			tea.Println(output),
+		if output != "" {
+			output = r.renderer.RenderContent(r.chain.buffer)
+			cmds = append(cmds, tea.Println(output))
+		}
+
+		cmds = append(cmds,
 			r.prompt.Focus(),
 			textinput.Blink,
 		)
+
+		r.chain.buffer = ""
+		return r, tea.Sequence(cmds...)
 	case chatError:
 		output := r.renderer.RenderError(msg.Error())
 		r.spinner.Stop()

@@ -60,7 +60,8 @@ type chain struct {
 	stream chan tea.Msg
 }
 
-// newChain creates a new conversational QA Chain with the given language model and vector store.
+// newChain creates a new conversational QA Chain
+// with the given language model and vector store.
 func newChain(model llms.Model, store vectorstores.VectorStore) *chain {
 	promptTemplate := prompts.NewPromptTemplate(
 		defaultTemplate,
@@ -93,7 +94,19 @@ func newChain(model llms.Model, store vectorstores.VectorStore) *chain {
 	}
 }
 
-// awaitNext returns a bubbletea.Cmd that, when executed, reads the next streaming chunk,
+// start returns a bubbletea.Cmd that calls the chain with the given
+// question and returns a tea.Msg.
+func (c *chain) start(ctx context.Context, question string) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.call(ctx, question); err != nil {
+			return chatError{inner: err}
+		}
+
+		return nil
+	}
+}
+
+// awaitNext returns a bubbletea.Cmd that reads the next streaming chunk,
 // accumulates it in the buffer, and returns it as a tea.Msg.
 func (c *chain) awaitNext() tea.Cmd {
 	return func() tea.Msg {
@@ -149,15 +162,3 @@ func (c *chain) call(ctx context.Context, question string) (err error) {
 
 	return nil
 }
-
-func (c *chain) start(ctx context.Context, question string) tea.Cmd {
-	return func() tea.Msg {
-		if err := c.call(ctx, question); err != nil {
-			return chatError{inner: err}
-		}
-
-		return nil
-	}
-}
-
-// endregion: --- Engine
