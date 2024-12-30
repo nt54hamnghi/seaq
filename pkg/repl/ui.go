@@ -30,7 +30,6 @@ type REPL struct {
 	model llms.Model
 	store vectorstores.VectorStore
 	chain *chain
-	error error // Critical error
 	ctx   context.Context
 }
 
@@ -146,7 +145,6 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		w := msg.Width / 3 * 2
 
 		r.renderer = renderer.New(
-			// glamour.WithAutoStyle(), // bug: this leaks style string to the input field
 			glamour.WithStandardStyle(renderer.DefaultStyle),
 			glamour.WithWordWrap(w),
 		)
@@ -174,9 +172,6 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			switch strings.ToLower(r.prompt.Value()) {
 			case ":q", ":quit":
-				// if cb := r.chain.Memory.(*memory.ConversationBuffer); cb != nil {
-				// 	log.Println(cb.ChatHistory.Messages(context.Background()))
-				// }
 				return r, tea.Quit
 			default:
 				rawInput := r.prompt.Value()
@@ -191,13 +186,14 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(
 						cmds,
 						tea.Println(input),
-						r.spinner.Tick, // advance spinner
-						r.chain.run(r.ctx, rawInput),
+						r.spinner.Tick,
+						r.chain.start(r.ctx, rawInput),
 						r.chain.awaitNext(),
 					)
 				}
 			}
 		}
+
 	case streamContentMsg:
 		r.spinner.Stop()
 		cmds = append(cmds, r.chain.awaitNext())
@@ -212,26 +208,24 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 	case chatError:
 		output := r.renderer.RenderError(msg.Error())
-		r.prompt.Focus()
+		r.spinner.Stop()
 
-		cmds = append(
-			cmds,
+		return r, tea.Sequence(
 			tea.Println(output),
+			r.prompt.Focus(),
 			textinput.Blink,
 		)
 	case error:
-		r.error = msg
-		return r, tea.Quit
+		return r, tea.Sequence(
+			tea.Println(msg.Error()),
+			tea.Quit,
+		)
 	}
 
 	return r, tea.Batch(cmds...)
 }
 
 func (r REPL) View() string {
-	if r.error != nil {
-		return r.renderer.RenderError(r.error.Error())
-	}
-
 	if r.spinner.IsRunning() {
 		return r.renderer.RenderContent(r.spinner.View() + "\n")
 	}

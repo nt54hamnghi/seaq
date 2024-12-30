@@ -93,8 +93,15 @@ func newChain(model llms.Model, store vectorstores.VectorStore) *chain {
 	}
 }
 
+// awaitNext returns a bubbletea.Cmd that, when executed, reads the next streaming chunk,
+// accumulates it in the buffer, and returns it as a tea.Msg.
 func (c *chain) awaitNext() tea.Cmd {
 	return func() tea.Msg {
+		if c.stream == nil {
+			// this is fatal, awaitNext should only be called after start
+			return errors.New("unexpected nil stream: awaitNext called before start")
+		}
+
 		output := <-c.stream
 		if msg, ok := output.(streamContentMsg); ok {
 			c.buffer += string(msg)
@@ -103,19 +110,32 @@ func (c *chain) awaitNext() tea.Cmd {
 	}
 }
 
+// done signals the completion of a streaming response
+// This method should be called when all streaming chunks have been sent.
 func (c *chain) done() {
+	if c.stream == nil {
+		return
+	}
 	c.stream <- streamEndMsg{}
 }
 
-func (c *chain) call(ctx context.Context, question string) error {
-	defer c.done()
+func (c *chain) call(ctx context.Context, question string) (err error) {
+	// temporary workaround:
+	// anthropic.generateMessagesContent() panics when it fails or returns no content
+	// https://github.com/tmc/langchaingo/issues/993
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("completion panic, please try again")
+		}
+
+		c.done()
+	}()
 
 	streamFunc := func(_ context.Context, chunk []byte) error {
 		c.stream <- streamContentMsg(chunk)
 		return nil
 	}
 
-	// run the chain
 	res, err := chains.Call(ctx, c, map[string]any{"question": question},
 		chains.WithStreamingFunc(streamFunc),
 	)
@@ -123,7 +143,6 @@ func (c *chain) call(ctx context.Context, question string) error {
 		return fmt.Errorf("chain error: %w", err)
 	}
 
-	// check if the response is empty
 	if _, ok := res[c.OutputKey]; !ok {
 		return errors.New("chain returned no output")
 	}
@@ -131,7 +150,7 @@ func (c *chain) call(ctx context.Context, question string) error {
 	return nil
 }
 
-func (c *chain) run(ctx context.Context, question string) tea.Cmd {
+func (c *chain) start(ctx context.Context, question string) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.call(ctx, question); err != nil {
 			return chatError{inner: err}
@@ -142,9 +161,3 @@ func (c *chain) run(ctx context.Context, question string) tea.Cmd {
 }
 
 // endregion: --- Engine
-
-// func (ch *Chat) Debug_SendMessage(ctx context.Context, question string, model llms.Model, store vectorstores.VectorStore) tea.Cmd {
-// 	return func() tea.Msg {
-// 		return NewResponseChatMsg(question)
-// 	}
-// }
