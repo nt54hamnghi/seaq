@@ -122,7 +122,6 @@ func New(docs []schema.Document, opts ...Option) (*REPL, error) {
 func (r REPL) Init() tea.Cmd {
 	return tea.Batch(
 		tea.ClearScreen,
-		tea.Println(r.renderer.RenderHelpMessage()),
 		textinput.Blink,
 	)
 }
@@ -163,34 +162,43 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return r, tea.Quit
+		case tea.KeyCtrlL:
+			return r, tea.Sequence(tea.ClearScreen, inputCmd)
 		case tea.KeyCtrlH:
-			cmds = append(
-				cmds,
+			return r, tea.Sequence(
+				tea.Println(r.prompt.Display()),
 				tea.Println(r.renderer.RenderHelpMessage()),
-				textinput.Blink,
+				inputCmd,
 			)
 		case tea.KeyEnter:
-			switch strings.ToLower(r.prompt.Value()) {
-			case ":q", ":quit":
+			inputValue := r.prompt.Value()
+			inputDisplay := r.prompt.Display()
+			r.prompt.Append(inputValue)
+
+			switch strings.ToLower(inputValue) {
+			case "":
+				cmds = append(cmds, tea.Println(inputDisplay))
+			case "/?", "/help":
+				return r, tea.Sequence(
+					tea.Println(inputDisplay),
+					tea.Println(r.renderer.RenderHelpMessage()),
+					inputCmd,
+				)
+			case "/c", "/clear":
+				return r, tea.Sequence(tea.ClearScreen, inputCmd)
+			case "/q", "/quit":
 				return r, tea.Quit
 			default:
-				rawInput := r.prompt.Value()
+				r.spinner.Start()
+				r.prompt.Blur()
 
-				if rawInput != "" {
-					r.spinner.Start()
-
-					input := r.prompt.AsString()
-					r.prompt.Append(rawInput)
-					r.prompt.Blur()
-
-					cmds = append(
-						cmds,
-						tea.Println(input),
-						r.spinner.Tick,
-						r.chain.start(r.ctx, rawInput),
-						r.chain.awaitNext(),
-					)
-				}
+				cmds = append(
+					cmds,
+					tea.Println(inputDisplay),
+					r.spinner.Tick,
+					r.chain.start(r.ctx, inputValue),
+					r.chain.awaitNext(),
+				)
 			}
 		}
 

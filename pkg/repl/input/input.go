@@ -11,7 +11,7 @@ import (
 const (
 	promptIcon        = "> "
 	promptColor       = lipgloss.Color("#66b3ff")
-	promptPlaceHolder = "What's in your mind?"
+	promptPlaceHolder = "Send a message (/? for help)"
 	defaultCharLimit  = 4096
 )
 
@@ -69,7 +69,7 @@ func (m Model) View() string {
 	return m.Model.View()
 }
 
-func (m Model) AsString() string {
+func (m Model) Display() string {
 	return fmt.Sprintf("%s%s", promptStyle.Render(promptIcon), m.Value())
 }
 

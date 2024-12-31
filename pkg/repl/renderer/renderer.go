@@ -84,18 +84,18 @@ func (r *Renderer) RenderError(msg string) string {
 	return renderMessage(msg, r.error, errorPrefix)
 }
 
-// RenderHelpMessage renders a help message
-func (r *Renderer) RenderHelpMessage() string {
-	help := "**Help**\n"
-	help += "\n"
-	help += "Keyboard shortcuts:\n"
-	help += "- `↑`/`↓` : navigate in history\n"
-	help += "- `ctrl+c`/`esc`: exit or interrupt command execution\n"
-	help += "- `ctrl+h`: show help message\n"
-	help += "\n"
-	// help += "- `ctrl+l`: clear terminal but keep discussion history\n"
-	help += "Commands:\n"
-	help += "- `:q` or `:quit`: exit the program\n"
+const helpMessage = `**Commands:**
+- /?, /help  : Show help message
+- /q, /quit  : Exit the program
+- /c, /clear : Clear the terminal
 
-	return r.RenderContent(help)
+**Keyboard Shortcuts:**
+- ↑/↓        : Navigate in history
+- ctrl+h     : Show help message
+- ctrl+l     : Clear the terminal
+- ctrl+c/esc : Exit or interrupt command execution
+`
+
+func (r *Renderer) RenderHelpMessage() string {
+	return r.RenderContent(helpMessage)
 }
