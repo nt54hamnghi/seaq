@@ -14,13 +14,17 @@ import (
 )
 
 const defaultTemplate = `
-Use the following context to answer the question at the end. Your answer should be simple and concise.
+Use the provided context to answer the following question:
 
-- If the context is irrelevant, state so explicitly and answer with the best of your knowledge.
-- If you don't know the answer, just say that you don't know, don't try to make up an answer.
-- If the question pertains to basic conversation (e.g., "hello", "thanks", etc.), respond as you would naturally in a conversation. You don't need to explicitly point this out.
-
-Format your answer in Markdown.
+Rules:
+1. Give concise, direct, easy to understand answers
+2. If the context is relevant, base your answer on it, avoid using information not in the context
+3. Avoid any meta-references (like "the context shows", "based on", "it mentions", etc.)
+4. If the context is irrelevant, say "The context is not relevant" and answer from your general knowledge
+5. If you don't know the answer, say "I don't know" - don't speculate
+6. For basic greetings or conversational remarks, respond naturally
+7. Stay factual and avoid unnecessary elaboration
+8. Format your answer in Markdown.
 
 Context: {{.input_documents}}
 
