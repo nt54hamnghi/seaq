@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/asticode/go-astisub"
-	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
+	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tmc/langchaingo/schema"

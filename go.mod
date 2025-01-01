@@ -1,4 +1,4 @@
-module github.com/nt54hamnghi/hiku
+module github.com/nt54hamnghi/seaq
 
 go 1.23.4
 

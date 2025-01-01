@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
+	"github.com/nt54hamnghi/seaq/pkg/util/reqx"
 )
 
 var (

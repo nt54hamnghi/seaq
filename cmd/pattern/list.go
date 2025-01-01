@@ -4,7 +4,7 @@ Copyright © 2024 Nghi Nguyen
 package pattern
 
 import (
-	"github.com/nt54hamnghi/hiku/cmd/config"
+	"github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +16,7 @@ var listCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		pats, err := config.Hiku.ListPatterns()
+		pats, err := config.Seaq.ListPatterns()
 		if err != nil {
 			return err
 		}

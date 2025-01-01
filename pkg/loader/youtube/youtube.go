@@ -4,8 +4,8 @@ import (
 	"context"
 	"slices"
 
-	"github.com/nt54hamnghi/hiku/pkg/util/pool"
-	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
+	"github.com/nt54hamnghi/seaq/pkg/util/pool"
+	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )

@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	x "github.com/imperatrona/twitter-scraper"
-	"github.com/nt54hamnghi/hiku/pkg/env"
-	"github.com/nt54hamnghi/hiku/pkg/util/pool"
+	"github.com/nt54hamnghi/seaq/pkg/env"
+	"github.com/nt54hamnghi/seaq/pkg/util/pool"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )

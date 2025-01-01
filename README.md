@@ -1,4 +1,4 @@
-# hiku
+# seaq
 
 A simple program for making learning new concepts from a YouTube video easier.
 

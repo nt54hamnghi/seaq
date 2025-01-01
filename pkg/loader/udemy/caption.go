@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/asticode/go-astisub"
-	"github.com/nt54hamnghi/hiku/pkg/util/pool"
-	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
-	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
+	"github.com/nt54hamnghi/seaq/pkg/util/pool"
+	"github.com/nt54hamnghi/seaq/pkg/util/reqx"
+	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 )
 
