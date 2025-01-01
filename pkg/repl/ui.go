@@ -203,22 +203,21 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		r.chain.buffer = ""
 		return r, tea.Sequence(cmds...)
-	// recoverable chat error
-	case chatError:
-		output := r.renderer.RenderError(msg.Error())
+	case error:
+		output := msg.Error()
 		r.spinner.Stop()
 
+		if errors.Is(msg, ErrNilStream) {
+			return r, tea.Sequence(
+				tea.Printf("Error: %s\n", output),
+				tea.Quit,
+			)
+		}
+
 		return r, tea.Sequence(
-			tea.Println(output),
+			tea.Println(r.renderer.RenderError(output)),
 			r.prompt.Focus(),
 			textinput.Blink,
-		)
-	// unrecoverable error
-	case error:
-		// TODO: ensure spinner is stopped in all error paths to prevent hanging spinner state
-		return r, tea.Sequence(
-			tea.Println(msg.Error()),
-			tea.Quit,
 		)
 	}
 

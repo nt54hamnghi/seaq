@@ -32,20 +32,7 @@ Question: {{.question}}
 
 Helpful Answer:`
 
-// chatError is a recoverable error during chat
-type chatError struct {
-	inner error
-}
-
-// Error implements the error interface
-func (e chatError) Error() string {
-	return e.inner.Error()
-}
-
-// Unwrap implements the error interface
-func (e chatError) Unwrap() error {
-	return e.inner
-}
+var ErrNilStream = errors.New("unexpected nil stream")
 
 // streamContentMsg contains the streaming content chunk from a chat operation
 type streamContentMsg string
@@ -103,7 +90,7 @@ func newChain(model llms.Model, store vectorstores.VectorStore) *chain {
 func (c *chain) start(ctx context.Context, question string) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.call(ctx, question); err != nil {
-			return chatError{inner: err}
+			return err
 		}
 
 		return nil
@@ -116,7 +103,7 @@ func (c *chain) awaitNext() tea.Cmd {
 	return func() tea.Msg {
 		if c.stream == nil {
 			// this is fatal, awaitNext should only be called after start
-			return errors.New("unexpected nil stream: awaitNext called before start")
+			return ErrNilStream
 		}
 
 		output := <-c.stream

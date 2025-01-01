@@ -51,7 +51,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:          "hiku",
 	Short:        "A cli tool to make learning more fun",
-	Version:      "0.1.4",
+	Version:      "0.1.5",
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	PreRunE:      flaggroup.ValidateGroups(&output),
