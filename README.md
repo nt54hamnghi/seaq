@@ -1,3 +1,5 @@
+# seaq
+
 A simple program for making learning new concepts from a YouTube video easier.
 
 It's based on the idea of Cognitive Load Management
@@ -7,7 +9,7 @@ It's based on the idea of Cognitive Load Management
 Effective learning involves managing your cognitive load - the mental effort required to process information.
 
 You want to keep your cognitive load in an optimal range, not too high which can lead to overwhelm, or too low which can lead to passive learning.
-	
+
 Techniques like priming and asking non-obvious questions can help manage cognitive load.
 
 ### Priming Yourself Before Lectures

@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
-	"github.com/nt54hamnghi/hiku/pkg/loader"
-	"github.com/nt54hamnghi/hiku/pkg/loader/html"
+	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
+	"github.com/nt54hamnghi/seaq/pkg/loader"
+	"github.com/nt54hamnghi/seaq/pkg/loader/html"
 	"github.com/spf13/cobra"
 	"github.com/tmc/langchaingo/documentloaders"
 )

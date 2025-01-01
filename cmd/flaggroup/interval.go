@@ -1,7 +1,7 @@
 package flaggroup
 
 import (
-	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
+	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/spf13/cobra"
 )
 

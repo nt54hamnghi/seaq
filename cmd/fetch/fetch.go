@@ -4,7 +4,7 @@ Copyright © 2024 Nghi Nguyen
 package fetch
 
 import (
-	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
+	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
 	"github.com/spf13/cobra"
 )
 

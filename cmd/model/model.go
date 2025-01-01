@@ -4,7 +4,7 @@ Copyright © 2024 Nghi Nguyen
 package model
 
 import (
-	"github.com/nt54hamnghi/hiku/cmd/config"
+	"github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -28,5 +28,5 @@ func init() {
 }
 
 func CompleteModelArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) { // nolint: revive
-	return config.Hiku.ListModels(), cobra.ShellCompDirectiveNoFileComp
+	return config.Seaq.ListModels(), cobra.ShellCompDirectiveNoFileComp
 }

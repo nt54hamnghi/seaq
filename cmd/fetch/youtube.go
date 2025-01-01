@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
-	"github.com/nt54hamnghi/hiku/pkg/loader"
-	"github.com/nt54hamnghi/hiku/pkg/loader/youtube"
+	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
+	"github.com/nt54hamnghi/seaq/pkg/loader"
+	"github.com/nt54hamnghi/seaq/pkg/loader/youtube"
 	"github.com/spf13/cobra"
 )
 

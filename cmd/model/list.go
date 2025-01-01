@@ -4,7 +4,7 @@ Copyright © 2024 Nghi Nguyen
 package model
 
 import (
-	"github.com/nt54hamnghi/hiku/pkg/llm"
+	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/spf13/cobra"
 )
 

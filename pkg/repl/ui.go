@@ -9,165 +9,142 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
-	"github.com/nt54hamnghi/hiku/pkg/rag"
-	"github.com/nt54hamnghi/hiku/pkg/repl/input"
-	"github.com/nt54hamnghi/hiku/pkg/repl/renderer"
-	"github.com/nt54hamnghi/hiku/pkg/repl/spinner"
+	"github.com/nt54hamnghi/seaq/pkg/llm"
+	"github.com/nt54hamnghi/seaq/pkg/rag"
+	"github.com/nt54hamnghi/seaq/pkg/repl/input"
+	"github.com/nt54hamnghi/seaq/pkg/repl/renderer"
+	"github.com/nt54hamnghi/seaq/pkg/repl/spinner"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/vectorstores"
 )
 
-// region: --- errors
-
-type Error struct {
-	inner error
-}
-
-func (e Error) Error() string {
-	return e.inner.Error()
-}
-
-func NewReplError(err error) Error {
-	return Error{inner: err}
-}
-
-// endregion: --- errors
-
-type components struct {
+type ui struct {
 	prompt   *input.Model
 	renderer *renderer.Renderer
 	spinner  *spinner.Spinner
 }
 
-type resources struct {
+type REPL struct {
+	ui
 	model llms.Model
 	store vectorstores.VectorStore
-}
-
-type Repl struct {
-	components
-	resources
-	chain *Chain
-	error error // Critical error
+	chain *chain
 	ctx   context.Context
 }
 
-type Option func(*Repl) error
-
-func WithDefaultStore() Option {
-	return func(r *Repl) (err error) {
-		if r.store, err = rag.NewChromaStore(); err != nil {
-			return err
-		}
-		return nil
-	}
-}
+type Option func(*REPL) error
 
 func WithStore(store vectorstores.VectorStore) Option {
-	return func(r *Repl) error {
+	return func(r *REPL) error {
+		if store == nil {
+			return errors.New("store is nil")
+		}
 		r.store = store
 		return nil
 	}
 }
 
 func WithModel(model llms.Model) Option {
-	return func(r *Repl) error {
+	return func(r *REPL) error {
+		if model == nil {
+			return errors.New("model is nil")
+		}
 		r.model = model
 		return nil
 	}
 }
 
 func WithContext(ctx context.Context) Option {
-	return func(r *Repl) error {
+	return func(r *REPL) error {
+		if ctx == nil {
+			return errors.New("context is nil")
+		}
 		r.ctx = ctx
 		return nil
 	}
 }
 
-func NewRepl(docs []schema.Document, opts ...Option) (*Repl, error) {
-	if len(docs) == 0 {
-		return nil, errors.New("no documents to load")
+func Default() (*REPL, error) {
+	store, err := rag.NewChromaStore()
+	if err != nil {
+		return nil, err
 	}
 
-	// initialize the repl
-	repl := Repl{
-		components: components{
+	model, err := llm.New(llm.Claude35Sonnet)
+	if err != nil {
+		return nil, err
+	}
+
+	r := REPL{
+		ui: ui{
 			prompt:   input.New(),
 			renderer: renderer.Default(),
 			spinner:  spinner.New(),
 		},
+		model: model,
+		store: store,
+		ctx:   context.Background(),
 	}
 
-	// apply options, if any
-	// return as soon as an error is encountered
+	return &r, nil
+}
+
+func New(docs []schema.Document, opts ...Option) (*REPL, error) {
+	if len(docs) == 0 {
+		return nil, errors.New("no documents to load")
+	}
+
+	// initialize the REPL
+	r, err := Default()
+	if err != nil {
+		return nil, err
+	}
+
+	// apply options, return on first error
 	for _, opt := range opts {
-		if err := opt(&repl); err != nil {
+		if err := opt(r); err != nil {
 			return nil, err
 		}
 	}
 
-	if repl.ctx == nil {
-		return nil, errors.New("context is nil")
-	}
-
-	if repl.model == nil {
-		return nil, errors.New("model is nil")
-	}
-
-	if repl.store == nil {
-		return nil, errors.New("store is nil")
-	}
-
 	// add documents to the store
-	if _, err := repl.store.AddDocuments(repl.ctx, docs); err != nil {
+	if _, err := r.store.AddDocuments(r.ctx, docs); err != nil {
 		return nil, err
 	}
 
 	// initialize the chain
-	repl.chain = NewChain(repl.model, repl.store)
+	r.chain = newChain(r.model, r.store)
 
-	return &repl, nil
+	return r, nil
 }
 
-func (r Repl) Init() tea.Cmd {
+func (r *REPL) Init() tea.Cmd {
 	return tea.Batch(
 		tea.ClearScreen,
-		tea.Println(r.renderer.RenderHelpMessage()),
 		textinput.Blink,
 	)
 }
 
-func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmds       []tea.Cmd
-		inputCmd   tea.Cmd
-		spinnerCmd tea.Cmd
-	)
+func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var inputCmd tea.Cmd
+	r.prompt, inputCmd = r.prompt.Update(msg)
 
-	model, inputCmd := r.prompt.Update(msg)
-	if prompt, ok := model.(*input.Model); ok {
-		r.prompt = prompt
-	}
-	cmds = append(cmds, inputCmd)
+	cmds := []tea.Cmd{inputCmd}
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		w := msg.Width / 3 * 2
 
 		r.renderer = renderer.New(
-			// glamour.WithAutoStyle(), // bug: this leaks style string to the input field
 			glamour.WithStandardStyle(renderer.DefaultStyle),
 			glamour.WithWordWrap(w),
 		)
-
 		r.prompt.Width = w
-		r.prompt.SetValue("")
-		r.prompt.Reset()
-
-		return r, nil
+		return r, inputCmd
 	case spin.TickMsg:
-		if r.spinner.Running() {
+		var spinnerCmd tea.Cmd
+		if r.spinner.IsRunning() {
 			r.spinner.Model, spinnerCmd = r.spinner.Update(msg)
 			cmds = append(cmds, spinnerCmd)
 		}
@@ -175,77 +152,80 @@ func (r *Repl) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return r, tea.Quit
-		case tea.KeyCtrlH:
-			cmds = append(
-				cmds,
-				tea.Println(r.renderer.RenderHelpMessage()),
-				textinput.Blink,
-			)
 		case tea.KeyEnter:
-			switch strings.ToLower(r.prompt.Value()) {
-			case ":q", ":quit":
-				// if cb := r.chain.Memory.(*memory.ConversationBuffer); cb != nil {
-				// 	log.Println(cb.ChatHistory.Messages(context.Background()))
-				// }
+			inputValue := r.prompt.Value()
+			inputDisplay := r.prompt.Display()
+			r.prompt.Append(inputValue)
+
+			switch strings.ToLower(inputValue) {
+			case "":
+				cmds = append(cmds, tea.Println(inputDisplay))
+			case "/?", "/help":
+				return r, tea.Sequence(
+					tea.Println(inputDisplay),
+					tea.Println(r.renderer.RenderHelpMessage()),
+					inputCmd,
+				)
+			case "/c", "/clear":
+				return r, tea.Sequence(tea.ClearScreen, inputCmd)
+			case "/q", "/quit":
 				return r, tea.Quit
 			default:
-				rawInput := r.prompt.Value()
+				r.spinner.Start()
+				r.prompt.Blur()
 
-				if rawInput != "" {
-					r.spinner.Start()
-
-					input := r.prompt.AsString()
-					r.prompt.Append(rawInput)
-					r.prompt.Blur()
-
-					cmds = append(
-						cmds,
-						tea.Println(input),
-						r.spinner.Tick, // advance spinner
-						r.chain.SendMessage(r.ctx, rawInput),
-						r.chain.AwaitNext(),
-					)
-				}
+				cmds = append(
+					cmds,
+					tea.Println(inputDisplay),
+					r.spinner.Tick,
+					r.chain.start(r.ctx, inputValue),
+					r.chain.awaitNext(),
+				)
 			}
 		}
-	case StreamMsg:
-		if msg.last {
-			output := r.renderer.RenderContent(r.chain.buffer)
-			r.chain.buffer = ""
-			r.prompt.Focus()
 
-			return r, tea.Sequence(
-				tea.Println(output),
-				textinput.Blink,
-			)
-		} else {
-			// TODO: spinner should be stopped after the first message
-			r.spinner.Stop()
-			cmds = append(cmds, r.chain.AwaitNext())
+	case streamContentMsg:
+		r.spinner.Stop()
+		cmds = append(cmds, r.chain.awaitNext())
+	case streamEndMsg:
+		output := r.chain.buffer
+		cmds := []tea.Cmd{}
+
+		if output != "" {
+			output = r.renderer.RenderContent(r.chain.buffer)
+			cmds = append(cmds, tea.Println(output))
 		}
-	case ChatError:
-		output := r.renderer.RenderError(msg.Error())
-		r.prompt.Focus()
 
-		cmds = append(
-			cmds,
-			tea.Println(output),
+		cmds = append(cmds,
+			r.prompt.Focus(),
 			textinput.Blink,
 		)
-	case Error:
-		r.error = msg
-		return r, tea.Quit
+
+		r.chain.buffer = ""
+		return r, tea.Sequence(cmds...)
+	case error:
+		output := msg.Error()
+		r.spinner.Stop()
+
+		if errors.Is(msg, ErrNilStream) {
+			return r, tea.Sequence(
+				tea.Printf("Error: %s\n", output),
+				tea.Quit,
+			)
+		}
+
+		return r, tea.Sequence(
+			tea.Println(r.renderer.RenderError(output)),
+			r.prompt.Focus(),
+			textinput.Blink,
+		)
 	}
 
 	return r, tea.Batch(cmds...)
 }
 
-func (r Repl) View() string {
-	if r.error != nil {
-		return r.renderer.RenderError(r.error.Error())
-	}
-
-	if r.spinner.Running() {
+func (r *REPL) View() string {
+	if r.spinner.IsRunning() {
 		return r.renderer.RenderContent(r.spinner.View() + "\n")
 	}
 
@@ -256,20 +236,22 @@ func (r Repl) View() string {
 	return r.prompt.View() + "\n"
 }
 
-func (r *Repl) Run() error {
-	// f, err := tea.LogToFile("debug.log", "debug")
-	// if err != nil {
-	// 	return err
-	// }
-	// defer f.Close()
-
-	p := tea.NewProgram(r,
-		tea.WithMouseCellMotion(),
-	)
-
+func (r *REPL) Run() error {
+	p := tea.NewProgram(r)
 	if _, err := p.Run(); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// nolint:unused
+func _debug() error {
+	f, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
 	return nil
 }

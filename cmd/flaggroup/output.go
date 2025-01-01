@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/nt54hamnghi/hiku/pkg/util"
+	"github.com/nt54hamnghi/seaq/pkg/util"
 	"github.com/spf13/cobra"
 )
 

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/nt54hamnghi/hiku/pkg/env"
-	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
+	"github.com/nt54hamnghi/seaq/pkg/env"
+	"github.com/nt54hamnghi/seaq/pkg/util/reqx"
 	"github.com/tmc/langchaingo/schema"
 )
 

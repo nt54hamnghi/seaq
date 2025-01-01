@@ -20,7 +20,7 @@ func New() *Spinner {
 	}
 }
 
-func (s Spinner) Running() bool {
+func (s Spinner) IsRunning() bool {
 	return s.running
 }
 

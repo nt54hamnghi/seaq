@@ -10,11 +10,12 @@ import (
 
 const (
 	promptIcon        = "> "
-	promptcolor       = lipgloss.Color("#66b3ff")
-	promptPlaceHolder = "What's in your mind?"
+	promptColor       = lipgloss.Color("#66b3ff")
+	promptPlaceHolder = "Send a message (/? for help)"
+	defaultCharLimit  = 4096
 )
 
-var promptStyle = lipgloss.NewStyle().Foreground(promptcolor)
+var promptStyle = lipgloss.NewStyle().Foreground(promptColor)
 
 type Model struct {
 	textinput.Model
@@ -24,10 +25,10 @@ type Model struct {
 func New() *Model {
 	// create & configure model
 	model := textinput.New()
-	model.Focus()
-	model.Placeholder = promptPlaceHolder
-	model.Prompt = promptStyle.Render(promptIcon)
-	model.CharLimit = 128
+	model.Focus()                                 // Immediately focus the input
+	model.Placeholder = promptPlaceHolder         // Set placeholder text
+	model.Prompt = promptStyle.Render(promptIcon) // Set styled prompt
+	model.CharLimit = defaultCharLimit
 
 	return &Model{
 		Model:   model,
@@ -35,11 +36,7 @@ func New() *Model {
 	}
 }
 
-func (m Model) Init() tea.Cmd {
-	return textinput.Blink
-}
-
-func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.Model, cmd = m.Model.Update(msg)
 
@@ -68,7 +65,7 @@ func (m Model) View() string {
 	return m.Model.View()
 }
 
-func (m Model) AsString() string {
+func (m Model) Display() string {
 	return fmt.Sprintf("%s%s", promptStyle.Render(promptIcon), m.Value())
 }
 
