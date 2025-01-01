@@ -15,9 +15,30 @@ const (
 	X_AUTH_TOKEN       = "X_AUTH_TOKEN" // x.com
 	X_CSRF_TOKEN       = "X_CSRF_TOKEN" // x.com
 	UDEMY_ACCESS_TOKEN = "UDEMY_ACCESS_TOKEN"
+	OLLAMA_HOST        = "OLLAMA_HOST"
 )
 
 var globalEnvStore = NewEnvStore()
+
+type Store struct {
+	getEnv func(string) (string, error)
+}
+
+func NewEnvStore() *Store {
+	return &Store{
+		getEnv: func(s string) (string, error) {
+			val, ok := os.LookupEnv(s)
+			if !ok {
+				return "", fmt.Errorf("%s is not set", s)
+			}
+			return val, nil
+		},
+	}
+}
+
+func (e *Store) Get(key string) (string, error) {
+	return e.getEnv(key)
+}
 
 // OpenAIAPIKey returns the value of the OPENAI_API_KEY environment variable
 // or an error if not set.
@@ -67,22 +88,12 @@ func UdemyAccessToken() (string, error) {
 	return globalEnvStore.Get(UDEMY_ACCESS_TOKEN)
 }
 
-type Store struct {
-	getEnv func(string) (string, error)
-}
-
-func NewEnvStore() *Store {
-	return &Store{
-		getEnv: func(s string) (string, error) {
-			val, ok := os.LookupEnv(s)
-			if !ok {
-				return "", fmt.Errorf("%s is not set", s)
-			}
-			return val, nil
-		},
+// OllamaHost returns the value of the OLLAMA_HOST environment variable
+// or an error if not set.
+func OllamaHost() string {
+	host, err := globalEnvStore.Get(OLLAMA_HOST)
+	if err != nil {
+		return "http://localhost:11434"
 	}
-}
-
-func (e *Store) Get(key string) (string, error) {
-	return e.getEnv(key)
+	return host
 }

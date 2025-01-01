@@ -10,6 +10,7 @@ import (
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/anthropic"
 	"github.com/tmc/langchaingo/llms/googleai"
+	"github.com/tmc/langchaingo/llms/ollama"
 	"github.com/tmc/langchaingo/llms/openai"
 	"github.com/tmc/langchaingo/prompts"
 )
@@ -70,6 +71,19 @@ var Models = map[string]map[string]bool{
 		Gemini1Dot5Flash8B:  true,
 		Gemini1Dot5Pro:      true,
 	},
+}
+
+func init() {
+	models, err := listOllamaLocalModels()
+	if err != nil {
+		// fmt.Printf("Warning: Failed to list Ollama models: %v", err)
+		return
+	}
+
+	Models["Ollama"] = make(map[string]bool)
+	for _, m := range models {
+		Models["Ollama"][m] = true
+	}
 }
 
 // region: --- hint template
@@ -136,6 +150,11 @@ func New(name string) (llms.Model, error) {
 			context.Background(),
 			googleai.WithAPIKey(apiKey),
 			googleai.WithDefaultModel(model),
+		)
+	case "Ollama":
+		return ollama.New(
+			ollama.WithModel(model),
+			ollama.WithServerURL(env.OllamaHost()),
 		)
 	default:
 		panic("unreachable")

@@ -51,7 +51,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:          "seaq",
 	Short:        "A cli tool to make learning more fun",
-	Version:      "0.1.6",
+	Version:      "0.2.0",
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	PreRunE:      flaggroup.ValidateGroups(&output),
