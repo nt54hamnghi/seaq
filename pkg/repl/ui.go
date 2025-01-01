@@ -127,17 +127,10 @@ func (r REPL) Init() tea.Cmd {
 }
 
 func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmds       []tea.Cmd
-		inputCmd   tea.Cmd
-		spinnerCmd tea.Cmd
-	)
+	var inputCmd tea.Cmd
+	r.prompt, inputCmd = r.prompt.Update(msg)
 
-	model, inputCmd := r.prompt.Update(msg)
-	if prompt, ok := model.(*input.Model); ok {
-		r.prompt = prompt
-	}
-	cmds = append(cmds, inputCmd)
+	cmds := []tea.Cmd{inputCmd}
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -147,13 +140,10 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			glamour.WithStandardStyle(renderer.DefaultStyle),
 			glamour.WithWordWrap(w),
 		)
-
 		r.prompt.Width = w
-		r.prompt.SetValue("")
-		r.prompt.Reset()
-
 		return r, nil
 	case spin.TickMsg:
+		var spinnerCmd tea.Cmd
 		if r.spinner.IsRunning() {
 			r.spinner.Model, spinnerCmd = r.spinner.Update(msg)
 			cmds = append(cmds, spinnerCmd)

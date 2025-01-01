@@ -36,11 +36,7 @@ func New() *Model {
 	}
 }
 
-func (m Model) Init() tea.Cmd {
-	return textinput.Blink
-}
-
-func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.Model, cmd = m.Model.Update(msg)
 
