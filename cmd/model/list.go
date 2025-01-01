@@ -4,6 +4,9 @@ Copyright © 2024 Nghi Nguyen
 package model
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/spf13/cobra"
 )
@@ -16,10 +19,17 @@ var listCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		for provider, models := range llm.Models {
-			cmd.Println(provider)
+		providers := slices.Collect(maps.Keys(llm.Models))
+		slices.Sort(providers)
+
+		for _, p := range providers {
+			cmd.Println(p)
 			cmd.Println("--------------------")
-			for name := range models {
+
+			models := slices.Collect(maps.Keys(llm.Models[p]))
+			slices.Sort(models)
+
+			for _, name := range models {
 				cmd.Println(name)
 			}
 			cmd.Println()
