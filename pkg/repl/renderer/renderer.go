@@ -91,8 +91,6 @@ const helpMessage = `**Commands:**
 
 **Keyboard Shortcuts:**
 - ↑/↓        : Navigate in history
-- ctrl+h     : Show help message
-- ctrl+l     : Clear the terminal
 - ctrl+c/esc : Exit or interrupt command execution
 `
 

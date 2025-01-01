@@ -119,7 +119,7 @@ func New(docs []schema.Document, opts ...Option) (*REPL, error) {
 	return r, nil
 }
 
-func (r REPL) Init() tea.Cmd {
+func (r *REPL) Init() tea.Cmd {
 	return tea.Batch(
 		tea.ClearScreen,
 		textinput.Blink,
@@ -141,7 +141,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			glamour.WithWordWrap(w),
 		)
 		r.prompt.Width = w
-		return r, nil
+		return r, inputCmd
 	case spin.TickMsg:
 		var spinnerCmd tea.Cmd
 		if r.spinner.IsRunning() {
@@ -152,14 +152,6 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return r, tea.Quit
-		case tea.KeyCtrlL:
-			return r, tea.Sequence(tea.ClearScreen, inputCmd)
-		case tea.KeyCtrlH:
-			return r, tea.Sequence(
-				tea.Println(r.prompt.Display()),
-				tea.Println(r.renderer.RenderHelpMessage()),
-				inputCmd,
-			)
 		case tea.KeyEnter:
 			inputValue := r.prompt.Value()
 			inputDisplay := r.prompt.Display()
@@ -211,6 +203,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		r.chain.buffer = ""
 		return r, tea.Sequence(cmds...)
+	// recoverable chat error
 	case chatError:
 		output := r.renderer.RenderError(msg.Error())
 		r.spinner.Stop()
@@ -220,7 +213,9 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			r.prompt.Focus(),
 			textinput.Blink,
 		)
+	// unrecoverable error
 	case error:
+		// TODO: ensure spinner is stopped in all error paths to prevent hanging spinner state
 		return r, tea.Sequence(
 			tea.Println(msg.Error()),
 			tea.Quit,
@@ -230,7 +225,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return r, tea.Batch(cmds...)
 }
 
-func (r REPL) View() string {
+func (r *REPL) View() string {
 	if r.spinner.IsRunning() {
 		return r.renderer.RenderContent(r.spinner.View() + "\n")
 	}
@@ -243,12 +238,7 @@ func (r REPL) View() string {
 }
 
 func (r *REPL) Run() error {
-	// debug()
-
-	p := tea.NewProgram(r,
-		tea.WithMouseCellMotion(),
-	)
-
+	p := tea.NewProgram(r)
 	if _, err := p.Run(); err != nil {
 		return err
 	}
@@ -257,7 +247,7 @@ func (r *REPL) Run() error {
 }
 
 // nolint:unused
-func debug() error {
+func _debug() error {
 	f, err := tea.LogToFile("debug.log", "debug")
 	if err != nil {
 		return err
