@@ -8,30 +8,30 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Hiku = New()
+var Seaq = New()
 
-// HikuConfig is a slim wrapper around an instance of viper.Viper
-type HikuConfig struct {
+// SeaqConfig is a slim wrapper around an instance of viper.Viper
+type SeaqConfig struct {
 	*viper.Viper
 }
 
-func (hiku *HikuConfig) SearchConfigFile() error {
+func (sc *SeaqConfig) SearchConfigFile() error {
 	// Find home directory.
 	config, err := os.UserConfigDir()
 	if err != nil {
 		return err
 	}
-	hikuConfig := filepath.Join(config, "hiku")
+	cfgPath := filepath.Join(config, "seaq")
 
 	// Set config file name and type
-	hiku.SetConfigName("hiku")
-	hiku.SetConfigType("yaml")
+	sc.SetConfigName("seaq")
+	sc.SetConfigType("yaml")
 
 	// Path to look for the config file in
 	// The order of paths listed is the order in which they will be searched
-	hiku.AddConfigPath("/etc/hiku")
-	hiku.AddConfigPath(hikuConfig)
-	hiku.AddConfigPath(".")
+	sc.AddConfigPath("/etc/seaq")
+	sc.AddConfigPath(cfgPath)
+	sc.AddConfigPath(".")
 
 	return nil
 }

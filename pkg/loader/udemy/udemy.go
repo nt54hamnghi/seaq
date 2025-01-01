@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/nt54hamnghi/hiku/pkg/env"
-	"github.com/nt54hamnghi/hiku/pkg/util/timestamp"
+	"github.com/nt54hamnghi/seaq/pkg/env"
+	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )

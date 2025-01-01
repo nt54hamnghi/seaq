@@ -10,14 +10,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/nt54hamnghi/hiku/cmd/chat"
-	"github.com/nt54hamnghi/hiku/cmd/config"
-	"github.com/nt54hamnghi/hiku/cmd/fetch"
-	"github.com/nt54hamnghi/hiku/cmd/flaggroup"
-	"github.com/nt54hamnghi/hiku/cmd/model"
-	"github.com/nt54hamnghi/hiku/cmd/pattern"
-	"github.com/nt54hamnghi/hiku/pkg/llm"
-	"github.com/nt54hamnghi/hiku/pkg/util"
+	"github.com/nt54hamnghi/seaq/cmd/chat"
+	"github.com/nt54hamnghi/seaq/cmd/config"
+	"github.com/nt54hamnghi/seaq/cmd/fetch"
+	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
+	"github.com/nt54hamnghi/seaq/cmd/model"
+	"github.com/nt54hamnghi/seaq/cmd/pattern"
+	"github.com/nt54hamnghi/seaq/pkg/llm"
+	"github.com/nt54hamnghi/seaq/pkg/util"
 
 	"github.com/spf13/cobra"
 )
@@ -49,14 +49,14 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:          "hiku",
+	Use:          "seaq",
 	Short:        "A cli tool to make learning more fun",
-	Version:      "0.1.4",
+	Version:      "0.1.5",
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	PreRunE:      flaggroup.ValidateGroups(&output),
 	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		hiku := config.Hiku
+		seaq := config.Seaq
 
 		input, err := util.ReadPipedStdin()
 		if err != nil {
@@ -68,18 +68,18 @@ var rootCmd = &cobra.Command{
 		}
 
 		// construct the prompt from pattern and scraped content
-		prompt, err := hiku.GetPrompt()
+		prompt, err := seaq.GetPrompt()
 		if err != nil {
 			cmd.SilenceUsage = true
 			return err
 		}
 
 		if verbose {
-			fmt.Println("Using model:", hiku.Model())
+			fmt.Println("Using model:", seaq.Model())
 		}
 
 		// construct the model
-		model, err := llm.New(hiku.Model())
+		model, err := llm.New(seaq.Model())
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ func init() {
 
 	// flags definition
 	// persistent flags are global and available to all commands
-	pFlags.StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.config/hiku.yaml)")
+	pFlags.StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.config/seaq.yaml)")
 	pFlags.BoolVarP(&verbose, "verbose", "V", false, "verbose output")
 
 	// local flags are only available to the root command
@@ -165,37 +165,37 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() error {
-	// bind the global HikuConfig to a local variable
-	hiku := config.Hiku
+	// bind the global SeaqConfig to a local variable
+	seaq := config.Seaq
 
 	// set the config file if provided otherwise search for it
 	if configFile != "" {
-		hiku.SetConfigFile(configFile)
-	} else if err := hiku.SearchConfigFile(); err != nil {
+		seaq.SetConfigFile(configFile)
+	} else if err := seaq.SearchConfigFile(); err != nil {
 		return err
 	}
 
 	// bind flags to viper
 	flags := rootCmd.Flags()
-	if err := hiku.BindPFlag("pattern.name", flags.Lookup("pattern")); err != nil {
+	if err := seaq.BindPFlag("pattern.name", flags.Lookup("pattern")); err != nil {
 		return err
 	}
-	if err := hiku.BindPFlag("pattern.repo", flags.Lookup("repo")); err != nil {
+	if err := seaq.BindPFlag("pattern.repo", flags.Lookup("repo")); err != nil {
 		return err
 	}
-	if err := hiku.BindPFlag("model.name", flags.Lookup("model")); err != nil {
+	if err := seaq.BindPFlag("model.name", flags.Lookup("model")); err != nil {
 		return err
 	}
 
 	// read in the config file and environment variables
-	hiku.AutomaticEnv()
+	seaq.AutomaticEnv()
 
 	// If a config file is found, read it in.
-	if err := hiku.ReadInConfig(); err != nil {
+	if err := seaq.ReadInConfig(); err != nil {
 		return err
 	}
 	if verbose {
-		fmt.Fprintln(os.Stderr, "Using config file:", hiku.ConfigFileUsed())
+		fmt.Fprintln(os.Stderr, "Using config file:", seaq.ConfigFileUsed())
 	}
 
 	return nil

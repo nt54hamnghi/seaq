@@ -17,22 +17,22 @@ var (
 
 // endregion: --- errors
 
-func New() *HikuConfig {
-	return &HikuConfig{
+func New() *SeaqConfig {
+	return &SeaqConfig{
 		viper.New(),
 	}
 }
 
-func (hiku *HikuConfig) Repo() string {
-	return hiku.GetString("pattern.repo")
+func (sc *SeaqConfig) Repo() string {
+	return sc.GetString("pattern.repo")
 }
 
-func (hiku *HikuConfig) Pattern() string {
-	return hiku.GetString("pattern.name")
+func (sc *SeaqConfig) Pattern() string {
+	return sc.GetString("pattern.name")
 }
 
-func (hiku *HikuConfig) HasPattern(name string) bool {
-	pats, err := hiku.ListPatterns()
+func (sc *SeaqConfig) HasPattern(name string) bool {
+	pats, err := sc.ListPatterns()
 	if err != nil {
 		return false
 	}
@@ -46,21 +46,21 @@ func (hiku *HikuConfig) HasPattern(name string) bool {
 	return false
 }
 
-func (hiku *HikuConfig) UsePattern(name string) error {
-	if !hiku.HasPattern(name) {
+func (sc *SeaqConfig) UsePattern(name string) error {
+	if !sc.HasPattern(name) {
 		return &Unsupported{Type: "pattern", Key: name}
 	}
-	hiku.Set("pattern.name", name)
+	sc.Set("pattern.name", name)
 	return nil
 }
 
-func (hiku *HikuConfig) GetPrompt() (string, error) {
-	pat := hiku.Pattern()
+func (sc *SeaqConfig) GetPrompt() (string, error) {
+	pat := sc.Pattern()
 	if pat == "" {
 		return "", ErrEmptyPattern
 	}
 
-	repo := hiku.Repo()
+	repo := sc.Repo()
 	if repo == "" {
 		return "", ErrEmptyRepo
 	}
@@ -79,8 +79,8 @@ func (hiku *HikuConfig) GetPrompt() (string, error) {
 }
 
 // ListPatterns returns a list of available patterns
-func (hiku *HikuConfig) ListPatterns() ([]string, error) {
-	repo := hiku.Repo()
+func (sc *SeaqConfig) ListPatterns() ([]string, error) {
+	repo := sc.Repo()
 	if repo == "" {
 		return nil, ErrEmptyRepo
 	}

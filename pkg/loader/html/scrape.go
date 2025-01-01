@@ -11,7 +11,7 @@ import (
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/nt54hamnghi/hiku/pkg/util/reqx"
+	"github.com/nt54hamnghi/seaq/pkg/util/reqx"
 )
 
 type scraper interface {

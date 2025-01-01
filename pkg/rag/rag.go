@@ -2,7 +2,7 @@ package rag
 
 import (
 	chroma_go "github.com/amikos-tech/chroma-go/types"
-	"github.com/nt54hamnghi/hiku/pkg/env"
+	"github.com/nt54hamnghi/seaq/pkg/env"
 	"github.com/tmc/langchaingo/vectorstores/chroma"
 )
 
@@ -23,7 +23,7 @@ func NewChromaStore() (*chroma.Store, error) {
 		chroma.WithChromaURL(chromaURL),
 		chroma.WithOpenAIAPIKey(apiKey),
 		chroma.WithDistanceFunction(chroma_go.COSINE),
-		chroma.WithNameSpace("hiku-dev"), // TODO: use UUID
+		chroma.WithNameSpace("seaq-dev"), // TODO: use UUID
 	)
 	if err != nil {
 		return nil, err

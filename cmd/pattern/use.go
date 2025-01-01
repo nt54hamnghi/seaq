@@ -6,7 +6,7 @@ package pattern
 import (
 	"fmt"
 
-	"github.com/nt54hamnghi/hiku/cmd/config"
+	"github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +20,11 @@ var useCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 		name := args[0]
 
-		if err := config.Hiku.UsePattern(name); err != nil {
+		if err := config.Seaq.UsePattern(name); err != nil {
 			return err
 		}
 
-		if err := config.Hiku.WriteConfig(); err != nil {
+		if err := config.Seaq.WriteConfig(); err != nil {
 			return err
 		}
 

@@ -19,8 +19,8 @@ lint:
 alias l := lint
 
 completion:
-    @go run main.go completion zsh > "_hiku"
-    @sudo mv _hiku /usr/share/zsh/site-functions/
+    @go run main.go completion zsh > "_seaq"
+    @sudo mv _seaq /usr/share/zsh/site-functions/
 
 install: completion
     @go install .

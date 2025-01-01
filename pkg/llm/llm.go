@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/nt54hamnghi/hiku/pkg/env"
+	"github.com/nt54hamnghi/seaq/pkg/env"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/anthropic"
 	"github.com/tmc/langchaingo/llms/googleai"

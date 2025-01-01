@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nt54hamnghi/hiku/cmd/config"
-	"github.com/nt54hamnghi/hiku/cmd/model"
-	"github.com/nt54hamnghi/hiku/pkg/llm"
-	"github.com/nt54hamnghi/hiku/pkg/repl"
-	"github.com/nt54hamnghi/hiku/pkg/util"
+	"github.com/nt54hamnghi/seaq/cmd/config"
+	"github.com/nt54hamnghi/seaq/cmd/model"
+	"github.com/nt54hamnghi/seaq/pkg/llm"
+	"github.com/nt54hamnghi/seaq/pkg/repl"
+	"github.com/nt54hamnghi/seaq/pkg/util"
 	"github.com/spf13/cobra"
 	"github.com/tmc/langchaingo/documentloaders"
 	"github.com/tmc/langchaingo/textsplitter"
@@ -26,7 +26,7 @@ var ChatCmd = &cobra.Command{
 	Use:   "chat",
 	Short: "Open a chat session",
 	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		hiku := config.Hiku
+		seaq := config.Seaq
 
 		input, err := util.ReadPipedStdin()
 		if err != nil {
@@ -61,7 +61,7 @@ var ChatCmd = &cobra.Command{
 		}
 
 		// construct model
-		model, err := llm.New(hiku.Model())
+		model, err := llm.New(seaq.Model())
 		if err != nil {
 			return err
 		}
@@ -86,6 +86,6 @@ func init() {
 	flags.StringVarP(&modelName, "model", "m", "", "model to use")
 	_ = ChatCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
 
-	err := config.Hiku.BindPFlag("model.name", flags.Lookup("model"))
+	err := config.Seaq.BindPFlag("model.name", flags.Lookup("model"))
 	cobra.CheckErr(err)
 }
