@@ -71,7 +71,7 @@ func Default() (*REPL, error) {
 		return nil, err
 	}
 
-	model, err := llm.New(llm.Claude35Sonnet)
+	model, err := llm.New(llm.DefaultModel)
 	if err != nil {
 		return nil, err
 	}

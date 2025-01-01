@@ -16,46 +16,59 @@ import (
 
 const (
 	// OpenAI models
-	GPT4o             = "gpt-4o"
-	GPT4Turbo         = "gpt-4-turbo"
-	GPT4Turbo0125     = "gpt-4-0125-preview"
-	GPT4Turbo1106     = "gpt-4-1106-preview"
-	GPT3Dot5Turbo0125 = "gpt-3.5-turbo-0125"
-	GPT3Dot5Turbo1106 = "gpt-3.5-turbo-1106"
+	// https://platform.openai.com/docs/models
+	O1            = "o1"
+	O1Mini        = "o1-mini"
+	O1Preview     = "o1-preview"
+	GPT4o         = "gpt-4o"
+	GPT4oMini     = "gpt-4o-mini"
+	GPT4          = "gpt-4"
+	GPT4Turbo     = "gpt-4-turbo"
+	ChatGPT4o     = "chatgpt-4o-latest"
+	GPT3Dot5Turbo = "gpt-3.5-turbo"
 
 	// Anthropic models
-	Claude35Sonnet = "claude-3-5-sonnet-20240620"
-	Claude3Opus    = "claude-3-opus-20240229"
-	Claude3Sonnet  = "claude-3-sonnet-20240229"
-	Claude3Haiku   = "claude-3-haiku-20240307"
+	// https://docs.anthropic.com/en/docs/about-claude/models
+	Claude3Dot5Sonnet = "claude-3-5-sonnet-latest"
+	Claude3Dot5Haiku  = "claude-3-5-haiku-latest"
+	Claude3Opus       = "claude-3-opus-latest"
+	Claude3Sonnet     = "claude-3-sonnet-20240229"
+	Claude3Haiku      = "claude-3-haiku-20240307"
 
 	// Google models
-	Gemini15Flash = "gemini-1.5-flash"
-	Gemini15Pro   = "gemini-1.5-pro"
-	Gemini1Pro    = "gemini-1.0-pro"
+	// https://ai.google.dev/gemini-api/docs/models/gemini#model-variations
+	Gemini2Dot0FlashExp = "gemini-2.0-flash-exp"
+	Gemini1Dot5Flash    = "gemini-1.5-flash"
+	Gemini1Dot5Flash8B  = "gemini-1.5-flash-8b"
+	Gemini1Dot5Pro      = "gemini-1.5-pro"
 )
+
+const DefaultModel = Claude3Dot5Sonnet
 
 var Models = map[string]map[string]bool{
 	"OpenAI": {
-		GPT4o:             true,
-		GPT4Turbo:         true,
-		GPT4Turbo0125:     true,
-		GPT4Turbo1106:     true,
-		GPT3Dot5Turbo0125: true,
-		GPT3Dot5Turbo1106: true,
+		// O1:            true,
+		// O1Mini:        true,
+		// O1Preview:     true,
+		GPT4o:         true,
+		GPT4oMini:     true,
+		GPT4:          true,
+		GPT4Turbo:     true,
+		ChatGPT4o:     true,
+		GPT3Dot5Turbo: true,
 	},
 	"Anthropic": {
-		Claude35Sonnet: true,
-		Claude3Opus:    true,
-		Claude3Sonnet:  true,
-		Claude3Haiku:   true,
+		Claude3Dot5Sonnet: true,
+		Claude3Dot5Haiku:  true,
+		Claude3Opus:       true,
+		Claude3Sonnet:     true,
+		Claude3Haiku:      true,
 	},
 	"Google": {
-		Gemini15Flash: true,
-		Gemini15Pro:   true,
-		// FIXME: "gemini-1.0-pro" doesn't support system messages
-		// https://ai.google.dev/gemini-api/docs/models/gemini#gemini-1.0-pro
-		// Gemini1Pro:    true,
+		Gemini2Dot0FlashExp: true,
+		Gemini1Dot5Flash:    true,
+		Gemini1Dot5Flash8B:  true,
+		Gemini1Dot5Pro:      true,
 	},
 }
 
