@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/nt54hamnghi/seaq/cmd/config"
@@ -19,73 +20,102 @@ import (
 	"github.com/tmc/langchaingo/textsplitter"
 )
 
-var modelName string
-
-// ChatCmd represents the chat command
-var ChatCmd = &cobra.Command{
-	Use:   "chat",
-	Short: "Open a chat session",
-	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		seaq := config.Seaq
-
-		input, err := util.ReadPipedStdin()
-		if err != nil {
-			if errors.Is(err, util.ErrInteractiveInput) {
-				_ = cmd.Help()
-				return nil
-			}
-			return err
-		}
-
-		ctx := context.Background()
-
-		verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
-		if err != nil {
-			return err
-		}
-		if verbose {
-			fmt.Println("Using model:", modelName)
-		}
-
-		// load the document
-		loader := documentloaders.NewText(strings.NewReader(input))
-		docs, err := loader.LoadAndSplit(
-			ctx,
-			textsplitter.NewRecursiveCharacter(
-				textsplitter.WithChunkSize(750),
-				textsplitter.WithChunkOverlap(100),
-			),
-		)
-		if err != nil {
-			return err
-		}
-
-		// construct model
-		model, err := llm.New(seaq.Model())
-		if err != nil {
-			return err
-		}
-
-		// initialize chatREPL
-		chatREPL, err := repl.New(docs,
-			repl.WithContext(ctx),
-			repl.WithModel(model),
-		)
-		if err != nil {
-			return err
-		}
-
-		return chatREPL.Run()
-	},
+type chatOptions struct {
+	input   string
+	verbose bool
+	model   string
 }
 
-func init() {
-	flags := ChatCmd.Flags()
+func NewChatCmd() *cobra.Command {
+	var opts chatOptions
 
+	cmd := &cobra.Command{
+		Use:   "chat",
+		Short: "Open a chat session",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := opts.parse(cmd, args)
+			switch {
+			case errors.Is(err, util.ErrInteractiveInput):
+				_ = cmd.Help()
+				return nil
+			case err != nil:
+				return err
+			default:
+				return run(cmd.Context(), opts)
+			}
+		},
+	}
+
+	// set up group id for help display
+	cmd.GroupID = "common"
+
+	// set up flags
+	flags := cmd.Flags()
 	flags.SortFlags = false
-	flags.StringVarP(&modelName, "model", "m", "", "model to use")
-	_ = ChatCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
+	flags.StringVarP(&opts.model, "model", "m", "", "model to use")
 
-	err := config.Seaq.BindPFlag("model.name", flags.Lookup("model"))
-	cobra.CheckErr(err)
+	// set up completion for model flag
+	err := cmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	return cmd
+}
+
+func run(ctx context.Context, opts chatOptions) error {
+	if opts.verbose {
+		fmt.Println("Using model:", opts.model)
+	}
+
+	// load the document
+	loader := documentloaders.NewText(strings.NewReader(opts.input))
+	docs, err := loader.LoadAndSplit(ctx,
+		textsplitter.NewRecursiveCharacter(
+			textsplitter.WithChunkSize(750),
+			textsplitter.WithChunkOverlap(100),
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	// construct model
+	// nolint: contextcheck
+	model, err := llm.New(opts.model)
+	if err != nil {
+		return err
+	}
+
+	// initialize chatREPL
+	// nolint: contextcheck
+	chatREPL, err := repl.New(docs,
+		repl.WithContext(ctx),
+		repl.WithModel(model),
+	)
+	if err != nil {
+		return err
+	}
+
+	return chatREPL.Run()
+}
+
+func (opts *chatOptions) parse(cmd *cobra.Command, _ []string) (err error) {
+	input, err := util.ReadPipedStdin()
+	if err != nil {
+		return err
+	}
+
+	verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
+	if err != nil {
+		return err
+	}
+
+	opts.input = input
+	opts.verbose = verbose
+	if opts.model == "" {
+		opts.model = config.Seaq.Model()
+	}
+
+	return nil
 }

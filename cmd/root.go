@@ -143,14 +143,13 @@ func init() {
 
 	// assign commands to groups
 	// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help
-	chat.ChatCmd.GroupID = "common"
 	fetch.FetchCmd.GroupID = "common"
 	pattern.PatternCmd.GroupID = "management"
 	model.ModelCmd.GroupID = "management"
 
 	// add subcommands
 	rootCmd.AddCommand(
-		chat.ChatCmd,
+		chat.NewChatCmd(),
 		fetch.FetchCmd,
 		pattern.PatternCmd,
 		model.ModelCmd,
