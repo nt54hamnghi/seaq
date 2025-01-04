@@ -14,7 +14,7 @@ import (
 func newListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "list",
-		Short:        "List all available models",
+		Short:        "List available models",
 		Aliases:      []string{"ls"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,

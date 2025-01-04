@@ -23,6 +23,7 @@ import (
 
 const version = "0.2.0"
 
+// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help
 var (
 	common = &cobra.Group{
 		Title: "Common Commands:",
@@ -174,16 +175,14 @@ func setupRootCmd(cmd *cobra.Command, opts *rootCmdOpts) {
 
 func addCommand(cmd *cobra.Command) {
 	// assign commands to groups
-	// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help
 	fetch.FetchCmd.GroupID = "common"
-	pattern.PatternCmd.GroupID = "management"
 
 	// add subcommands
 	cmd.AddCommand(
 		chat.NewChatCmd(),
 		model.NewModelCmd(),
 		fetch.FetchCmd,
-		pattern.PatternCmd,
+		pattern.NewPatternCmd(),
 	)
 
 	// add groups
