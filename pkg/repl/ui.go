@@ -27,6 +27,8 @@ type ui struct {
 	prompt   *input.Model
 	renderer *renderer.Renderer
 	spinner  *spinner.Spinner
+	width    int
+	height   int
 }
 
 type REPL struct {
@@ -138,13 +140,15 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		w := msg.Width / 3 * 2
+		r.width = msg.Width
+		r.height = msg.Height
 
+		w := r.width / 3 * 2
+		r.prompt.Width = w
 		r.renderer = renderer.New(
 			glamour.WithStandardStyle(renderer.DefaultStyle),
 			glamour.WithWordWrap(w),
 		)
-		r.prompt.Width = w
 		return r, inputCmd
 	case spin.TickMsg:
 		var spinnerCmd tea.Cmd
@@ -231,8 +235,13 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (r *REPL) View() string {
 	if r.spinner.IsRunning() {
-		padding := strings.Repeat("\n", verticalMargin)
-		return r.renderer.RenderContent(r.spinner.View()) + padding
+		spinner := r.renderer.RenderContent(r.spinner.View())
+
+		spinnerHeight := strings.Count(spinner, "\n")
+		margin := min(verticalMargin, r.height-(spinnerHeight+2))
+		padding := strings.Repeat("\n", margin)
+
+		return spinner + padding
 	}
 
 	if len(r.chain.buffer) != 0 {
