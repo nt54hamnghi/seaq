@@ -6,7 +6,6 @@ package fetch
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -25,8 +24,8 @@ type recursive struct {
 }
 
 func (r *recursive) Init(cmd *cobra.Command) { // nolint: revive
-	pageCmd.Flags().BoolVarP(&r.Recursive, "recursive", "r", false, "recursively fetch content")
-	pageCmd.Flags().IntVarP(&r.MaxPages, "max-pages", "m", 5, "maximum number of pages to fetch")
+	cmd.Flags().BoolVarP(&r.Recursive, "recursive", "r", false, "recursively fetch content")
+	cmd.Flags().IntVarP(&r.MaxPages, "max-pages", "m", 5, "maximum number of pages to fetch")
 }
 
 func (r *recursive) Validate(cmd *cobra.Command, args []string) error { // nolint: revive
@@ -41,65 +40,46 @@ func (r *recursive) Validate(cmd *cobra.Command, args []string) error { // nolin
 
 // endregion: --- flag groups
 
-var (
-	selector string
-	auto     bool
-	rc       recursive
-)
-
-// pageCmd represents the scrape command
-var pageCmd = &cobra.Command{
-	Use:          "page [url]",
-	Short:        "Get HTML data from a URL and convert it to markdown",
-	Aliases:      []string{"pg", "p"},
-	Args:         validatePageArgs,
-	SilenceUsage: true,
-	PreRunE:      flaggroup.ValidateGroups(&rc, &output),
-	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		var htmlLoader documentloaders.Loader
-
-		baseLoader := html.NewLoader(
-			html.WithURL(args[0]),
-			html.WithSelector(selector),
-			html.WithAuto(auto),
-		)
-
-		if rc.Recursive {
-			htmlLoader = html.NewRecursiveLoader(
-				html.WithHTMLLoader(baseLoader),
-				html.WithMaxPages(rc.MaxPages),
-			)
-		} else {
-			htmlLoader = baseLoader
-		}
-
-		dest, err := output.Writer()
-		if err != nil {
-			return err
-		}
-		defer dest.Close()
-
-		return loader.LoadAndWrite(ctx, htmlLoader, dest, asJSON)
-	},
+type pageOptions struct {
+	url       string
+	selector  string
+	auto      bool
+	recursive recursive
+	output    flaggroup.Output
+	asJSON    bool
 }
 
-func init() {
-	flags := pageCmd.Flags()
+func newPageCmd() *cobra.Command {
+	var opts pageOptions
 
+	cmd := &cobra.Command{
+		Use:          "page [url]",
+		Short:        "Get HTML data from a URL and convert it to markdown",
+		Aliases:      []string{"pg", "p"},
+		Args:         validatePageArgs,
+		SilenceUsage: true,
+		PreRunE:      flaggroup.ValidateGroups(&opts.recursive, &opts.output),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := opts.parse(cmd, args); err != nil {
+				return err
+			}
+			return pageRun(cmd.Context(), opts)
+		},
+	}
+
+	flags := cmd.Flags()
 	flags.SortFlags = false
-	flags.BoolVarP(&auto, "auto", "a", false, "automatically detect content")
-	flags.StringVarP(&selector, "selector", "s", "", "filter content by selector")
-	flags.BoolVarP(&asJSON, "json", "j", false, "output as JSON")
+	flags.BoolVarP(&opts.auto, "auto", "a", false, "automatically detect content")
+	flags.StringVarP(&opts.selector, "selector", "s", "", "filter content by selector")
+	flags.BoolVarP(&opts.asJSON, "json", "j", false, "output as JSON")
+	flaggroup.InitGroups(cmd, &opts.recursive, &opts.output)
 
-	flaggroup.InitGroups(pageCmd, &rc, &output)
+	return cmd
 }
 
 func validatePageArgs(cmd *cobra.Command, args []string) error { // nolint: revive
-	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 arg(s), received %d", len(args))
+	if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+		return err
 	}
 
 	if !govalidator.IsURL(args[0]) {
@@ -107,4 +87,39 @@ func validatePageArgs(cmd *cobra.Command, args []string) error { // nolint: revi
 	}
 
 	return nil
+}
+
+func (opts *pageOptions) parse(_ *cobra.Command, args []string) error {
+	opts.url = args[0]
+	return nil
+}
+
+func pageRun(ctx context.Context, opts pageOptions) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	var htmlLoader documentloaders.Loader
+
+	baseLoader := html.NewLoader(
+		html.WithURL(opts.url),
+		html.WithSelector(opts.selector),
+		html.WithAuto(opts.auto),
+	)
+
+	if opts.recursive.Recursive {
+		htmlLoader = html.NewRecursiveLoader(
+			html.WithHTMLLoader(baseLoader),
+			html.WithMaxPages(opts.recursive.MaxPages),
+		)
+	} else {
+		htmlLoader = baseLoader
+	}
+
+	dest, err := opts.output.Writer()
+	if err != nil {
+		return err
+	}
+	defer dest.Close()
+
+	return loader.LoadAndWrite(ctx, htmlLoader, dest, opts.asJSON)
 }

@@ -4,32 +4,28 @@ Copyright © 2024 Nghi Nguyen
 package fetch
 
 import (
-	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
 	"github.com/spf13/cobra"
 )
 
-var (
-	output   flaggroup.Output
-	interval flaggroup.Interval
-	asJSON   bool
-)
+func NewFetchCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "fetch",
+		Short:        "Fetch data and output text",
+		Aliases:      []string{"fet", "f"},
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		GroupID:      "common",
+		RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
+			return cmd.Usage()
+		},
+	}
 
-// FetchCmd represents the scrape command
-var FetchCmd = &cobra.Command{
-	Use:          "fetch",
-	Short:        "Fetch data and output text",
-	Long:         ``,
-	Aliases:      []string{"fet", "f"},
-	Args:         cobra.NoArgs,
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		return cmd.Help()
-	},
-}
+	cmd.AddCommand(
+		newPageCmd(),
+		newUdemyCmd(),
+		newXCmd(),
+		newYoutubeCmd(),
+	)
 
-func init() {
-	FetchCmd.AddCommand(pageCmd)
-	FetchCmd.AddCommand(udemyCmd)
-	FetchCmd.AddCommand(xCmd)
-	FetchCmd.AddCommand(youtubeCmd)
+	return cmd
 }

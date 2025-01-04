@@ -59,6 +59,26 @@ func NewChatCmd() *cobra.Command {
 	return cmd
 }
 
+func (opts *chatOptions) parse(cmd *cobra.Command, _ []string) (err error) {
+	input, err := util.ReadPipedStdin()
+	if err != nil {
+		return err
+	}
+
+	verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
+	if err != nil {
+		return err
+	}
+
+	opts.input = input
+	opts.verbose = verbose
+	if opts.model == "" {
+		opts.model = config.Seaq.Model()
+	}
+
+	return nil
+}
+
 func run(ctx context.Context, opts chatOptions) error {
 	if opts.verbose {
 		fmt.Println("Using model:", opts.model)
@@ -94,24 +114,4 @@ func run(ctx context.Context, opts chatOptions) error {
 	}
 
 	return chatREPL.Run()
-}
-
-func (opts *chatOptions) parse(cmd *cobra.Command, _ []string) (err error) {
-	input, err := util.ReadPipedStdin()
-	if err != nil {
-		return err
-	}
-
-	verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
-	if err != nil {
-		return err
-	}
-
-	opts.input = input
-	opts.verbose = verbose
-	if opts.model == "" {
-		opts.model = config.Seaq.Model()
-	}
-
-	return nil
 }

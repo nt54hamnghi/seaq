@@ -5,7 +5,6 @@ package fetch
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
@@ -14,50 +13,45 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var metadata bool
-
-// youtubeCmd represents the caption command
-var youtubeCmd = &cobra.Command{
-	Use:          "youtube [url|videoId]",
-	Short:        "Get caption and description of a YouTube video",
-	Aliases:      []string{"ytb", "y"},
-	Args:         youTubeArgs,
-	SilenceUsage: true,
-	PreRunE:      flaggroup.ValidateGroups(&output),
-	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		youtubeLoader := youtube.NewYouTubeLoader(
-			youtube.WithVideoID(args[0]),
-			youtube.WithMetadata(metadata),
-			youtube.WithStart(interval.Start),
-			youtube.WithEnd(interval.End),
-		)
-
-		dest, err := output.Writer()
-		if err != nil {
-			return err
-		}
-		defer dest.Close()
-
-		return loader.LoadAndWrite(ctx, youtubeLoader, dest, asJSON)
-	},
+type youtubeOptions struct {
+	videoID  string
+	metadata bool
+	output   flaggroup.Output
+	interval flaggroup.Interval
+	asJSON   bool
 }
 
-func init() {
-	flags := youtubeCmd.Flags()
+func newYoutubeCmd() *cobra.Command {
+	var opts youtubeOptions
 
+	cmd := &cobra.Command{
+		Use:          "youtube [url|videoId]",
+		Short:        "Get captions and metadata from YouTube videos",
+		Aliases:      []string{"ytb", "y"},
+		Args:         youtubeArgs,
+		SilenceUsage: true,
+		PreRunE:      flaggroup.ValidateGroups(&opts.output, &opts.interval),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := opts.parse(cmd, args); err != nil {
+				return err
+			}
+			return youtubeRun(cmd.Context(), opts)
+		},
+	}
+
+	// set up flags
+	flags := cmd.Flags()
 	flags.SortFlags = false
-	flags.BoolVarP(&metadata, "metadata", "m", false, "to include metadata")
-	flags.BoolVarP(&asJSON, "json", "j", false, "output as JSON")
+	flags.BoolVarP(&opts.metadata, "metadata", "m", false, "to include metadata")
+	flags.BoolVarP(&opts.asJSON, "json", "j", false, "output as JSON")
+	flaggroup.InitGroups(cmd, &opts.output, &opts.interval)
 
-	flaggroup.InitGroups(youtubeCmd, &output, &interval)
+	return cmd
 }
 
-func youTubeArgs(_ *cobra.Command, args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 arg(s), received %d", len(args))
+func youtubeArgs(cmd *cobra.Command, args []string) error {
+	if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+		return err
 	}
 
 	vid, err := youtube.ResolveVideoID(args[0])
@@ -68,4 +62,29 @@ func youTubeArgs(_ *cobra.Command, args []string) error {
 	args[0] = vid
 
 	return nil
+}
+
+func (opts *youtubeOptions) parse(_ *cobra.Command, args []string) error {
+	opts.videoID = args[0]
+	return nil
+}
+
+func youtubeRun(ctx context.Context, opts youtubeOptions) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	youtubeLoader := youtube.NewYouTubeLoader(
+		youtube.WithVideoID(opts.videoID),
+		youtube.WithMetadata(opts.metadata),
+		youtube.WithStart(opts.interval.Start),
+		youtube.WithEnd(opts.interval.End),
+	)
+
+	dest, err := opts.output.Writer()
+	if err != nil {
+		return err
+	}
+	defer dest.Close()
+
+	return loader.LoadAndWrite(ctx, youtubeLoader, dest, opts.asJSON)
 }

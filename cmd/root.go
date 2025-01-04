@@ -21,22 +21,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2.0"
+const version = "0.2.1"
 
-// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help
-var (
-	common = &cobra.Group{
-		Title: "Common Commands:",
-		ID:    "common",
-	}
-
-	management = &cobra.Group{
-		Title: "Management Commands:",
-		ID:    "management",
-	}
-)
-
-type rootCmdOpts struct {
+type rootOptions struct {
 	configFile  string
 	hint        string
 	input       string
@@ -49,7 +36,7 @@ type rootCmdOpts struct {
 }
 
 func New() *cobra.Command {
-	var opts rootCmdOpts
+	var opts rootOptions
 	cmd := &cobra.Command{
 		Use:          "seaq",
 		Short:        "A cli tool to make learning more fun",
@@ -69,12 +56,13 @@ func New() *cobra.Command {
 		},
 	}
 
-	setupRootCmd(cmd, &opts)
+	setupFlags(cmd, &opts)
+	addCommands(cmd)
 
 	return cmd
 }
 
-func (opts *rootCmdOpts) parse(cmd *cobra.Command, _ []string) error {
+func (opts *rootOptions) parse(cmd *cobra.Command, _ []string) error {
 	input, err := util.ReadPipedStdin()
 	if err != nil {
 		return err
@@ -99,7 +87,7 @@ func (opts *rootCmdOpts) parse(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func run(ctx context.Context, opts rootCmdOpts) error {
+func run(ctx context.Context, opts rootOptions) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
@@ -137,7 +125,7 @@ func run(ctx context.Context, opts rootCmdOpts) error {
 	return llm.CreateStreamCompletion(ctx, model, dest, msgs)
 }
 
-func setupRootCmd(cmd *cobra.Command, opts *rootCmdOpts) {
+func setupFlags(cmd *cobra.Command, opts *rootOptions) {
 	// register init functions to run before any command (subcommand included) executes
 	cobra.OnInitialize(func() {
 		cobra.CheckErr(initConfig(cmd, opts))
@@ -169,32 +157,28 @@ func setupRootCmd(cmd *cobra.Command, opts *rootCmdOpts) {
 
 	// flag groups
 	flaggroup.InitGroups(cmd, &opts.output)
-
-	addCommand(cmd)
 }
 
-func addCommand(cmd *cobra.Command) {
-	// assign commands to groups
-	fetch.FetchCmd.GroupID = "common"
-
+func addCommands(cmd *cobra.Command) {
 	// add subcommands
 	cmd.AddCommand(
 		chat.NewChatCmd(),
 		model.NewModelCmd(),
-		fetch.FetchCmd,
+		fetch.NewFetchCmd(),
 		pattern.NewPatternCmd(),
 	)
 
 	// add groups
+	// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help
 	cmd.AddGroup(
-		common,
-		management,
+		&cobra.Group{Title: "Common Commands:", ID: "common"},
+		&cobra.Group{Title: "Management Commands:", ID: "management"},
 	)
 }
 
 // initConfig sets up the application configuration and loads config values
 // from files, flags, and environment variables
-func initConfig(cmd *cobra.Command, opts *rootCmdOpts) error {
+func initConfig(cmd *cobra.Command, opts *rootOptions) error {
 	// bind the global SeaqConfig to a local variable
 	seaq := config.Seaq
 

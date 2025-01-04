@@ -5,7 +5,6 @@ package fetch
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
@@ -14,51 +13,42 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var onlyTweet bool
-
-// xCmd represents the x command
-var xCmd = &cobra.Command{
-	Use:          "x [url|videoId]",
-	Short:        "Get thread or tweet from x.com",
-	Args:         xArgs,
-	PreRunE:      flaggroup.ValidateGroups(&output),
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		tid := args[0]
-
-		xLoader, err := x.NewXLoader(
-			x.WithTweetID(tid),
-			x.WithoutReply(onlyTweet),
-		)
-		if err != nil {
-			return err
-		}
-
-		dest, err := output.Writer()
-		if err != nil {
-			return err
-		}
-		defer dest.Close()
-
-		return loader.LoadAndWrite(ctx, xLoader, dest, asJSON)
-	},
+type xOptions struct {
+	tweetID string
+	single  bool
+	output  flaggroup.Output
+	asJSON  bool
 }
 
-func init() {
-	flags := xCmd.Flags()
+func newXCmd() *cobra.Command {
+	var opts xOptions
 
+	// cmd represents the x command
+	cmd := &cobra.Command{
+		Use:          "x [url|videoId]",
+		Short:        "Get thread or tweet from x.com",
+		Args:         xArgs,
+		PreRunE:      flaggroup.ValidateGroups(&opts.output),
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := opts.parse(cmd, args); err != nil {
+				return err
+			}
+			return xRun(cmd.Context(), opts)
+		},
+	}
+
+	flags := cmd.Flags()
 	flags.SortFlags = false
+	flags.BoolVar(&opts.single, "tweet", false, "get a single tweet")
+	flags.BoolVarP(&opts.asJSON, "json", "j", false, "output as JSON")
 
-	flags.BoolVar(&onlyTweet, "tweet", false, "get a single tweet")
-	flags.BoolVarP(&asJSON, "json", "j", false, "output as JSON")
+	return cmd
 }
 
-func xArgs(_ *cobra.Command, args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 arg(s), received %d", len(args))
+func xArgs(cmd *cobra.Command, args []string) error {
+	if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+		return err
 	}
 
 	tid, err := x.ResolveTweetID(args[0])
@@ -69,4 +59,30 @@ func xArgs(_ *cobra.Command, args []string) error {
 	args[0] = tid
 
 	return nil
+}
+
+func (opts *xOptions) parse(_ *cobra.Command, args []string) error {
+	opts.tweetID = args[0]
+	return nil
+}
+
+func xRun(ctx context.Context, opts xOptions) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	xLoader, err := x.NewXLoader(
+		x.WithTweetID(opts.tweetID),
+		x.WithoutReply(opts.single),
+	)
+	if err != nil {
+		return err
+	}
+
+	dest, err := opts.output.Writer()
+	if err != nil {
+		return err
+	}
+	defer dest.Close()
+
+	return loader.LoadAndWrite(ctx, xLoader, dest, opts.asJSON)
 }
