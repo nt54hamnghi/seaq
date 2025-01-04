@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/nt54hamnghi/seaq/cmd/chat"
@@ -22,18 +21,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// region: --- flags
+const version = "0.2.0"
 
 var (
-	configFile  string
-	hint        string
-	modelName   string
-	noStream    bool
-	output      flaggroup.Output
-	patternName string
-	patternRepo string
-	verbose     bool
-
 	common = &cobra.Group{
 		Title: "Common Commands:",
 		ID:    "common",
@@ -45,102 +35,145 @@ var (
 	}
 )
 
-// endregion: --- flags
+type rootCmdOpts struct {
+	configFile  string
+	hint        string
+	input       string
+	model       string
+	noStream    bool
+	output      flaggroup.Output
+	pattern     string
+	patternRepo string
+	verbose     bool
+}
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:          "seaq",
-	Short:        "A cli tool to make learning more fun",
-	Version:      "0.2.0",
-	Args:         cobra.NoArgs,
-	SilenceUsage: true,
-	PreRunE:      flaggroup.ValidateGroups(&output),
-	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		seaq := config.Seaq
-
-		input, err := util.ReadPipedStdin()
-		if err != nil {
-			if errors.Is(err, util.ErrInteractiveInput) {
+func New() *cobra.Command {
+	var opts rootCmdOpts
+	cmd := &cobra.Command{
+		Use:          "seaq",
+		Short:        "A cli tool to make learning more fun",
+		Version:      version,
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		PreRunE:      flaggroup.ValidateGroups(&opts.output),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			switch err := opts.parse(cmd, args); {
+			case errors.Is(err, util.ErrInteractiveInput):
 				_ = cmd.Help()
 				return nil
+			case err != nil:
+				return err
+			default:
+				return run(cmd.Context(), opts)
 			}
-			return err
-		}
-
-		// construct the prompt from pattern and scraped content
-		prompt, err := seaq.GetPrompt()
-		if err != nil {
-			cmd.SilenceUsage = true
-			return err
-		}
-
-		if verbose {
-			fmt.Println("Using model:", seaq.Model())
-		}
-
-		// construct the model
-		model, err := llm.New(seaq.Model())
-		if err != nil {
-			return err
-		}
-
-		dest, err := output.Writer()
-		if err != nil {
-			return err
-		}
-		defer dest.Close()
-
-		// run the completion
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		msgs := llm.PrepareMessages(prompt, input, hint)
-
-		if noStream {
-			return llm.CreateCompletion(ctx, model, dest, msgs)
-		}
-		return llm.CreateStreamCompletion(ctx, model, dest, msgs)
-	},
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
+		},
 	}
+
+	setupRootCmd(cmd, &opts)
+
+	return cmd
 }
 
-func init() {
-	// init viper config and register it with cobra
+func (opts *rootCmdOpts) parse(cmd *cobra.Command, _ []string) error {
+	input, err := util.ReadPipedStdin()
+	if err != nil {
+		return err
+	}
+	configFile, err := cmd.PersistentFlags().GetString("config")
+	if err != nil {
+		return err
+	}
+	verbose, err := cmd.PersistentFlags().GetBool("verbose")
+	if err != nil {
+		return err
+	}
+
+	seaq := config.Seaq
+
+	opts.configFile = configFile
+	opts.input = input
+	opts.model = seaq.Model()
+	opts.pattern = seaq.Pattern()
+	opts.verbose = verbose
+
+	return nil
+}
+
+func run(ctx context.Context, opts rootCmdOpts) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	if opts.verbose {
+		fmt.Printf("Model: %s\n", opts.model)
+		fmt.Printf("Pattern: %s\n", opts.pattern)
+		fmt.Printf("Config file: %s\n", config.Seaq.ConfigFileUsed())
+		fmt.Println("--------------------------------")
+	}
+
+	// construct the prompt from pattern and scraped content
+	prompt, err := config.Seaq.GetPrompt()
+	if err != nil {
+		return err
+	}
+
+	// construct the model
+	// nolint: contextcheck
+	model, err := llm.New(opts.model)
+	if err != nil {
+		return err
+	}
+
+	dest, err := opts.output.Writer()
+	if err != nil {
+		return err
+	}
+	defer dest.Close()
+
+	// run the completion
+	msgs := llm.PrepareMessages(prompt, opts.input, opts.hint)
+	if opts.noStream {
+		return llm.CreateCompletion(ctx, model, dest, msgs)
+	}
+	return llm.CreateStreamCompletion(ctx, model, dest, msgs)
+}
+
+func setupRootCmd(cmd *cobra.Command, opts *rootCmdOpts) {
+	// register init functions to run before any command (subcommand included) executes
 	cobra.OnInitialize(func() {
-		cobra.CheckErr(initConfig())
+		cobra.CheckErr(initConfig(cmd, opts))
 	})
 
-	// flags setting
-	flags := rootCmd.Flags()
-	pFlags := rootCmd.PersistentFlags()
-
-	// flags definition
 	// persistent flags are global and available to all commands
-	pFlags.StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.config/seaq.yaml)")
-	pFlags.BoolVarP(&verbose, "verbose", "V", false, "verbose output")
+	pFlags := cmd.PersistentFlags()
+	pFlags.StringP("config", "c", "", "config file (default is $HOME/.config/seaq.yaml)")
+	pFlags.BoolP("verbose", "V", false, "verbose output")
 
-	// local flags are only available to the root command
+	// local flags are only available to the current command
+	flags := cmd.Flags()
 	flags.SortFlags = false
-	flags.StringVarP(&hint, "hint", "i", "", "optional context to guide the LLM's focus")
-	flags.BoolVar(&noStream, "no-stream", false, "disable streaming mode")
-	flags.StringVarP(&patternRepo, "repo", "r", "", "path to the pattern repository")
-	flags.StringVarP(&patternName, "pattern", "p", "", "pattern to use")
-	flags.StringVarP(&modelName, "model", "m", "", "model to use")
+	flags.StringVarP(&opts.hint, "hint", "i", "", "optional context to guide the LLM's focus")
+	flags.StringVarP(&opts.model, "model", "m", "", "model to use")
+	flags.BoolVar(&opts.noStream, "no-stream", false, "disable streaming mode")
+	flags.StringVarP(&opts.patternRepo, "repo", "r", "", "path to the pattern repository")
+	flags.StringVarP(&opts.pattern, "pattern", "p", "", "pattern to use")
 
 	// register completion function
-	_ = rootCmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
-	_ = rootCmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
+	err := cmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+	err = cmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
 
 	// flag groups
-	flaggroup.InitGroups(rootCmd, &output)
+	flaggroup.InitGroups(cmd, &opts.output)
 
+	addCommand(cmd)
+}
+
+func addCommand(cmd *cobra.Command) {
 	// assign commands to groups
 	// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help
 	fetch.FetchCmd.GroupID = "common"
@@ -148,7 +181,7 @@ func init() {
 	model.ModelCmd.GroupID = "management"
 
 	// add subcommands
-	rootCmd.AddCommand(
+	cmd.AddCommand(
 		chat.NewChatCmd(),
 		fetch.FetchCmd,
 		pattern.PatternCmd,
@@ -156,26 +189,27 @@ func init() {
 	)
 
 	// add groups
-	rootCmd.AddGroup(
+	cmd.AddGroup(
 		common,
 		management,
 	)
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() error {
+// initConfig sets up the application configuration and loads config values
+// from files, flags, and environment variables
+func initConfig(cmd *cobra.Command, opts *rootCmdOpts) error {
 	// bind the global SeaqConfig to a local variable
 	seaq := config.Seaq
 
 	// set the config file if provided otherwise search for it
-	if configFile != "" {
-		seaq.SetConfigFile(configFile)
+	if opts.configFile != "" {
+		seaq.SetConfigFile(opts.configFile)
 	} else if err := seaq.SearchConfigFile(); err != nil {
 		return err
 	}
 
 	// bind flags to viper
-	flags := rootCmd.Flags()
+	flags := cmd.Flags()
 	if err := seaq.BindPFlag("pattern.name", flags.Lookup("pattern")); err != nil {
 		return err
 	}
@@ -192,9 +226,6 @@ func initConfig() error {
 	// If a config file is found, read it in.
 	if err := seaq.ReadInConfig(); err != nil {
 		return err
-	}
-	if verbose {
-		fmt.Fprintln(os.Stderr, "Using config file:", seaq.ConfigFileUsed())
 	}
 
 	return nil

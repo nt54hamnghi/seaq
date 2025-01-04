@@ -33,8 +33,7 @@ func NewChatCmd() *cobra.Command {
 		Use:   "chat",
 		Short: "Open a chat session",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := opts.parse(cmd, args)
-			switch {
+			switch err := opts.parse(cmd, args); {
 			case errors.Is(err, util.ErrInteractiveInput):
 				_ = cmd.Help()
 				return nil
