@@ -19,7 +19,7 @@ import (
 	"github.com/tmc/langchaingo/vectorstores"
 )
 
-const defaultMargin = 20
+const defaultMargin = 10
 
 var verticalMargin = defaultMargin
 

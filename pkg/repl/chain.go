@@ -14,23 +14,21 @@ import (
 )
 
 const defaultTemplate = `
-Use the provided context to answer the following question:
-
-Rules:
-1. Give concise, direct, easy to understand answers
-2. If the context is relevant, base your answer on it, avoid using information not in the context
-3. Avoid any meta-references (like "the context shows", "based on", "it mentions", etc.)
-4. If the context is irrelevant, say "The context is not relevant" and answer from your general knowledge
-5. If you don't know the answer, say "I don't know" - don't speculate
-6. For basic greetings or conversational remarks, respond naturally
-7. Stay factual and avoid unnecessary elaboration
-8. Format your answer in Markdown.
+Use the provided context to answer the following question: {{.question}}
 
 Context: {{.input_documents}}
 
-Question: {{.question}}
-
-Helpful Answer:`
+Rules:
+1. Give easy-to-understand answers based on the context
+2. Avoid using information not in the context unless explicitly asked
+3. Avoid any meta-references (like "the context shows", "based on", "it mentions", etc.)
+4. If the context is irrelevant to {{.question}}
+	4.1. If {{.question}} is a basic greeting or conversational remark, respond naturally, don't need to point out.
+	4.2. Otherwise, say "The context is not relevant to your question, I'll answer based on my knowledge"
+	4.3. And answer based on the best of your knowledge
+	4.4. If you truly don't know the answer, say "I don't know" - don't speculate
+5. Format your answer in Markdown.
+`
 
 var ErrNilStream = errors.New("unexpected nil stream")
 
@@ -65,7 +63,7 @@ func newChain(model llms.Model, store vectorstores.VectorStore) *chain {
 
 	condenseChain := chains.LoadCondenseQuestionGenerator(model)
 
-	retriever := vectorstores.ToRetriever(store, 5,
+	retriever := vectorstores.ToRetriever(store, 10,
 		vectorstores.WithScoreThreshold(0.7),
 	)
 

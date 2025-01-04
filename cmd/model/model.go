@@ -24,6 +24,7 @@ func NewModelCmd() *cobra.Command {
 	cmd.AddCommand(
 		newUseCmd(),
 		newListCmd(),
+		newViewCmd(),
 	)
 
 	return cmd
