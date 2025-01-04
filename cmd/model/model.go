@@ -8,25 +8,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// modelCmd represents the model command
-var ModelCmd = &cobra.Command{
-	Use:          "model",
-	Short:        "Manage models",
-	Aliases:      []string{"mdl", "m"},
-	Args:         cobra.NoArgs,
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
-		return cmd.Usage()
-	},
-}
+func NewModelCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "model",
+		Short:        "Manage models",
+		Aliases:      []string{"mdl", "m"},
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		GroupID:      "management",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return cmd.Usage()
+		},
+	}
 
-func init() {
-	ModelCmd.AddCommand(
-		useCmd,
-		listCmd,
+	cmd.AddCommand(
+		newUseCmd(),
+		newListCmd(),
 	)
+
+	return cmd
 }
 
-func CompleteModelArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) { // nolint: revive
+// nolint: revive
+func CompleteModelArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return config.Seaq.ListModels(), cobra.ShellCompDirectiveNoFileComp
 }

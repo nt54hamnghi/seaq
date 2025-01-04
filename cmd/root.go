@@ -59,8 +59,7 @@ func New() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch err := opts.parse(cmd, args); {
 			case errors.Is(err, util.ErrInteractiveInput):
-				_ = cmd.Help()
-				return nil
+				return cmd.Usage()
 			case err != nil:
 				return err
 			default:
@@ -178,14 +177,13 @@ func addCommand(cmd *cobra.Command) {
 	// https://github.com/spf13/cobra/blob/main/site/content/user_guide.md#grouping-commands-in-help
 	fetch.FetchCmd.GroupID = "common"
 	pattern.PatternCmd.GroupID = "management"
-	model.ModelCmd.GroupID = "management"
 
 	// add subcommands
 	cmd.AddCommand(
 		chat.NewChatCmd(),
+		model.NewModelCmd(),
 		fetch.FetchCmd,
 		pattern.PatternCmd,
-		model.ModelCmd,
 	)
 
 	// add groups

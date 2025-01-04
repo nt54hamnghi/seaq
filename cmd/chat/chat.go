@@ -30,13 +30,13 @@ func NewChatCmd() *cobra.Command {
 	var opts chatOptions
 
 	cmd := &cobra.Command{
-		Use:   "chat",
-		Short: "Open a chat session",
+		Use:     "chat",
+		Short:   "Open a chat session",
+		GroupID: "common",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch err := opts.parse(cmd, args); {
 			case errors.Is(err, util.ErrInteractiveInput):
-				_ = cmd.Help()
-				return nil
+				return cmd.Usage()
 			case err != nil:
 				return err
 			default:
@@ -44,9 +44,6 @@ func NewChatCmd() *cobra.Command {
 			}
 		},
 	}
-
-	// set up group id for help display
-	cmd.GroupID = "common"
 
 	// set up flags
 	flags := cmd.Flags()
