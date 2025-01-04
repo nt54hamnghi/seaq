@@ -19,6 +19,10 @@ import (
 	"github.com/tmc/langchaingo/vectorstores"
 )
 
+const defaultMargin = 20
+
+var verticalMargin = defaultMargin
+
 type ui struct {
 	prompt   *input.Model
 	renderer *renderer.Renderer
@@ -193,6 +197,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if output != "" {
 			output = r.renderer.RenderContent(r.chain.buffer)
+			verticalMargin = strings.Count(output, "\n") + defaultMargin
 			cmds = append(cmds, tea.Println(output))
 		}
 
@@ -226,7 +231,8 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (r *REPL) View() string {
 	if r.spinner.IsRunning() {
-		return r.renderer.RenderContent(r.spinner.View() + "\n")
+		padding := strings.Repeat("\n", verticalMargin)
+		return r.renderer.RenderContent(r.spinner.View()) + padding
 	}
 
 	if len(r.chain.buffer) != 0 {
