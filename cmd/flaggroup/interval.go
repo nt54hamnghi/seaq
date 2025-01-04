@@ -1,6 +1,8 @@
 package flaggroup
 
 import (
+	"errors"
+
 	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/spf13/cobra"
 )
@@ -11,6 +13,9 @@ type Interval struct {
 }
 
 func (i *Interval) Validate(cmd *cobra.Command, args []string) error { // nolint: revive
+	if i.Start.AsDuration() > i.End.AsDuration() {
+		return errors.New("start time cannot be after end time")
+	}
 	return nil
 }
 
