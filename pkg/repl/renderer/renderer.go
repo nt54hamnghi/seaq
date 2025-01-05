@@ -90,7 +90,7 @@ const helpMessage = `**Commands:**
 - /c, /clear : Clear the terminal
 
 **Keyboard Shortcuts:**
-- ↑/↓        : Navigate in history
+- ↑/↓        : Navigate input history
 - ctrl+c/esc : Exit or interrupt command execution
 `
 
