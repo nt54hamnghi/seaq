@@ -21,9 +21,10 @@ import (
 )
 
 type chatOptions struct {
-	input   string
-	verbose bool
-	model   string
+	input    string
+	model    string
+	noStream bool
+	verbose  bool
 }
 
 func NewChatCmd() *cobra.Command {
@@ -49,6 +50,7 @@ func NewChatCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.SortFlags = false
 	flags.StringVarP(&opts.model, "model", "m", "", "model to use")
+	flags.BoolVar(&opts.noStream, "no-stream", false, "disable streaming mode")
 
 	// set up completion for model flag
 	err := cmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
@@ -108,6 +110,7 @@ func run(ctx context.Context, opts chatOptions) error {
 	chatREPL, err := repl.New(docs,
 		repl.WithContext(ctx),
 		repl.WithModel(model),
+		repl.WithNoStream(opts.noStream),
 	)
 	if err != nil {
 		return err

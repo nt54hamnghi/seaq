@@ -15,19 +15,17 @@ import (
 
 const defaultTemplate = `
 Use the provided context to answer the following question: {{.question}}
-
 Context: {{.input_documents}}
-
 Rules:
-1. Give easy-to-understand answers based on the context
+1. Give clear and easy-to-understand answers based on the context
 2. Avoid using information not in the context unless explicitly asked
 3. Avoid any meta-references (like "the context shows", "based on", "it mentions", etc.)
-4. If the context is irrelevant to {{.question}}
-	4.1. If {{.question}} is a basic greeting or conversational remark, respond naturally, don't need to point out.
-	4.2. Otherwise, say "The context is not relevant to your question, I'll answer based on my knowledge"
-	4.3. And answer based on the best of your knowledge
-	4.4. If you truly don't know the answer, say "I don't know" - don't speculate
-5. Format your answer in Markdown.
+4. If the context is irrelevant to {{.question}}:
+    4.1. For greetings or social pleasantries, respond naturally in conversational tone
+    4.2. Otherwise, say "The context is not relevant to your question, I'll answer based on my knowledge"
+    4.3. Then provide your best answer based on general knowledge
+    4.4. If uncertain, simply say "I don't know" - avoid speculation
+5. Format your answer in Markdown
 `
 
 var ErrNilStream = errors.New("unexpected nil stream")

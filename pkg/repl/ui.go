@@ -33,10 +33,15 @@ type ui struct {
 
 type REPL struct {
 	ui
+
+	// main components
 	model llms.Model
 	store vectorstores.VectorStore
 	chain *chain
 	ctx   context.Context
+
+	// other options
+	noStream bool
 }
 
 type Option func(*REPL) error
@@ -67,6 +72,13 @@ func WithContext(ctx context.Context) Option {
 			return errors.New("context is nil")
 		}
 		r.ctx = ctx
+		return nil
+	}
+}
+
+func WithNoStream(noStream bool) Option {
+	return func(r *REPL) error {
+		r.noStream = noStream
 		return nil
 	}
 }
@@ -193,9 +205,19 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case streamContentMsg:
-		r.spinner.Stop()
+		// In streaming mode, we want to stop the spinner immediately when content starts arriving
+		// In non-streaming mode, we keep the spinner running until we get the complete response
+		if !r.noStream {
+			r.spinner.Stop()
+		}
 		cmds = append(cmds, r.chain.awaitNext())
 	case streamEndMsg:
+		// In non-streaming mode, we only stop the spinner once we have the complete response
+		// In streaming mode, spinner was already stopped when content started arriving
+		if r.noStream {
+			r.spinner.Stop()
+		}
+
 		output := r.chain.buffer
 		cmds := []tea.Cmd{}
 
@@ -235,16 +257,23 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (r *REPL) View() string {
 	if r.spinner.IsRunning() {
+		// Add vertical padding (newlines) below the prompt and spinner to reserve space for the
+		// streaming LLM response. The padding size is min(verticalMargin, availableHeight), where availableHeight
+		// is terminal's height minus the spinner height and prompt height (2 lines).
+		//
+		// This padding is necessary because bubbletea's View() function can render incorrectly when there
+		// isn't enough vertical space remaining. Without adequate padding, it may overwrite content
+		// that was previously rendered using tea.Println(), leading to garbled output.
 		spinner := r.renderer.RenderContent(r.spinner.View())
-
 		spinnerHeight := strings.Count(spinner, "\n")
 		margin := min(verticalMargin, r.height-(spinnerHeight+2))
 		padding := strings.Repeat("\n", margin)
-
 		return spinner + padding
 	}
 
-	if len(r.chain.buffer) != 0 {
+	// When streaming is enabled (noStream is false),
+	// continuously update the view with the LLM's response as it's generated.
+	if !r.noStream && len(r.chain.buffer) != 0 {
 		return r.renderer.RenderContent(r.chain.buffer)
 	}
 

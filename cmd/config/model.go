@@ -8,6 +8,7 @@ func (sc *SeaqConfig) Model() string {
 	return sc.GetString("model.name")
 }
 
+// HasModel checks if a model is supported
 func (sc *SeaqConfig) HasModel(name string) bool {
 	_, _, ok := llm.LookupModel(name)
 	return ok
