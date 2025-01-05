@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/nt54hamnghi/seaq/cmd/chat"
@@ -21,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2.5"
+const version = "0.2.7"
 
 type rootOptions struct {
 	configFile  string
@@ -29,6 +30,7 @@ type rootOptions struct {
 	input       string
 	model       string
 	noStream    bool
+	inputFile   FilePath
 	output      flaggroup.Output
 	pattern     string
 	patternRepo string
@@ -63,10 +65,24 @@ func New() *cobra.Command {
 }
 
 func (opts *rootOptions) parse(cmd *cobra.Command, _ []string) error {
-	input, err := util.ReadPipedStdin()
-	if err != nil {
-		return err
+	var (
+		input string
+		err   error
+	)
+
+	if opts.inputFile != "" {
+		bytes, err := os.ReadFile(opts.inputFile.String())
+		if err != nil {
+			return err
+		}
+		input = string(bytes)
+	} else {
+		input, err = util.ReadPipedStdin()
+		if err != nil {
+			return err
+		}
 	}
+
 	configFile, err := cmd.PersistentFlags().GetString("config")
 	if err != nil {
 		return err
@@ -139,11 +155,12 @@ func setupFlags(cmd *cobra.Command, opts *rootOptions) {
 	// local flags are only available to the current command
 	flags := cmd.Flags()
 	flags.SortFlags = false
-	flags.StringVarP(&opts.hint, "hint", "i", "", "optional context to guide the LLM's focus")
 	flags.StringVarP(&opts.model, "model", "m", "", "model to use")
+	flags.StringVar(&opts.hint, "hint", "", "optional context to guide the LLM's focus")
 	flags.BoolVar(&opts.noStream, "no-stream", false, "disable streaming mode")
-	flags.StringVarP(&opts.patternRepo, "repo", "r", "", "path to the pattern repository")
 	flags.StringVarP(&opts.pattern, "pattern", "p", "", "pattern to use")
+	flags.StringVarP(&opts.patternRepo, "repo", "r", "", "path to the pattern repository")
+	flags.VarP(&opts.inputFile, "input", "i", "input file")
 
 	// register completion function
 	err := cmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
