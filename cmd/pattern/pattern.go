@@ -25,6 +25,7 @@ func NewPatternCmd() *cobra.Command {
 	cmd.AddCommand(
 		newUseCmd(),
 		newListCmd(),
+		newViewCmd(),
 	)
 
 	return cmd

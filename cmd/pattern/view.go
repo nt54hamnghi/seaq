@@ -1,0 +1,30 @@
+package pattern
+
+import (
+	"fmt"
+	"text/tabwriter"
+
+	"github.com/nt54hamnghi/seaq/cmd/config"
+	"github.com/spf13/cobra"
+)
+
+func newViewCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "view",
+		Short:        "View the current pattern",
+		Aliases:      []string{"v"},
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
+			defer w.Flush()
+
+			fmt.Fprintf(w, "Pattern:\t%s\n", config.Seaq.Pattern())
+			fmt.Fprintf(w, "Repo:\t%s\n", config.Seaq.Repo())
+
+			return nil
+		},
+	}
+
+	return cmd
+}
