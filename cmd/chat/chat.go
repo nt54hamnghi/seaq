@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/nt54hamnghi/seaq/cmd/config"
+	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/cmd/model"
 	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/nt54hamnghi/seaq/pkg/repl"
@@ -21,10 +22,11 @@ import (
 )
 
 type chatOptions struct {
-	input    string
-	model    string
-	noStream bool
-	verbose  bool
+	input     string
+	model     string
+	noStream  bool
+	inputFile flag.FilePath
+	verbose   bool
 }
 
 func NewChatCmd() *cobra.Command {
@@ -51,6 +53,7 @@ func NewChatCmd() *cobra.Command {
 	flags.SortFlags = false
 	flags.StringVarP(&opts.model, "model", "m", "", "model to use")
 	flags.BoolVar(&opts.noStream, "no-stream", false, "disable streaming mode")
+	flags.VarP(&opts.inputFile, "input", "i", "input file")
 
 	// set up completion for model flag
 	err := cmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
@@ -61,10 +64,23 @@ func NewChatCmd() *cobra.Command {
 	return cmd
 }
 
-func (opts *chatOptions) parse(cmd *cobra.Command, _ []string) (err error) {
-	input, err := util.ReadPipedStdin()
-	if err != nil {
-		return err
+func (opts *chatOptions) parse(cmd *cobra.Command, _ []string) error {
+	var (
+		input string
+		err   error
+	)
+
+	if opts.inputFile != "" {
+		bytes, err := os.ReadFile(opts.inputFile.String())
+		if err != nil {
+			return err
+		}
+		input = string(bytes)
+	} else {
+		input, err = util.ReadPipedStdin()
+		if err != nil {
+			return err
+		}
 	}
 
 	verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")

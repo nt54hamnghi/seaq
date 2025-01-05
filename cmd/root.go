@@ -13,6 +13,7 @@ import (
 	"github.com/nt54hamnghi/seaq/cmd/chat"
 	"github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/nt54hamnghi/seaq/cmd/fetch"
+	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
 	"github.com/nt54hamnghi/seaq/cmd/model"
 	"github.com/nt54hamnghi/seaq/cmd/pattern"
@@ -22,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2.7"
+const version = "0.2.8"
 
 type rootOptions struct {
 	configFile  string
@@ -30,7 +31,7 @@ type rootOptions struct {
 	input       string
 	model       string
 	noStream    bool
-	inputFile   FilePath
+	inputFile   flag.FilePath
 	output      flaggroup.Output
 	pattern     string
 	patternRepo string
