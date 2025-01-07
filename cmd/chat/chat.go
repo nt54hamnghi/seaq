@@ -13,7 +13,6 @@ import (
 	"github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/cmd/model"
-	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/nt54hamnghi/seaq/pkg/repl"
 	"github.com/nt54hamnghi/seaq/pkg/util"
 	"github.com/spf13/cobra"
@@ -114,18 +113,11 @@ func run(ctx context.Context, opts chatOptions) error {
 		return err
 	}
 
-	// construct model
-	// nolint: contextcheck
-	model, err := llm.New(opts.model)
-	if err != nil {
-		return err
-	}
-
 	// initialize chatREPL
 	// nolint: contextcheck
 	chatREPL, err := repl.New(docs,
 		repl.WithContext(ctx),
-		repl.WithModel(model),
+		repl.WithModelName(opts.model),
 		repl.WithNoStream(opts.noStream),
 	)
 	if err != nil {

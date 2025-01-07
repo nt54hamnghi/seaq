@@ -85,13 +85,14 @@ func (r *Renderer) RenderError(msg string) string {
 }
 
 const helpMessage = `**Commands:**
-- /?, /help  : Show help message
-- /q, /quit  : Exit the program
-- /c, /clear : Clear the terminal
+- /?, /help            : Show help message
+- /s, /save <txt|json> : Save your current conversation
+- /c, /clear           : Clear the terminal
+- /q, /quit            : Exit the program
 
 **Keyboard Shortcuts:**
 - ↑/↓        : Navigate input history
-- ctrl+c/esc : Exit or interrupt command execution
+- ctrl+c/esc : Exit the program
 `
 
 func (r *Renderer) RenderHelpMessage() string {

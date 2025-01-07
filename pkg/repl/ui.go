@@ -35,10 +35,11 @@ type REPL struct {
 	ui
 
 	// main components
-	model llms.Model
-	store vectorstores.VectorStore
-	chain *chain
-	ctx   context.Context
+	model        llms.Model
+	store        vectorstores.VectorStore
+	chain        *chain
+	conversation *conversation
+	ctx          context.Context
 
 	// other options
 	noStream bool
@@ -56,12 +57,14 @@ func WithStore(store vectorstores.VectorStore) Option {
 	}
 }
 
-func WithModel(model llms.Model) Option {
+func WithModelName(name string) Option {
 	return func(r *REPL) error {
-		if model == nil {
-			return errors.New("model is nil")
+		model, err := llm.New(name)
+		if err != nil {
+			return err
 		}
 		r.model = model
+		r.conversation.Model = name
 		return nil
 	}
 }
@@ -100,9 +103,10 @@ func Default() (*REPL, error) {
 			renderer: renderer.Default(),
 			spinner:  spinner.New(),
 		},
-		model: model,
-		store: store,
-		ctx:   context.Background(),
+		model:        model,
+		store:        store,
+		conversation: newConversation(llm.DefaultModel),
+		ctx:          context.Background(),
 	}
 
 	return &r, nil
@@ -186,6 +190,16 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					tea.Println(r.renderer.RenderHelpMessage()),
 					inputCmd,
 				)
+			case "/s", "/save", "/s json", "/save json":
+				return r, tea.Sequence(
+					tea.Println(inputDisplay),
+					r.conversation.saveJSON(),
+				)
+			case "/s txt", "/save txt":
+				return r, tea.Sequence(
+					tea.Println(inputDisplay),
+					r.conversation.saveText(),
+				)
 			case "/c", "/clear":
 				return r, tea.Sequence(tea.ClearScreen, inputCmd)
 			case "/q", "/quit":
@@ -193,6 +207,9 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			default:
 				r.spinner.Start()
 				r.prompt.Blur()
+
+				// TODO: check error
+				_ = r.conversation.addMessage(inputValue, roleUser)
 
 				cmds = append(
 					cmds,
@@ -203,7 +220,12 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				)
 			}
 		}
-
+	case saveConversationMsg:
+		output := "Conversation saved to " + msg.path
+		return r, tea.Sequence(
+			tea.Println(r.renderer.RenderContent(output)),
+			inputCmd,
+		)
 	case streamContentMsg:
 		// In streaming mode, we want to stop the spinner immediately when content starts arriving
 		// In non-streaming mode, we keep the spinner running until we get the complete response
@@ -222,6 +244,9 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds := []tea.Cmd{}
 
 		if output != "" {
+			// can ignore error
+			// output is non-empty and role is always assistant
+			_ = r.conversation.addMessage(output, roleAssistant)
 			output = r.renderer.RenderContent(r.chain.buffer)
 			verticalMargin = strings.Count(output, "\n") + defaultMargin
 			cmds = append(cmds, tea.Println(output))
