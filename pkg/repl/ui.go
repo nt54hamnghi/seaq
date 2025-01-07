@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	spin "github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -40,6 +41,7 @@ type REPL struct {
 	chain        *chain
 	conversation *conversation
 	ctx          context.Context
+	cancelFunc   context.CancelFunc
 
 	// other options
 	noStream bool
@@ -148,6 +150,34 @@ func (r *REPL) Init() tea.Cmd {
 	)
 }
 
+func (r *REPL) exit(err error) tea.Cmd {
+	return func() tea.Msg {
+		if err == nil {
+			return tea.Quit
+		}
+
+		return tea.Sequence(
+			tea.Printf("Error: %s\n", err.Error()),
+			tea.Quit,
+		)
+	}
+}
+
+func (r *REPL) cancel() tea.Cmd {
+	if r.cancelFunc == nil {
+		output := r.renderer.RenderContent("Use Ctrl + d or /q to exit.")
+		return tea.Sequence(
+			tea.Println(r.prompt.Display()),
+			tea.Println(output),
+		)
+	}
+	r.spinner.Stop()
+	r.cancelFunc()
+	r.cancelFunc = nil
+	r.chain.buffer = ""
+	return nil
+}
+
 func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var inputCmd tea.Cmd
 	r.prompt, inputCmd = r.prompt.Update(msg)
@@ -174,30 +204,32 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlD, tea.KeyEsc:
 			return r, tea.Quit
+		case tea.KeyCtrlC:
+			return r, tea.Sequence(r.cancel(), inputCmd)
 		case tea.KeyEnter:
 			inputValue := r.prompt.Value()
-			inputDisplay := r.prompt.Display()
+			displayCmd := tea.Println(r.prompt.Display())
 			r.prompt.Append(inputValue)
 
 			switch strings.ToLower(inputValue) {
 			case "":
-				cmds = append(cmds, tea.Println(inputDisplay))
+				return r, tea.Sequence(displayCmd, inputCmd)
 			case "/?", "/help":
 				return r, tea.Sequence(
-					tea.Println(inputDisplay),
+					displayCmd,
 					tea.Println(r.renderer.RenderHelpMessage()),
 					inputCmd,
 				)
 			case "/s", "/save", "/s json", "/save json":
 				return r, tea.Sequence(
-					tea.Println(inputDisplay),
+					displayCmd,
 					r.conversation.saveJSON(),
 				)
 			case "/s txt", "/save txt":
 				return r, tea.Sequence(
-					tea.Println(inputDisplay),
+					displayCmd,
 					r.conversation.saveText(),
 				)
 			case "/c", "/clear":
@@ -211,11 +243,14 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// TODO: check error
 				_ = r.conversation.addMessage(inputValue, roleUser)
 
+				ctx, cancel := context.WithTimeout(r.ctx, 2*time.Minute)
+				r.cancelFunc = cancel
+
 				cmds = append(
 					cmds,
-					tea.Println(inputDisplay),
+					displayCmd,
 					r.spinner.Tick,
-					r.chain.start(r.ctx, inputValue),
+					r.chain.start(ctx, inputValue),
 					r.chain.awaitNext(),
 				)
 			}
@@ -244,36 +279,34 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds := []tea.Cmd{}
 
 		if output != "" {
-			// can ignore error
-			// output is non-empty and role is always assistant
+			// ignore error because output is non-empty and role is always assistant
 			_ = r.conversation.addMessage(output, roleAssistant)
 			output = r.renderer.RenderContent(r.chain.buffer)
 			verticalMargin = strings.Count(output, "\n") + defaultMargin
+
 			cmds = append(cmds, tea.Println(output))
 		}
 
-		cmds = append(cmds,
-			r.prompt.Focus(),
-			textinput.Blink,
-		)
+		cmds = append(cmds, r.prompt.Focus())
 
 		r.chain.buffer = ""
 		return r, tea.Sequence(cmds...)
 	case error:
-		output := msg.Error()
 		r.spinner.Stop()
 
 		if errors.Is(msg, ErrNilStream) {
-			return r, tea.Sequence(
-				tea.Printf("Error: %s\n", output),
-				tea.Quit,
-			)
+			return r, r.exit(msg)
+		}
+
+		output := msg.Error()
+
+		if errors.Is(msg, context.Canceled) {
+			output = "Operation cancelled."
 		}
 
 		return r, tea.Sequence(
 			tea.Println(r.renderer.RenderError(output)),
 			r.prompt.Focus(),
-			textinput.Blink,
 		)
 	}
 

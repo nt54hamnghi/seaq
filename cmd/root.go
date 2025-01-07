@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2.9"
+const version = "0.2.10"
 
 type rootOptions struct {
 	configFile  string

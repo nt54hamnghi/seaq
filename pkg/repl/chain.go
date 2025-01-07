@@ -131,9 +131,14 @@ func (c *chain) call(ctx context.Context, question string) (err error) {
 		c.done()
 	}()
 
-	streamFunc := func(_ context.Context, chunk []byte) error {
-		c.stream <- streamContentMsg(chunk)
-		return nil
+	streamFunc := func(ctx context.Context, chunk []byte) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			c.stream <- streamContentMsg(chunk)
+			return nil
+		}
 	}
 
 	res, err := chains.Call(ctx, c, map[string]any{"question": question},
