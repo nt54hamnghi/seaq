@@ -3,6 +3,7 @@ package repl
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/nt54hamnghi/seaq/pkg/rag"
-	"github.com/nt54hamnghi/seaq/pkg/repl/input"
+	prompt "github.com/nt54hamnghi/seaq/pkg/repl/input"
 	"github.com/nt54hamnghi/seaq/pkg/repl/renderer"
 	"github.com/nt54hamnghi/seaq/pkg/repl/spinner"
 	"github.com/tmc/langchaingo/llms"
@@ -25,7 +26,7 @@ const defaultMargin = 10
 var verticalMargin = defaultMargin
 
 type ui struct {
-	prompt   *input.Model
+	prompt   *prompt.Model
 	renderer *renderer.Renderer
 	spinner  *spinner.Spinner
 	width    int
@@ -101,7 +102,7 @@ func Default() (*REPL, error) {
 
 	r := REPL{
 		ui: ui{
-			prompt:   input.New(),
+			prompt:   prompt.New(),
 			renderer: renderer.Default(),
 			spinner:  spinner.New(),
 		},
@@ -178,11 +179,51 @@ func (r *REPL) cancel() tea.Cmd {
 	return nil
 }
 
-func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var inputCmd tea.Cmd
-	r.prompt, inputCmd = r.prompt.Update(msg)
+func (r *REPL) error(err error) tea.Cmd {
+	return func() tea.Msg {
+		return err
+	}
+}
 
-	cmds := []tea.Cmd{inputCmd}
+func (r *REPL) help(_ []string) tea.Cmd {
+	// TODO: check nil renderer
+
+	return tea.Println(r.renderer.RenderHelpMessage())
+}
+
+func (r *REPL) save(args []string) tea.Cmd {
+	// TODO: check nil conversation
+
+	if len(args) == 0 {
+		return r.conversation.saveJSON()
+	}
+
+	switch format := args[0]; format {
+	case "json":
+		return r.conversation.saveJSON()
+	case "txt":
+		return r.conversation.saveText()
+	default:
+		err := fmt.Errorf("invalid format: %s", format)
+		return r.error(err)
+	}
+}
+
+func parse(input string) (name string, args []string, err error) {
+	input = strings.TrimSpace(strings.ToLower(input))
+	if input == "" {
+		return "", nil, errors.New("empty input")
+	}
+
+	parts := strings.Fields(input)
+	return parts[0], parts[1:], nil
+}
+
+func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var promptCmd tea.Cmd
+	r.prompt, promptCmd = r.prompt.Update(msg)
+
+	cmds := []tea.Cmd{promptCmd}
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -195,7 +236,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			glamour.WithStandardStyle(renderer.DefaultStyle),
 			glamour.WithWordWrap(w),
 		)
-		return r, inputCmd
+		return r, promptCmd
 	case spin.TickMsg:
 		var spinnerCmd tea.Cmd
 		if r.spinner.IsRunning() {
@@ -207,41 +248,38 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlD, tea.KeyEsc:
 			return r, tea.Quit
 		case tea.KeyCtrlC:
-			return r, tea.Sequence(r.cancel(), inputCmd)
+			return r, tea.Sequence(r.cancel(), promptCmd)
 		case tea.KeyEnter:
-			inputValue := r.prompt.Value()
 			displayCmd := tea.Println(r.prompt.Display())
-			r.prompt.Append(inputValue)
 
-			switch strings.ToLower(inputValue) {
-			case "":
-				return r, tea.Sequence(displayCmd, inputCmd)
+			input := r.prompt.Value()
+			r.prompt.Append(input)
+
+			if input == "" {
+				return r, tea.Sequence(displayCmd, promptCmd)
+			}
+
+			// ignore error because input is non-empty
+			switch name, args, _ := parse(input); name {
 			case "/?", "/help":
-				return r, tea.Sequence(
-					displayCmd,
-					tea.Println(r.renderer.RenderHelpMessage()),
-					inputCmd,
-				)
-			case "/s", "/save", "/s json", "/save json":
-				return r, tea.Sequence(
-					displayCmd,
-					r.conversation.saveJSON(),
-				)
-			case "/s txt", "/save txt":
-				return r, tea.Sequence(
-					displayCmd,
-					r.conversation.saveText(),
-				)
+				return r, tea.Sequence(displayCmd, r.help(args), promptCmd)
+			case "/s", "/save":
+				return r, tea.Sequence(displayCmd, r.save(args))
 			case "/c", "/clear":
-				return r, tea.Sequence(tea.ClearScreen, inputCmd)
+				return r, tea.Sequence(tea.ClearScreen, promptCmd)
 			case "/q", "/quit":
 				return r, tea.Quit
 			default:
+				if strings.HasPrefix(name, "/") {
+					err := fmt.Errorf("unknown command: %s. Type /? for help.", name) //nolint:revive
+					return r, tea.Sequence(displayCmd, r.error(err), promptCmd)
+				}
+
 				r.spinner.Start()
 				r.prompt.Blur()
 
-				// TODO: check error
-				_ = r.conversation.addMessage(inputValue, roleUser)
+				// ignore error because input is non-empty and role is always user
+				_ = r.conversation.addMessage(input, roleUser)
 
 				ctx, cancel := context.WithTimeout(r.ctx, 2*time.Minute)
 				r.cancelFunc = cancel
@@ -250,7 +288,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds,
 					displayCmd,
 					r.spinner.Tick,
-					r.chain.start(ctx, inputValue),
+					r.chain.start(ctx, input),
 					r.chain.awaitNext(),
 				)
 			}
@@ -259,7 +297,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		output := "Conversation saved to " + msg.path
 		return r, tea.Sequence(
 			tea.Println(r.renderer.RenderContent(output)),
-			inputCmd,
+			promptCmd,
 		)
 	case streamContentMsg:
 		// In streaming mode, we want to stop the spinner immediately when content starts arriving

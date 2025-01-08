@@ -78,7 +78,7 @@ func (c *conversation) toText() string {
 	var b strings.Builder
 
 	for _, msg := range c.Messages {
-		b.WriteString("### " + strings.ToUpper(string(msg.Role)) + "\n")
+		b.WriteString("--- " + strings.ToUpper(string(msg.Role)) + " ---\n")
 		b.WriteString(msg.Content + "\n\n")
 	}
 
@@ -97,6 +97,21 @@ type saveConversationMsg struct {
 	path string
 }
 
+func (c *conversation) save(path string, data []byte) error {
+	if len(c.Messages) == 0 {
+		return errors.New("conversation is empty")
+	}
+
+	// owner: read (4) + write (2) = 6
+	// group: no permissions (0)
+	// others: no permissions (0)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *conversation) saveText() tea.Cmd {
 	return func() tea.Msg {
 		filename := fmt.Sprintf("chat-export-%d.txt", time.Now().UnixMilli())
@@ -104,10 +119,7 @@ func (c *conversation) saveText() tea.Cmd {
 		if err != nil {
 			return err
 		}
-		// owner: read (4) + write (2) = 6
-		// group: no permissions (0)
-		// others: no permissions (0)
-		if err := os.WriteFile(absPath, []byte(c.toText()), 0o600); err != nil {
+		if err := c.save(absPath, []byte(c.toText())); err != nil {
 			return err
 		}
 		return saveConversationMsg{path: absPath}
@@ -125,10 +137,7 @@ func (c *conversation) saveJSON() tea.Cmd {
 		if err != nil {
 			return err
 		}
-		// owner: read (4) + write (2) = 6
-		// group: no permissions (0)
-		// others: no permissions (0)
-		if err := os.WriteFile(filename, []byte(json), 0o600); err != nil {
+		if err := c.save(absPath, []byte(json)); err != nil {
 			return err
 		}
 		return saveConversationMsg{path: absPath}
