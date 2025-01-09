@@ -22,9 +22,9 @@ func NewModelCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		newUseCmd(),
+		newGetCmd(),
 		newListCmd(),
-		newViewCmd(),
+		newUseCmd(),
 	)
 
 	return cmd

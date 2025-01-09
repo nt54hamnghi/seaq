@@ -13,11 +13,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newViewCmd() *cobra.Command {
+func newGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "view",
-		Short:        "View the current default model",
-		Aliases:      []string{"v"},
+		Use:          "get",
+		Short:        "Get the current default model",
+		Aliases:      []string{"g"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
