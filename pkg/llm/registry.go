@@ -4,19 +4,27 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"log"
 	"maps"
+	"os"
 	"strings"
+	"sync"
 
 	"github.com/nt54hamnghi/seaq/pkg/util/set"
 )
 
 type ModelRegistry map[string]set.Set[string]
 
+// ModelRetriever is a function that returns a list of model names
+type ModelRetriever func() ([]string, error)
+
 var (
 	ErrProviderNameEmpty     = errors.New("provider name cannot be empty")
 	ErrModelsListEmpty       = errors.New("models list cannot be empty")
 	ErrProviderAlreadyExists = errors.New("provider already exists")
 )
+
+var initOnce sync.Once
 
 // Default registry of models
 var Registry = ModelRegistry{
@@ -46,9 +54,29 @@ var Registry = ModelRegistry{
 	},
 }
 
-func init() {
-	// TODO: how to handle error here?
-	_ = Registry.RegisterFunc("ollama", listOllamaModels)
+func initRegistry() {
+	initOnce.Do(func() {
+		var err error
+
+		registrars := []struct {
+			provider  string
+			retriever ModelRetriever
+		}{
+			{"ollama", listOllamaModels},
+		}
+
+		for _, r := range registrars {
+			err = Registry.RegisterWith(r.provider, r.retriever)
+			if err != nil {
+				log.Printf("[WARN] %s registration: %v\n", r.provider, err)
+			}
+		}
+
+		// Add a newline if there was an error
+		if err != nil {
+			fmt.Fprintln(os.Stderr)
+		}
+	})
 }
 
 // normalize returns a string that is trimmed of whitespace and converted to lowercase.
@@ -106,10 +134,11 @@ func (r ModelRegistry) HasModel(name string) bool {
 
 // Register adds a new provider and its associated models to the registry.
 // Both provider and model names are normalized (trimmed of whitespace and converted to lowercase).
+//
 // Returns error if:
-// - provider name is empty after normalization
-// - models list is empty
-// - provider already exists
+//   - provider name is empty after normalization
+//   - models list is empty
+//   - provider already exists
 func (r ModelRegistry) Register(provider string, models []string) error {
 	if len(models) == 0 {
 		return ErrModelsListEmpty
@@ -134,15 +163,16 @@ func (r ModelRegistry) Register(provider string, models []string) error {
 	return nil
 }
 
-// RegisterFunc adds a new provider and its models to the registry using a function.
+// RegisterWith adds a new provider and its models to the registry using a function.
 // The function fn should return a slice of model names.
+//
 // Returns error if:
-// - provider name is empty
-// - models list is empty
-// - provider already exists
-// - fn fails to retrieve the models
-func (r ModelRegistry) RegisterFunc(provider string, fn func() ([]string, error)) error {
-	models, err := fn()
+//   - provider name is empty
+//   - models list is empty
+//   - provider already exists
+//   - fn fails to retrieve the models
+func (r ModelRegistry) RegisterWith(provider string, retriever ModelRetriever) error {
+	models, err := retriever()
 	if err != nil {
 		return err
 	}
@@ -206,4 +236,55 @@ func (r ModelRegistry) Models() iter.Seq[string] {
 			}
 		}
 	}
+}
+
+// Top-level functions that operate on the default Registry
+
+// LookupModel looks up a model in the default registry.
+// See ModelRegistry.LookupModel for details.
+func LookupModel(id string) (provider, model string, ok bool) {
+	initRegistry()
+	return Registry.LookupModel(id)
+}
+
+// HasModel checks if a model is supported by any provider in the default registry.
+// See ModelRegistry.HasModel for details.
+func HasModel(name string) bool {
+	initRegistry()
+	return Registry.HasModel(name)
+}
+
+// Register adds a new provider and its models to the default registry.
+// See ModelRegistry.Register for details.
+func Register(provider string, models []string) error {
+	initRegistry()
+	return Registry.Register(provider, models)
+}
+
+// RegisterFunc adds a new provider and its models to the default registry using a function.
+// See ModelRegistry.RegisterFunc for details.
+func RegisterFunc(provider string, fn func() ([]string, error)) error {
+	initRegistry()
+	return Registry.RegisterWith(provider, fn)
+}
+
+// Providers returns an iterator over all providers in the default registry.
+// See ModelRegistry.Providers for details.
+func Providers() iter.Seq[string] {
+	initRegistry()
+	return Registry.Providers()
+}
+
+// ModelsByProvider returns an iterator over all models for a given provider in the default registry.
+// See ModelRegistry.ModelsByProvider for details.
+func ModelsByProvider(provider string) iter.Seq[string] {
+	initRegistry()
+	return Registry.ModelsByProvider(provider)
+}
+
+// Models returns an iterator over all models in the default registry.
+// See ModelRegistry.Models for details.
+func Models() iter.Seq[string] {
+	initRegistry()
+	return Registry.Models()
 }

@@ -38,7 +38,7 @@ func CompleteModelArgs(cmd *cobra.Command, args []string, toComplete string) ([]
 }
 
 func listModels() []string {
-	models := slices.Collect(llm.Registry.Models())
+	models := slices.Collect(llm.Models())
 	slices.Sort(models)
 	return models
 }
