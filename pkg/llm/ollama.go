@@ -11,7 +11,7 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
-func listOllamaLocalModels() ([]string, error) {
+func listOllamaModels() ([]string, error) {
 	// create a new client
 	hostURL, err := url.ParseRequestURI(env.OllamaHost())
 	if err != nil {

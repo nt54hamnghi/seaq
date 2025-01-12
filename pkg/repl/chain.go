@@ -21,7 +21,7 @@ Rules:
 2. Avoid using information not in the context unless explicitly asked
 3. Avoid any meta-references (like "the context shows", "based on", "it mentions", etc.)
 4. If the context is irrelevant to {{.question}}:
-    4.1. For greetings or social pleasantries, respond naturally in conversational tone
+    4.1. For greetings or social pleasantries, ignore the context and respond naturally 
     4.2. Otherwise, say "The context is not relevant to your question, I'll answer based on my knowledge"
     4.3. Then provide your best answer based on general knowledge
     4.4. If uncertain, simply say "I don't know" - avoid speculation

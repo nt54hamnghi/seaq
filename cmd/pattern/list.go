@@ -4,6 +4,8 @@ Copyright © 2024 Nghi Nguyen
 package pattern
 
 import (
+	"fmt"
+
 	"github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +24,7 @@ func newListCmd() *cobra.Command {
 			}
 
 			for _, p := range pats {
-				cmd.Println(p)
+				fmt.Println(p)
 			}
 
 			return nil

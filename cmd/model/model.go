@@ -4,7 +4,9 @@ Copyright © 2024 Nghi Nguyen
 package model
 
 import (
-	"github.com/nt54hamnghi/seaq/cmd/config"
+	"slices"
+
+	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/spf13/cobra"
 )
 
@@ -32,5 +34,11 @@ func NewModelCmd() *cobra.Command {
 
 // nolint: revive
 func CompleteModelArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return config.Seaq.ListModels(), cobra.ShellCompDirectiveNoFileComp
+	return listModels(), cobra.ShellCompDirectiveNoFileComp
+}
+
+func listModels() []string {
+	models := slices.Collect(llm.Registry.Models())
+	slices.Sort(models)
+	return models
 }

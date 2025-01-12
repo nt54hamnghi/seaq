@@ -8,27 +8,10 @@ func (sc *SeaqConfig) Model() string {
 	return sc.GetString("model.name")
 }
 
-// HasModel checks if a model is supported
-func (sc *SeaqConfig) HasModel(name string) bool {
-	_, _, ok := llm.LookupModel(name)
-	return ok
-}
-
 func (sc *SeaqConfig) UseModel(name string) error {
-	if !sc.HasModel(name) {
+	if !llm.Registry.HasModel(name) {
 		return &Unsupported{Type: "model", Key: name}
 	}
 	sc.Set("model.name", name)
 	return nil
-}
-
-// ListModels returns a list of available models
-func (sc *SeaqConfig) ListModels() []string {
-	models := make([]string, 0, len(llm.Models))
-	for _, v := range llm.Models {
-		for m := range v {
-			models = append(models, m)
-		}
-	}
-	return models
 }

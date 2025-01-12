@@ -46,48 +46,6 @@ const (
 
 const DefaultModel = Claude3Dot5Sonnet
 
-var Models = map[string]map[string]bool{
-	"OpenAI": {
-		// O1:            true,
-		// O1Mini:        true,
-		// O1Preview:     true,
-		GPT4o:         true,
-		GPT4oMini:     true,
-		GPT4:          true,
-		GPT4Turbo:     true,
-		ChatGPT4o:     true,
-		GPT3Dot5Turbo: true,
-	},
-	"Anthropic": {
-		Claude3Dot5Sonnet: true,
-		Claude3Dot5Haiku:  true,
-		Claude3Opus:       true,
-		Claude3Sonnet:     true,
-		Claude3Haiku:      true,
-	},
-	"Google": {
-		Gemini2Dot0FlashExp: true,
-		Gemini1Dot5Flash:    true,
-		Gemini1Dot5Flash8B:  true,
-		Gemini1Dot5Pro:      true,
-	},
-}
-
-func init() {
-	models, err := listOllamaLocalModels()
-	if err != nil {
-		// fmt.Printf("Warning: Failed to list Ollama models: %v", err)
-		return
-	}
-
-	Models["Ollama"] = make(map[string]bool)
-	for _, m := range models {
-		Models["Ollama"][m] = true
-	}
-}
-
-// region: --- hint template
-
 var hintTemplate = prompts.NewPromptTemplate(`
 For the following content, focus on this aspect only: {{.hint}}
 Note: If this focus is irrelevant to the content, disregard the focus.
@@ -96,34 +54,18 @@ Content: {{.content}}
 	[]string{"content", "hint"},
 )
 
-// endregion: --- hint template
-
-func LookupModel(name string) (provider string, model string, found bool) {
-	if name == "" {
-		return "", "", false
-	}
-
-	for p, m := range Models {
-		if _, ok := m[name]; ok {
-			return p, name, true
-		}
-	}
-
-	return "", "", false
-}
-
 func New(name string) (llms.Model, error) {
 	if name == "" {
 		return nil, errors.New("model name is empty")
 	}
 
-	provider, model, ok := LookupModel(name)
+	provider, model, ok := Registry.LookupModel(name)
 	if !ok {
 		return nil, fmt.Errorf("unsupported model: %s", name)
 	}
 
 	switch provider {
-	case "OpenAI":
+	case "openai":
 		apiKey, err := env.OpenAIAPIKey()
 		if err != nil {
 			return nil, err
@@ -132,7 +74,7 @@ func New(name string) (llms.Model, error) {
 			openai.WithModel(model),
 			openai.WithToken(apiKey),
 		)
-	case "Anthropic":
+	case "anthropic":
 		apiKey, err := env.AnthropicAPIKey()
 		if err != nil {
 			return nil, err
@@ -141,7 +83,7 @@ func New(name string) (llms.Model, error) {
 			anthropic.WithModel(model),
 			anthropic.WithToken(apiKey),
 		)
-	case "Google":
+	case "google":
 		apiKey, err := env.GeminiAPIKey()
 		if err != nil {
 			return nil, err
@@ -151,7 +93,7 @@ func New(name string) (llms.Model, error) {
 			googleai.WithAPIKey(apiKey),
 			googleai.WithDefaultModel(model),
 		)
-	case "Ollama":
+	case "ollama":
 		return ollama.New(
 			ollama.WithModel(model),
 			ollama.WithServerURL(env.OllamaHost()),
