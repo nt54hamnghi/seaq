@@ -10,9 +10,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/cmd/model"
+	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/nt54hamnghi/seaq/pkg/repl"
 	"github.com/nt54hamnghi/seaq/pkg/util"
 	"github.com/spf13/cobra"

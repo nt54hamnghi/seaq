@@ -4,7 +4,7 @@ Copyright © 2024 Nghi Nguyen
 package pattern
 
 import (
-	"github.com/nt54hamnghi/seaq/cmd/config"
+	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/spf13/cobra"
 )
 

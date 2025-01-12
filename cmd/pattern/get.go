@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	"github.com/nt54hamnghi/seaq/cmd/config"
+	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/spf13/cobra"
 )
 

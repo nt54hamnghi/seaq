@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/nt54hamnghi/seaq/cmd/chat"
-	"github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/nt54hamnghi/seaq/cmd/fetch"
 	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
 	"github.com/nt54hamnghi/seaq/cmd/model"
 	"github.com/nt54hamnghi/seaq/cmd/pattern"
+	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/nt54hamnghi/seaq/pkg/util"
 
