@@ -9,7 +9,7 @@ func (sc *SeaqConfig) Model() string {
 }
 
 func (sc *SeaqConfig) UseModel(name string) error {
-	if !llm.Registry.HasModel(name) {
+	if !llm.HasModel(name) {
 		return &Unsupported{Type: "model", Key: name}
 	}
 	sc.Set("model.name", name)

@@ -158,7 +158,7 @@ func TestRegister(t *testing.T) {
 	}
 }
 
-func TestRegisterFunc(t *testing.T) {
+func TestRegisterWith(t *testing.T) {
 	registry := ModelRegistry{
 		"openai":    set.New("gpt-4o"),
 		"anthropic": set.New("claude-3-5-sonnet"),
@@ -223,7 +223,7 @@ func TestRegisterFunc(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
-			err := tt.registry.RegisterFunc(tt.provider, tt.fn)
+			err := tt.registry.RegisterWith(tt.provider, tt.fn)
 
 			if tt.wantErr != nil {
 				r.EqualError(tt.wantErr, err.Error())

@@ -59,7 +59,7 @@ func New(name string) (llms.Model, error) {
 		return nil, errors.New("model name is empty")
 	}
 
-	provider, model, ok := Registry.LookupModel(name)
+	provider, model, ok := LookupModel(name)
 	if !ok {
 		return nil, fmt.Errorf("unsupported model: %s", name)
 	}
