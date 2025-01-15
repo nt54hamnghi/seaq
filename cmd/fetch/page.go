@@ -56,7 +56,7 @@ func newPageCmd() *cobra.Command {
 		Use:          "page [url]",
 		Short:        "Get HTML data from a URL and convert it to markdown",
 		Aliases:      []string{"pg", "p"},
-		Args:         validatePageArgs,
+		Args:         pageArgs,
 		SilenceUsage: true,
 		PreRunE:      flaggroup.ValidateGroups(&opts.recursive, &opts.output),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,7 +77,7 @@ func newPageCmd() *cobra.Command {
 	return cmd
 }
 
-func validatePageArgs(cmd *cobra.Command, args []string) error { // nolint: revive
+func pageArgs(cmd *cobra.Command, args []string) error { // nolint: revive
 	if err := cobra.ExactArgs(1)(cmd, args); err != nil {
 		return err
 	}

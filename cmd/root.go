@@ -19,6 +19,7 @@ import (
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/nt54hamnghi/seaq/pkg/util"
+	"github.com/nt54hamnghi/seaq/pkg/util/log"
 
 	"github.com/spf13/cobra"
 )
@@ -26,7 +27,7 @@ import (
 const version = "0.2.13"
 
 type rootOptions struct {
-	configFile  string
+	configFile  flag.FilePath
 	hint        string
 	input       string
 	model       string
@@ -65,7 +66,7 @@ func New() *cobra.Command {
 	return cmd
 }
 
-func (opts *rootOptions) parse(cmd *cobra.Command, _ []string) error {
+func (opts *rootOptions) parse(_ *cobra.Command, _ []string) error {
 	var (
 		input string
 		err   error
@@ -84,22 +85,11 @@ func (opts *rootOptions) parse(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	configFile, err := cmd.PersistentFlags().GetString("config")
-	if err != nil {
-		return err
-	}
-	verbose, err := cmd.PersistentFlags().GetBool("verbose")
-	if err != nil {
-		return err
-	}
-
 	seaq := config.Seaq
 
-	opts.configFile = configFile
 	opts.input = input
 	opts.model = seaq.Model()
 	opts.pattern = seaq.Pattern()
-	opts.verbose = verbose
 
 	return nil
 }
@@ -109,10 +99,12 @@ func run(ctx context.Context, opts rootOptions) error {
 	defer cancel()
 
 	if opts.verbose {
-		fmt.Printf("Model: %s\n", opts.model)
-		fmt.Printf("Pattern: %s\n", opts.pattern)
-		fmt.Printf("Config file: %s\n", config.Seaq.ConfigFileUsed())
-		fmt.Println("--------------------------------")
+		log.Info("completion",
+			"config", config.Seaq.ConfigFileUsed(),
+			"model", config.Seaq.Model(),
+			"pattern", config.Seaq.Pattern(),
+		)
+		fmt.Fprintln(os.Stderr)
 	}
 
 	// construct the prompt from pattern and scraped content
@@ -148,11 +140,6 @@ func setupFlags(cmd *cobra.Command, opts *rootOptions) {
 		cobra.CheckErr(initConfig(cmd, opts))
 	})
 
-	// persistent flags are global and available to all commands
-	pFlags := cmd.PersistentFlags()
-	pFlags.StringP("config", "c", "", "config file (default is $HOME/.config/seaq.yaml)")
-	pFlags.BoolP("verbose", "V", false, "verbose output")
-
 	// local flags are only available to the current command
 	flags := cmd.Flags()
 	flags.SortFlags = false
@@ -162,6 +149,11 @@ func setupFlags(cmd *cobra.Command, opts *rootOptions) {
 	flags.StringVarP(&opts.pattern, "pattern", "p", "", "pattern to use")
 	flags.StringVarP(&opts.patternRepo, "repo", "r", "", "path to the pattern repository")
 	flags.VarP(&opts.inputFile, "input", "i", "input file")
+	flags.VarP(&opts.configFile, "config", "c", "config file (default is $HOME/.config/seaq.yaml)")
+	flags.BoolVarP(&opts.verbose, "verbose", "V", false, "verbose output")
+
+	// flag groups
+	flaggroup.InitGroups(cmd, &opts.output)
 
 	// register completion function
 	err := cmd.RegisterFlagCompletionFunc("pattern", pattern.CompletePatternArgs)
@@ -172,9 +164,6 @@ func setupFlags(cmd *cobra.Command, opts *rootOptions) {
 	if err != nil {
 		cobra.CheckErr(err)
 	}
-
-	// flag groups
-	flaggroup.InitGroups(cmd, &opts.output)
 }
 
 func addCommands(cmd *cobra.Command) {
@@ -200,10 +189,8 @@ func initConfig(cmd *cobra.Command, opts *rootOptions) error {
 	// bind the global SeaqConfig to a local variable
 	seaq := config.Seaq
 
-	// set the config file if provided otherwise search for it
-	if opts.configFile != "" {
-		seaq.SetConfigFile(opts.configFile)
-	} else if err := seaq.SearchConfigFile(); err != nil {
+	// set config file
+	if err := seaq.UseConfigFile(opts.configFile.String()); err != nil {
 		return err
 	}
 
@@ -223,9 +210,5 @@ func initConfig(cmd *cobra.Command, opts *rootOptions) error {
 	seaq.AutomaticEnv()
 
 	// If a config file is found, read it in.
-	if err := seaq.ReadInConfig(); err != nil {
-		return err
-	}
-
-	return nil
+	return seaq.ReadInConfig()
 }
