@@ -6,7 +6,6 @@ package chat
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 
@@ -25,7 +24,6 @@ type chatOptions struct {
 	model     string
 	noStream  bool
 	inputFile flag.FilePath
-	verbose   bool
 }
 
 func NewChatCmd() *cobra.Command {
@@ -63,7 +61,7 @@ func NewChatCmd() *cobra.Command {
 	return cmd
 }
 
-func (opts *chatOptions) parse(cmd *cobra.Command, _ []string) error {
+func (opts *chatOptions) parse(_ *cobra.Command, _ []string) error {
 	var (
 		input string
 		err   error
@@ -82,13 +80,7 @@ func (opts *chatOptions) parse(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
-	if err != nil {
-		return err
-	}
-
 	opts.input = input
-	opts.verbose = verbose
 	if opts.model == "" {
 		opts.model = config.Seaq.Model()
 	}
@@ -97,10 +89,6 @@ func (opts *chatOptions) parse(cmd *cobra.Command, _ []string) error {
 }
 
 func run(ctx context.Context, opts chatOptions) error {
-	if opts.verbose {
-		fmt.Println("Using model:", opts.model)
-	}
-
 	// load the document
 	loader := documentloaders.NewText(strings.NewReader(opts.input))
 	docs, err := loader.LoadAndSplit(ctx,
@@ -115,9 +103,8 @@ func run(ctx context.Context, opts chatOptions) error {
 
 	// initialize chatREPL
 	// nolint: contextcheck
-	chatREPL, err := repl.New(docs,
+	chatREPL, err := repl.New(opts.model, docs,
 		repl.WithContext(ctx),
-		repl.WithModelName(opts.model),
 		repl.WithNoStream(opts.noStream),
 	)
 	if err != nil {

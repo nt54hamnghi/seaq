@@ -44,8 +44,6 @@ const (
 	Gemini1Dot5Pro      = "gemini-1.5-pro"
 )
 
-const DefaultModel = Claude3Dot5Sonnet
-
 var hintTemplate = prompts.NewPromptTemplate(`
 For the following content, focus on this aspect only: {{.hint}}
 Note: If this focus is irrelevant to the content, disregard the focus.

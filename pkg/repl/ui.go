@@ -60,18 +60,6 @@ func WithStore(store vectorstores.VectorStore) Option {
 	}
 }
 
-func WithModelName(name string) Option {
-	return func(r *REPL) error {
-		model, err := llm.New(name)
-		if err != nil {
-			return err
-		}
-		r.model = model
-		r.conversation.Model = name
-		return nil
-	}
-}
-
 func WithContext(ctx context.Context) Option {
 	return func(r *REPL) error {
 		if ctx == nil {
@@ -89,13 +77,8 @@ func WithNoStream(noStream bool) Option {
 	}
 }
 
-func Default() (*REPL, error) {
+func defaultREPL() (*REPL, error) {
 	store, err := rag.NewChromaStore()
-	if err != nil {
-		return nil, err
-	}
-
-	model, err := llm.New(llm.DefaultModel)
 	if err != nil {
 		return nil, err
 	}
@@ -106,22 +89,20 @@ func Default() (*REPL, error) {
 			renderer: renderer.Default(),
 			spinner:  spinner.New(),
 		},
-		model:        model,
-		store:        store,
-		conversation: newConversation(llm.DefaultModel),
-		ctx:          context.Background(),
+		store: store,
+		ctx:   context.Background(),
 	}
 
 	return &r, nil
 }
 
-func New(docs []schema.Document, opts ...Option) (*REPL, error) {
+func New(name string, docs []schema.Document, opts ...Option) (*REPL, error) {
 	if len(docs) == 0 {
 		return nil, errors.New("no documents to load")
 	}
 
 	// initialize the REPL
-	r, err := Default()
+	r, err := defaultREPL()
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +113,15 @@ func New(docs []schema.Document, opts ...Option) (*REPL, error) {
 			return nil, err
 		}
 	}
+
+	// set model
+	r.model, err = llm.New(name)
+	if err != nil {
+		return nil, err
+	}
+
+	// set conversation
+	r.conversation = newConversation(name)
 
 	// add documents to the store
 	if _, err := r.store.AddDocuments(r.ctx, docs); err != nil {
