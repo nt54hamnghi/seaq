@@ -148,7 +148,7 @@ func setupFlags(cmd *cobra.Command, opts *rootOptions) {
 	flags.StringVarP(&opts.pattern, "pattern", "p", "", "pattern to use")
 	flags.StringVarP(&opts.patternRepo, "repo", "r", "", "path to the pattern repository")
 	flags.VarP(&opts.inputFile, "input", "i", "input file")
-	flags.VarP(&opts.configFile, "config", "c", "config file (default is $HOME/.config/seaq.yaml)")
+	config.AddConfigFlag(cmd, &opts.configFile)
 	flags.BoolVarP(&opts.verbose, "verbose", "V", false, "verbose output")
 
 	// flag groups

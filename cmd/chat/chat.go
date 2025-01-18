@@ -53,7 +53,7 @@ func NewChatCmd() *cobra.Command {
 	flags.StringVarP(&opts.model, "model", "m", "", "model to use")
 	flags.BoolVar(&opts.noStream, "no-stream", false, "disable streaming mode")
 	flags.VarP(&opts.inputFile, "input", "i", "input file")
-	flags.VarP(&opts.configFile, "config", "c", "config file (default is $HOME/.config/seaq.yaml)")
+	config.AddConfigFlag(cmd, &opts.configFile)
 
 	// set up completion for model flag
 	err := cmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)

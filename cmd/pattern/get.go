@@ -4,11 +4,18 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/spf13/cobra"
 )
 
+type getOptions struct {
+	configFile flag.FilePath
+}
+
 func newGetCmd() *cobra.Command {
+	var opts getOptions
+
 	cmd := &cobra.Command{
 		Use:          "get",
 		Short:        "Get the default pattern",
@@ -26,6 +33,9 @@ func newGetCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	// set up flags
+	config.AddConfigFlag(cmd, &opts.configFile)
 
 	return cmd
 }

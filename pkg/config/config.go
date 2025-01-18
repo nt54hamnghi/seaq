@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -44,6 +45,11 @@ func Init(cmd *cobra.Command, args []string) error { //nolint:revive
 	}
 
 	return nil
+}
+
+// AddConfigFlag adds the standard config file flag to a command
+func AddConfigFlag(cmd *cobra.Command, configFile pflag.Value) {
+	cmd.Flags().VarP(configFile, "config", "c", "config file (default is $HOME/.config/seaq.yaml)")
 }
 
 // EnsureConfig ensures that the config file is loaded.
