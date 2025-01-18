@@ -8,12 +8,19 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/spf13/cobra"
 )
 
+type getOptions struct {
+	configFile flag.FilePath
+}
+
 func newGetCmd() *cobra.Command {
+	var opts getOptions
+
 	cmd := &cobra.Command{
 		Use:          "get",
 		Short:        "Get the default model",
@@ -32,6 +39,8 @@ func newGetCmd() *cobra.Command {
 			return errors.New("unexpected error: failed to get default model")
 		},
 	}
+
+	config.AddConfigFlag(cmd, &opts.configFile)
 
 	return cmd
 }

@@ -4,11 +4,18 @@ Copyright © 2024 Nghi Nguyen
 package model
 
 import (
+	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/spf13/cobra"
 )
 
+type setOptions struct {
+	configFile flag.FilePath
+}
+
 func newSetCmd() *cobra.Command {
+	var opts setOptions
+
 	cmd := &cobra.Command{
 		Use:               "set",
 		Short:             "Set the default model",
@@ -32,6 +39,8 @@ func newSetCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	config.AddConfigFlag(cmd, &opts.configFile)
 
 	return cmd
 }

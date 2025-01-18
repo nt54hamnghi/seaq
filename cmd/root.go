@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2.13"
+const version = "0.2.14"
 
 type rootOptions struct {
 	configFile  flag.FilePath
