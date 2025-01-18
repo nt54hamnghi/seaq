@@ -20,10 +20,11 @@ import (
 )
 
 type chatOptions struct {
-	input     string
-	model     string
-	noStream  bool
-	inputFile flag.FilePath
+	input      string
+	model      string
+	noStream   bool
+	inputFile  flag.FilePath
+	configFile flag.FilePath
 }
 
 func NewChatCmd() *cobra.Command {
@@ -33,6 +34,7 @@ func NewChatCmd() *cobra.Command {
 		Use:     "chat",
 		Short:   "Open a chat session",
 		GroupID: "common",
+		PreRunE: config.Init,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch err := opts.parse(cmd, args); {
 			case errors.Is(err, util.ErrInteractiveInput):
@@ -51,6 +53,7 @@ func NewChatCmd() *cobra.Command {
 	flags.StringVarP(&opts.model, "model", "m", "", "model to use")
 	flags.BoolVar(&opts.noStream, "no-stream", false, "disable streaming mode")
 	flags.VarP(&opts.inputFile, "input", "i", "input file")
+	flags.VarP(&opts.configFile, "config", "c", "config file (default is $HOME/.config/seaq.yaml)")
 
 	// set up completion for model flag
 	err := cmd.RegisterFlagCompletionFunc("model", model.CompleteModelArgs)
@@ -81,9 +84,7 @@ func (opts *chatOptions) parse(_ *cobra.Command, _ []string) error {
 	}
 
 	opts.input = input
-	if opts.model == "" {
-		opts.model = config.Seaq.Model()
-	}
+	opts.model = config.Seaq.Model()
 
 	return nil
 }
