@@ -16,8 +16,8 @@ import (
 func newGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "get",
-		Short:        "Get the current default model",
-		Aliases:      []string{"g"},
+		Short:        "Get the default model",
+		Aliases:      []string{"g", "show"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		PreRunE:      config.Init,

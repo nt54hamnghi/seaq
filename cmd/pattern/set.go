@@ -8,10 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newUseCmd() *cobra.Command {
+func newSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "use",
-		Short:             "Set default pattern",
+		Use:               "set",
+		Short:             "Set the default pattern",
+		Aliases:           []string{"s", "use"},
 		Args:              cobra.ExactArgs(1),
 		SilenceUsage:      true,
 		ValidArgsFunction: CompletePatternArgs,

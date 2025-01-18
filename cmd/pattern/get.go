@@ -11,8 +11,8 @@ import (
 func newGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "get",
-		Short:        "Get the current pattern",
-		Aliases:      []string{"g"},
+		Short:        "Get the default pattern",
+		Aliases:      []string{"g", "show"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		PreRunE:      config.Init,
