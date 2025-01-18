@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/nt54hamnghi/seaq/cmd/chat"
+	"github.com/nt54hamnghi/seaq/cmd/compose"
 	"github.com/nt54hamnghi/seaq/cmd/fetch"
 	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
@@ -47,7 +48,10 @@ func New() *cobra.Command {
 		Version:      version,
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
-		PreRunE:      flaggroup.ValidateGroups(&opts.output),
+		PreRunE: compose.SequenceE(
+			config.Init,
+			flaggroup.ValidateGroups(&opts.output),
+		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch err := opts.parse(cmd, args); {
 			case errors.Is(err, util.ErrInteractiveInput):
@@ -135,11 +139,6 @@ func run(ctx context.Context, opts rootOptions) error {
 }
 
 func setupFlags(cmd *cobra.Command, opts *rootOptions) {
-	// register init functions to run before any command (subcommand included) executes
-	cobra.OnInitialize(func() {
-		cobra.CheckErr(initConfig(cmd, opts))
-	})
-
 	// local flags are only available to the current command
 	flags := cmd.Flags()
 	flags.SortFlags = false
@@ -181,34 +180,4 @@ func addCommands(cmd *cobra.Command) {
 		&cobra.Group{Title: "Common Commands:", ID: "common"},
 		&cobra.Group{Title: "Management Commands:", ID: "management"},
 	)
-}
-
-// initConfig sets up the application configuration and loads config values
-// from files, flags, and environment variables
-func initConfig(cmd *cobra.Command, opts *rootOptions) error {
-	// bind the global SeaqConfig to a local variable
-	seaq := config.Seaq
-
-	// set config file
-	if err := seaq.UseConfigFile(opts.configFile.String()); err != nil {
-		return err
-	}
-
-	// bind flags to viper
-	flags := cmd.Flags()
-	if err := seaq.BindPFlag("pattern.name", flags.Lookup("pattern")); err != nil {
-		return err
-	}
-	if err := seaq.BindPFlag("pattern.repo", flags.Lookup("repo")); err != nil {
-		return err
-	}
-	if err := seaq.BindPFlag("model.name", flags.Lookup("model")); err != nil {
-		return err
-	}
-
-	// read in the config file and environment variables
-	seaq.AutomaticEnv()
-
-	// If a config file is found, read it in.
-	return seaq.ReadInConfig()
 }

@@ -2,7 +2,7 @@ package flaggroup
 
 import "github.com/spf13/cobra"
 
-type PreRunE func(cmd *cobra.Command, args []string) error
+type PreRunE = func(cmd *cobra.Command, args []string) error
 
 type FlagGroup interface {
 	Init(cmd *cobra.Command)

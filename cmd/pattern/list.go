@@ -17,6 +17,7 @@ func newListCmd() *cobra.Command {
 		Aliases:      []string{"ls"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
+		PreRunE:      config.Init,
 		RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 			pats, err := config.Seaq.ListPatterns()
 			if err != nil {

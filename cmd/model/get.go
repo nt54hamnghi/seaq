@@ -20,6 +20,7 @@ func newGetCmd() *cobra.Command {
 		Aliases:      []string{"g"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
+		PreRunE:      config.Init,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if provider, name, ok := llm.LookupModel(config.Seaq.Model()); ok {
 				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)

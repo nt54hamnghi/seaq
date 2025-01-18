@@ -33,9 +33,15 @@ func NewPatternCmd() *cobra.Command {
 
 // nolint: revive
 func CompletePatternArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// ListPatterns reads `pattern.repo` from the config file to provide completions
+	// so it relies on the config file being fully loaded
+	if err := config.Seaq.EnsureConfig(cmd, args); err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
 	patterns, err := config.Seaq.ListPatterns()
 	if err != nil {
-		return nil, cobra.ShellCompDirectiveNoFileComp
+		return nil, cobra.ShellCompDirectiveError
 	}
 	return patterns, cobra.ShellCompDirectiveNoFileComp
 }

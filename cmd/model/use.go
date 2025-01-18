@@ -15,6 +15,7 @@ func newUseCmd() *cobra.Command {
 		Args:              cobra.ExactArgs(1),
 		SilenceUsage:      true,
 		ValidArgsFunction: CompleteModelArgs,
+		PreRunE:           config.Init,
 		RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 			name := args[0]
 

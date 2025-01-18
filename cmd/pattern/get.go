@@ -15,6 +15,7 @@ func newGetCmd() *cobra.Command {
 		Aliases:      []string{"g"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
+		PreRunE:      config.Init,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 			defer w.Flush()
