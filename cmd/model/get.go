@@ -29,7 +29,7 @@ func newGetCmd() *cobra.Command {
 		SilenceUsage: true,
 		PreRunE:      config.Init,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if provider, name, ok := llm.LookupModel(config.Seaq.Model()); ok {
+			if provider, name, ok := llm.LookupModel(config.Model()); ok {
 				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 				defer w.Flush()
 				fmt.Fprintf(w, "Model:\t%s\n", name)

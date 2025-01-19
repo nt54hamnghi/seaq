@@ -84,7 +84,7 @@ func (opts *chatOptions) parse(_ *cobra.Command, _ []string) error {
 	}
 
 	opts.input = input
-	opts.model = config.Seaq.Model()
+	opts.model = config.Model()
 
 	return nil
 }

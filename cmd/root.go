@@ -23,6 +23,7 @@ import (
 	"github.com/nt54hamnghi/seaq/pkg/util/log"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const version = "0.2.14"
@@ -89,11 +90,9 @@ func (opts *rootOptions) parse(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	seaq := config.Seaq
-
 	opts.input = input
-	opts.model = seaq.Model()
-	opts.pattern = seaq.Pattern()
+	opts.model = config.Model()
+	opts.pattern = config.Pattern()
 
 	return nil
 }
@@ -104,15 +103,15 @@ func run(ctx context.Context, opts rootOptions) error {
 
 	if opts.verbose {
 		log.Info("completion",
-			"config", config.Seaq.ConfigFileUsed(),
-			"model", config.Seaq.Model(),
-			"pattern", config.Seaq.Pattern(),
+			"config", viper.ConfigFileUsed(),
+			"model", config.Model(),
+			"pattern", config.Pattern(),
 		)
 		fmt.Fprintln(os.Stderr)
 	}
 
 	// construct the prompt from pattern and scraped content
-	prompt, err := config.Seaq.GetPrompt()
+	prompt, err := config.GetPrompt()
 	if err != nil {
 		return err
 	}

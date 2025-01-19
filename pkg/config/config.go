@@ -11,13 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Seaq = New()
-
-// SeaqConfig is a slim wrapper around an instance of viper.Viper
-type SeaqConfig struct {
-	*viper.Viper
-}
-
 // flagBindings maps CLI flags to their corresponding config keys
 var flagBindings = map[string]string{
 	"pattern": "pattern.name",
@@ -29,7 +22,7 @@ var flagBindings = map[string]string{
 //
 // It should be used as a PreRunE for commands that require configuration.
 func Init(cmd *cobra.Command, args []string) error { //nolint:revive
-	if err := Seaq.EnsureConfig(cmd, args); err != nil {
+	if err := EnsureConfig(cmd, args); err != nil {
 		return err
 	}
 
@@ -38,7 +31,7 @@ func Init(cmd *cobra.Command, args []string) error { //nolint:revive
 		if f := flags.Lookup(flag); f != nil {
 			// https://github.com/spf13/viper#working-with-flags
 			// the config value is not set at binding time but at access time
-			if err := Seaq.BindPFlag(key, f); err != nil {
+			if err := viper.BindPFlag(key, f); err != nil {
 				return fmt.Errorf("binding flag %s to key %s: %w", flag, key, err)
 			}
 		}
@@ -56,18 +49,18 @@ func AddConfigFlag(cmd *cobra.Command, configFile pflag.Value) {
 //
 // It will reads the config flags from the provided command to load the config file.
 // If this flag is not available (the command doesn't have it or it's not set), it will search for the config file.
-func (sc *SeaqConfig) EnsureConfig(cmd *cobra.Command, args []string) error { //nolint:revive
+func EnsureConfig(cmd *cobra.Command, args []string) error { //nolint:revive
 	var configFile string
 	if f := cmd.Flags().Lookup("config"); f != nil {
 		configFile = f.Value.String()
 	}
 	// UseConfigFile will search for the config file if the path is empty
-	if err := sc.UseConfigFile(configFile); err != nil {
+	if err := UseConfigFile(configFile); err != nil {
 		return err
 	}
 
-	sc.AutomaticEnv()
-	if err := sc.ReadInConfig(); err != nil {
+	viper.AutomaticEnv()
+	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("reading config: %w", err)
 	}
 
@@ -77,13 +70,13 @@ func (sc *SeaqConfig) EnsureConfig(cmd *cobra.Command, args []string) error { //
 // UseConfigFile sets the config file to use.
 //
 // If the path is empty, it will search for the config file.
-func (sc *SeaqConfig) UseConfigFile(path string) error {
+func UseConfigFile(path string) error {
 	if path == "" {
-		return sc.SearchConfigFile()
+		return SearchConfigFile()
 	}
 
 	// use Viper to avoid recursive calls
-	sc.SetConfigFile(path)
+	viper.SetConfigFile(path)
 	return nil
 }
 
@@ -95,7 +88,7 @@ func (sc *SeaqConfig) UseConfigFile(path string) error {
 //  3. /etc/seaq (Linux only)
 //
 // If no config file is found, it will return an error.
-func (sc *SeaqConfig) SearchConfigFile() error {
+func SearchConfigFile() error {
 	// get the current working directory
 	curDir, err := os.Getwd()
 	if err != nil {
@@ -110,15 +103,15 @@ func (sc *SeaqConfig) SearchConfigFile() error {
 	appDir := filepath.Join(configDir, "seaq")
 
 	// set config file name and type
-	sc.SetConfigName("seaq")
-	sc.SetConfigType("yaml")
+	viper.SetConfigName("seaq")
+	viper.SetConfigType("yaml")
 
 	// paths to search for the config file
 	// paths are searched in the order they are added
-	sc.AddConfigPath(curDir)
-	sc.AddConfigPath(appDir)
+	viper.AddConfigPath(curDir)
+	viper.AddConfigPath(appDir)
 	if runtime.GOOS == "linux" {
-		sc.AddConfigPath("/etc/seaq")
+		viper.AddConfigPath("/etc/seaq")
 	}
 
 	return nil

@@ -2,16 +2,17 @@ package config
 
 import (
 	"github.com/nt54hamnghi/seaq/pkg/llm"
+	"github.com/spf13/viper"
 )
 
-func (sc *SeaqConfig) Model() string {
-	return sc.GetString("model.name")
+func Model() string {
+	return viper.GetString("model.name")
 }
 
-func (sc *SeaqConfig) UseModel(name string) error {
+func UseModel(name string) error {
 	if !llm.HasModel(name) {
 		return &Unsupported{Type: "model", Key: name}
 	}
-	sc.Set("model.name", name)
+	viper.Set("model.name", name)
 	return nil
 }

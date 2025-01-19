@@ -27,8 +27,8 @@ func newGetCmd() *cobra.Command {
 			w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 			defer w.Flush()
 
-			fmt.Fprintf(w, "Pattern:\t%s\n", config.Seaq.Pattern())
-			fmt.Fprintf(w, "Repo:\t%s\n", config.Seaq.Repo())
+			fmt.Fprintf(w, "Pattern:\t%s\n", config.Pattern())
+			fmt.Fprintf(w, "Repo:\t%s\n", config.Repo())
 
 			return nil
 		},

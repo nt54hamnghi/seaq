@@ -7,6 +7,7 @@ import (
 	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type setOptions struct {
@@ -27,11 +28,11 @@ func newSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error { // nolint: revive
 			name := args[0]
 
-			if err := config.Seaq.UseModel(name); err != nil {
+			if err := config.UseModel(name); err != nil {
 				return err
 			}
 
-			if err := config.Seaq.WriteConfig(); err != nil {
+			if err := viper.WriteConfig(); err != nil {
 				return err
 			}
 

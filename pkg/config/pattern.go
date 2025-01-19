@@ -17,22 +17,16 @@ var (
 
 // endregion: --- errors
 
-func New() *SeaqConfig {
-	return &SeaqConfig{
-		viper.New(),
-	}
+func Repo() string {
+	return viper.GetString("pattern.repo")
 }
 
-func (sc *SeaqConfig) Repo() string {
-	return sc.GetString("pattern.repo")
+func Pattern() string {
+	return viper.GetString("pattern.name")
 }
 
-func (sc *SeaqConfig) Pattern() string {
-	return sc.GetString("pattern.name")
-}
-
-func (sc *SeaqConfig) HasPattern(name string) bool {
-	pats, err := sc.ListPatterns()
+func HasPattern(name string) bool {
+	pats, err := ListPatterns()
 	if err != nil {
 		return false
 	}
@@ -46,21 +40,21 @@ func (sc *SeaqConfig) HasPattern(name string) bool {
 	return false
 }
 
-func (sc *SeaqConfig) UsePattern(name string) error {
-	if !sc.HasPattern(name) {
+func UsePattern(name string) error {
+	if !HasPattern(name) {
 		return &Unsupported{Type: "pattern", Key: name}
 	}
-	sc.Set("pattern.name", name)
+	viper.Set("pattern.name", name)
 	return nil
 }
 
-func (sc *SeaqConfig) GetPrompt() (string, error) {
-	pat := sc.Pattern()
+func GetPrompt() (string, error) {
+	pat := Pattern()
 	if pat == "" {
 		return "", ErrEmptyPattern
 	}
 
-	repo := sc.Repo()
+	repo := Repo()
 	if repo == "" {
 		return "", ErrEmptyRepo
 	}
@@ -79,8 +73,8 @@ func (sc *SeaqConfig) GetPrompt() (string, error) {
 }
 
 // ListPatterns returns a list of available patterns
-func (sc *SeaqConfig) ListPatterns() ([]string, error) {
-	repo := sc.Repo()
+func ListPatterns() ([]string, error) {
+	repo := Repo()
 	if repo == "" {
 		return nil, ErrEmptyRepo
 	}
