@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -169,14 +170,14 @@ func TestRegisterWith(t *testing.T) {
 		name     string
 		registry ModelRegistry
 		provider string
-		fn       func() ([]string, error)
+		fn       func(context.Context) ([]string, error)
 		wantErr  error
 	}{
 		{
 			name:     "new provider",
 			registry: registry,
 			provider: "TestProvider",
-			fn: func() ([]string, error) {
+			fn: func(_ context.Context) ([]string, error) {
 				return []string{"model-1", "model-2"}, nil
 			},
 			wantErr: nil,
@@ -185,7 +186,7 @@ func TestRegisterWith(t *testing.T) {
 			name:     "empty provider",
 			registry: registry,
 			provider: "",
-			fn: func() ([]string, error) {
+			fn: func(_ context.Context) ([]string, error) {
 				return []string{"model-1", "model-2"}, nil
 			},
 			wantErr: ErrProviderNameEmpty,
@@ -194,7 +195,7 @@ func TestRegisterWith(t *testing.T) {
 			name:     "empty models from func",
 			registry: registry,
 			provider: "EmptyProvider",
-			fn: func() ([]string, error) {
+			fn: func(_ context.Context) ([]string, error) {
 				return []string{}, nil
 			},
 			wantErr: ErrModelsListEmpty,
@@ -203,7 +204,7 @@ func TestRegisterWith(t *testing.T) {
 			name:     "existing provider",
 			registry: registry,
 			provider: "openai",
-			fn: func() ([]string, error) {
+			fn: func(_ context.Context) ([]string, error) {
 				return []string{"model-1", "model-2"}, nil
 			},
 			wantErr: ErrProviderAlreadyExists,
@@ -212,7 +213,7 @@ func TestRegisterWith(t *testing.T) {
 			name:     "function error",
 			registry: registry,
 			provider: "ErrorProvider",
-			fn: func() ([]string, error) {
+			fn: func(_ context.Context) ([]string, error) {
 				return nil, errors.New("failed to fetch models")
 			},
 			wantErr: errors.New("failed to fetch models"),
@@ -220,10 +221,15 @@ func TestRegisterWith(t *testing.T) {
 	}
 
 	r := require.New(t)
+	ctx := context.Background()
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(*testing.T) {
-			err := tt.registry.RegisterWith(tt.provider, tt.fn)
+			lister := SimpleModelLister{
+				ProviderName: tt.provider,
+				Lister:       tt.fn,
+			}
+			err := tt.registry.RegisterWith(ctx, lister)
 
 			if tt.wantErr != nil {
 				r.EqualError(tt.wantErr, err.Error())
@@ -234,7 +240,7 @@ func TestRegisterWith(t *testing.T) {
 			r.True(ok)
 
 			// Get models from the function to verify
-			expectedModels, _ := tt.fn()
+			expectedModels, _ := tt.fn(ctx)
 			r.Equal(set.New(expectedModels...), models)
 		})
 	}

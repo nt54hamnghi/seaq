@@ -18,80 +18,66 @@ const (
 	OLLAMA_HOST        = "OLLAMA_HOST"
 )
 
-var globalEnvStore = NewEnvStore()
-
-type Store struct {
-	getEnv func(string) (string, error)
-}
-
-func NewEnvStore() *Store {
-	return &Store{
-		getEnv: func(s string) (string, error) {
-			val, ok := os.LookupEnv(s)
-			if !ok {
-				return "", fmt.Errorf("%s is not set", s)
-			}
-			return val, nil
-		},
+func Get(key string) (string, error) {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return "", fmt.Errorf("%s is not set", key)
 	}
-}
-
-func (e *Store) Get(key string) (string, error) {
-	return e.getEnv(key)
+	return val, nil
 }
 
 // OpenAIAPIKey returns the value of the OPENAI_API_KEY environment variable
 // or an error if not set.
 func OpenAIAPIKey() (string, error) {
-	return globalEnvStore.Get(OPENAI_API_KEY)
+	return Get(OPENAI_API_KEY)
 }
 
 // AnthropicAPIKey returns the value of the ANTHROPIC_API_KEY environment variable
 // or an error if not set.
 func AnthropicAPIKey() (string, error) {
-	return globalEnvStore.Get(ANTHROPIC_API_KEY)
+	return Get(ANTHROPIC_API_KEY)
 }
 
 // GeminiAPIKey returns the value of the GEMINI_API_KEY environment variable
 // or an error if not set.
 func GeminiAPIKey() (string, error) {
-	return globalEnvStore.Get(GEMINI_API_KEY)
+	return Get(GEMINI_API_KEY)
 }
 
 // YoutubeAPIKey returns the value of the YOUTUBE_API_KEY environment variable
 // or an error if not set.
 func YoutubeAPIKey() (string, error) {
-	return globalEnvStore.Get(YOUTUBE_API_KEY)
+	return Get(YOUTUBE_API_KEY)
 }
 
 // ChromaURL returns the value of the CHROMA_URL environment variable
 // or an error if not set.
 func ChromaURL() (string, error) {
-	return globalEnvStore.Get(CHROMA_URL)
+	return Get(CHROMA_URL)
 }
 
 // XAuthToken returns the value of the X_AUTH_TOKEN environment variable
 // or an error if not set.
 func XAuthToken() (string, error) {
-	return globalEnvStore.Get(X_AUTH_TOKEN)
+	return Get(X_AUTH_TOKEN)
 }
 
 // XCSRFToken returns the value of the X_CSRF_TOKEN environment variable
 // or an error if not set.
 func XCSRFToken() (string, error) {
-	return globalEnvStore.Get(X_CSRF_TOKEN)
+	return Get(X_CSRF_TOKEN)
 }
 
 // UdemyAccessToken returns the value of the UDEMY_ACCESS_TOKEN environment variable
 // or an error if not set.
 func UdemyAccessToken() (string, error) {
-	return globalEnvStore.Get(UDEMY_ACCESS_TOKEN)
+	return Get(UDEMY_ACCESS_TOKEN)
 }
 
 // OllamaHost returns the value of the OLLAMA_HOST environment variable
 // or an error if not set.
 func OllamaHost() string {
-	host, err := globalEnvStore.Get(OLLAMA_HOST)
+	host, err := Get(OLLAMA_HOST)
 	if err != nil {
 		return "http://localhost:11434"
 	}

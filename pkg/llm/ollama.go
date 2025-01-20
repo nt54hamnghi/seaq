@@ -2,16 +2,19 @@ package llm
 
 import (
 	"context"
-	"iter"
 	"net/http"
 	"net/url"
-	"slices"
 
 	"github.com/nt54hamnghi/seaq/pkg/env"
 	"github.com/ollama/ollama/api"
 )
 
-func listOllamaModels() ([]string, error) {
+var ollamaLister = SimpleModelLister{
+	ProviderName: "ollama",
+	Lister:       listOllamaModels,
+}
+
+func listOllamaModels(ctx context.Context) ([]string, error) {
 	// create a new client
 	hostURL, err := url.ParseRequestURI(env.OllamaHost())
 	if err != nil {
@@ -19,21 +22,15 @@ func listOllamaModels() ([]string, error) {
 	}
 	client := api.NewClient(hostURL, http.DefaultClient)
 
-	// list all models
-	models, err := client.List(context.Background())
+	res, err := client.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return slices.Collect(toModelNames(models)), nil
-}
-
-func toModelNames(r *api.ListResponse) iter.Seq[string] {
-	return func(yield func(string) bool) {
-		for _, m := range r.Models {
-			if !yield(m.Name) {
-				return
-			}
-		}
+	models := make([]string, len(res.Models))
+	for i, model := range res.Models {
+		models[i] = model.Name
 	}
+
+	return models, nil
 }

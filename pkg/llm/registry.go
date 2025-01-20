@@ -1,30 +1,50 @@
 package llm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"iter"
-	"log"
 	"maps"
-	"os"
 	"strings"
 	"sync"
 
+	"github.com/nt54hamnghi/seaq/pkg/util/log"
 	"github.com/nt54hamnghi/seaq/pkg/util/set"
 )
 
 type ModelRegistry map[string]set.Set[string]
 
-// ModelRetriever is a function that returns a list of model names
-type ModelRetriever func() ([]string, error)
+// ModelLister defines an interface for services that can list available models.
+type ModelLister interface {
+	// GetProvider returns the name of the model provider (e.g., "openai", "anthropic")
+	GetProvider() string
+
+	// List returns a slice of available model IDs from the provider.
+	// Returns an error if the listing operation fails.
+	List(context.Context) ([]string, error)
+}
+
+// SimpleModelLister provides a simple implementation of the ModelLister interface
+// that allows creating a model lister with a provider name and a listing function.
+type SimpleModelLister struct {
+	ProviderName string
+	Lister       func(context.Context) ([]string, error)
+}
+
+func (l SimpleModelLister) GetProvider() string {
+	return l.ProviderName
+}
+
+func (l SimpleModelLister) List(ctx context.Context) ([]string, error) {
+	return l.Lister(ctx)
+}
 
 var (
 	ErrProviderNameEmpty     = errors.New("provider name cannot be empty")
 	ErrModelsListEmpty       = errors.New("models list cannot be empty")
 	ErrProviderAlreadyExists = errors.New("provider already exists")
 )
-
-var initOnce sync.Once
 
 // Default registry of models
 var Registry = ModelRegistry{
@@ -54,27 +74,30 @@ var Registry = ModelRegistry{
 	},
 }
 
+var (
+	initOnce sync.Once
+	connMap  ConnectionMap
+)
+
 func initRegistry() {
 	initOnce.Do(func() {
 		var err error
 
-		registrars := []struct {
-			provider  string
-			retriever ModelRetriever
-		}{
-			{"ollama", listOllamaModels},
-		}
+		ctx := context.Background()
 
-		for _, r := range registrars {
-			err = Registry.RegisterWith(r.provider, r.retriever)
-			if err != nil {
-				log.Printf("[WARN] %s registration: %v\n", r.provider, err)
-			}
-		}
-
-		// Add a newline if there was an error
+		listers := []ModelLister{ollamaLister}
+		connMap, err = GetConnections()
 		if err != nil {
-			fmt.Fprintln(os.Stderr)
+			log.Warn("failed to load connections", "error", err)
+		}
+		for conn := range maps.Values(connMap) {
+			listers = append(listers, conn)
+		}
+
+		for _, l := range listers {
+			if err := Registry.RegisterWith(ctx, l); err != nil {
+				log.Warn("failed to register models", "provider", l.GetProvider(), "error", err)
+			}
 		}
 	})
 }
@@ -163,20 +186,19 @@ func (r ModelRegistry) Register(provider string, models []string) error {
 	return nil
 }
 
-// RegisterWith adds a new provider and its models to the registry using a function.
-// The function fn should return a slice of model names.
+// RegisterWith adds a new provider and its models to the registry using a ModelLister.
 //
 // Returns error if:
-//   - provider name is empty
+//   - provider name is empty after normalization
 //   - models list is empty
-//   - provider already exists
-//   - fn fails to retrieve the models
-func (r ModelRegistry) RegisterWith(provider string, retriever ModelRetriever) error {
-	models, err := retriever()
+//   - provider already exists in registry
+//   - ModelLister.List fails to retrieve the models
+func (r ModelRegistry) RegisterWith(ctx context.Context, l ModelLister) error {
+	models, err := l.List(ctx)
 	if err != nil {
 		return err
 	}
-	return r.Register(provider, models)
+	return r.Register(l.GetProvider(), models)
 }
 
 // Iter returns an iterator that yields provider-model pairs from the registry.
@@ -261,11 +283,11 @@ func Register(provider string, models []string) error {
 	return Registry.Register(provider, models)
 }
 
-// RegisterFunc adds a new provider and its models to the default registry using a function.
-// See ModelRegistry.RegisterFunc for details.
-func RegisterFunc(provider string, fn func() ([]string, error)) error {
+// RegisterWith adds a new provider and its models to the default registry using a ModelLister.
+// See ModelRegistry.RegisterWith for details.
+func RegisterWith(ctx context.Context, l ModelLister) error {
 	initRegistry()
-	return Registry.RegisterWith(provider, fn)
+	return Registry.RegisterWith(ctx, l)
 }
 
 // Providers returns an iterator over all providers in the default registry.

@@ -97,7 +97,21 @@ func New(name string) (llms.Model, error) {
 			ollama.WithServerURL(env.OllamaHost()),
 		)
 	default:
-		panic("unreachable")
+		// TODO: check if provider is in connMap
+		conn, ok := connMap[provider]
+		if !ok {
+			return nil, fmt.Errorf("unexpected error: provider %s not found", provider)
+		}
+
+		apiKey, err := env.Get(conn.GetEnvKey())
+		if err != nil {
+			return nil, err
+		}
+		return openai.New(
+			openai.WithModel(model),
+			openai.WithToken(apiKey),
+			openai.WithBaseURL(conn.BaseURL),
+		)
 	}
 }
 
