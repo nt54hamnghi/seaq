@@ -80,7 +80,7 @@ func WithNoStream(noStream bool) Option {
 func defaultREPL() (*REPL, error) {
 	store, err := rag.NewChromaStore()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to Chroma: %w", err)
 	}
 
 	r := REPL{
