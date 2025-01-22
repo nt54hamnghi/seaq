@@ -27,7 +27,7 @@ func newYoutubeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "youtube [url|videoId]",
 		Short:        "Get captions and metadata from YouTube videos",
-		Aliases:      []string{"ytb", "y"},
+		Aliases:      []string{"ytb"},
 		Args:         youtubeArgs,
 		SilenceUsage: true,
 		PreRunE:      flaggroup.ValidateGroups(&opts.output, &opts.interval),

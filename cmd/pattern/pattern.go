@@ -13,7 +13,7 @@ func NewPatternCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "pattern",
 		Short:        "Manage patterns",
-		Aliases:      []string{"pat", "p"},
+		Aliases:      []string{"pat"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		GroupID:      "management",

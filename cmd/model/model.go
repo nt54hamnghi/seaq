@@ -15,7 +15,7 @@ func NewModelCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "model",
 		Short:        "Manage models",
-		Aliases:      []string{"mdl", "m"},
+		Aliases:      []string{"mdl"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		GroupID:      "management",

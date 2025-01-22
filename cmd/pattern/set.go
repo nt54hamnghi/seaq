@@ -20,7 +20,7 @@ func newSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "set",
 		Short:             "Set the default pattern",
-		Aliases:           []string{"s", "use"},
+		Aliases:           []string{"use"},
 		Args:              cobra.ExactArgs(1),
 		SilenceUsage:      true,
 		ValidArgsFunction: CompletePatternArgs,

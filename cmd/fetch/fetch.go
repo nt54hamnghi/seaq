@@ -11,7 +11,7 @@ func NewFetchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "fetch",
 		Short:        "Fetch data and output text",
-		Aliases:      []string{"fet", "f"},
+		Aliases:      []string{"fet"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		GroupID:      "common",

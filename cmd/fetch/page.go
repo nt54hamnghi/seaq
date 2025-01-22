@@ -55,7 +55,7 @@ func newPageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "page [url]",
 		Short:        "Get HTML data from a URL and convert it to markdown",
-		Aliases:      []string{"pg", "p"},
+		Aliases:      []string{"pg"},
 		Args:         pageArgs,
 		SilenceUsage: true,
 		PreRunE:      flaggroup.ValidateGroups(&opts.recursive, &opts.output),

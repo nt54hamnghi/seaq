@@ -26,7 +26,7 @@ func newUdemyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "udemy [url]",
 		Short:        "Get transcript of a Udemy lecture",
-		Aliases:      []string{"udm", "u"},
+		Aliases:      []string{"udm"},
 		Args:         cobra.ExactArgs(1),
 		PreRunE:      flaggroup.ValidateGroups(&opts.output, &opts.interval),
 		SilenceUsage: true,

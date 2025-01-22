@@ -12,7 +12,7 @@ func NewConnectionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "connection",
 		Short:        "Manage connections",
-		Aliases:      []string{"conn", "c"},
+		Aliases:      []string{"conn"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		GroupID:      "management",
