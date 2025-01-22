@@ -8,8 +8,10 @@ import (
 	"maps"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/nt54hamnghi/seaq/pkg/util/log"
+	"github.com/nt54hamnghi/seaq/pkg/util/pool"
 	"github.com/nt54hamnghi/seaq/pkg/util/set"
 )
 
@@ -94,9 +96,22 @@ func initRegistry() {
 			listers = append(listers, conn)
 		}
 
-		for _, l := range listers {
-			if err := Registry.RegisterWith(ctx, l); err != nil {
-				log.Warn("failed to register models", "provider", l.GetProvider(), "error", err)
+		models := pool.OrderedGoFunc(listers, func(l ModelLister) ([]string, error) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second*2)
+			defer cancel()
+			return l.List(ctx)
+		})
+
+		for i := 0; i < len(models); i++ {
+			provider := listers[i].GetProvider()
+			modelIDs := models[i]
+			if modelIDs.Err != nil {
+				log.Warn("failed to list models", "provider", provider, "error", modelIDs.Err)
+				continue
+			}
+
+			if err := Registry.Register(provider, modelIDs.Output); err != nil {
+				log.Warn("failed to register models", "provider", provider, "error", err)
 			}
 		}
 	})
