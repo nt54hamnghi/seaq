@@ -112,12 +112,12 @@ type Response struct {
 func Into[T any](res *Response) (T, error) {
 	var t T
 
-	if err := res.ExpectContentType("application/json"); err != nil {
+	raw, err := res.Bytes()
+	if err != nil {
 		return t, err
 	}
 
-	raw, err := res.Bytes()
-	if err != nil {
+	if err := res.ExpectContentType("application/json"); err != nil {
 		return t, err
 	}
 
