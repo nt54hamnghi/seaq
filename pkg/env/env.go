@@ -3,6 +3,7 @@ package env
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // nolint: revive,gosec
@@ -16,6 +17,9 @@ const (
 	X_CSRF_TOKEN       = "X_CSRF_TOKEN" // x.com
 	UDEMY_ACCESS_TOKEN = "UDEMY_ACCESS_TOKEN"
 	OLLAMA_HOST        = "OLLAMA_HOST"
+
+	// seaq
+	SEAQ_SUPPRESS_WARNINGS = "SEAQ_SUPPRESS_WARNINGS"
 )
 
 func Get(key string) (string, error) {
@@ -72,6 +76,23 @@ func XCSRFToken() (string, error) {
 // or an error if not set.
 func UdemyAccessToken() (string, error) {
 	return Get(UDEMY_ACCESS_TOKEN)
+}
+
+// SuppressWarnings returns the value of the SEAQ_SUPPRESS_WARNINGS environment variable
+// or an error if not set.
+func SuppressWarnings() bool {
+	val, err := Get(SEAQ_SUPPRESS_WARNINGS)
+	// show warnings by default if there's an error
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(val)) {
+	// only suppress warnings when explicitly set to true
+	case "1", "true", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 // OllamaHost returns the value of the OLLAMA_HOST environment variable
