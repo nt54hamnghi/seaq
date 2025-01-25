@@ -6,11 +6,18 @@ package model
 import (
 	"fmt"
 
+	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/spf13/cobra"
 )
 
+type listOptions struct {
+	configFile flag.FilePath
+}
+
 func newListCmd() *cobra.Command {
+	var opts listOptions
+
 	cmd := &cobra.Command{
 		Use:          "list",
 		Short:        "List available models",
@@ -25,6 +32,9 @@ func newListCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	// set up flags
+	config.AddConfigFlag(cmd, &opts.configFile)
 
 	return cmd
 }
