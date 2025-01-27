@@ -50,7 +50,7 @@ var (
 )
 
 // Default registry of models
-var Registry = ModelRegistry{
+var defaultRegistry = ModelRegistry{
 	"openai": {
 		// O1:            {},
 		// O1Mini:        {},
@@ -111,7 +111,7 @@ func initRegistry() {
 				log.Warn("failed to list models", "provider", provider, "error", modelIDs.Err)
 				continue
 			}
-			err := Registry.Register(provider, modelIDs.Output)
+			err := defaultRegistry.Register(provider, modelIDs.Output)
 			if err != nil && !suppressWarnings {
 				log.Warn("failed to register models", "provider", provider, "error", err)
 			}
@@ -283,47 +283,47 @@ func (r ModelRegistry) Models() iter.Seq[string] {
 // See ModelRegistry.LookupModel for details.
 func LookupModel(id string) (provider, model string, ok bool) {
 	initRegistry()
-	return Registry.LookupModel(id)
+	return defaultRegistry.LookupModel(id)
 }
 
 // HasModel checks if a model is supported by any provider in the default registry.
 // See ModelRegistry.HasModel for details.
 func HasModel(name string) bool {
 	initRegistry()
-	return Registry.HasModel(name)
+	return defaultRegistry.HasModel(name)
 }
 
 // Register adds a new provider and its models to the default registry.
 // See ModelRegistry.Register for details.
 func Register(provider string, models []string) error {
 	initRegistry()
-	return Registry.Register(provider, models)
+	return defaultRegistry.Register(provider, models)
 }
 
 // RegisterWith adds a new provider and its models to the default registry using a ModelLister.
 // See ModelRegistry.RegisterWith for details.
 func RegisterWith(ctx context.Context, l ModelLister) error {
 	initRegistry()
-	return Registry.RegisterWith(ctx, l)
+	return defaultRegistry.RegisterWith(ctx, l)
 }
 
 // Providers returns an iterator over all providers in the default registry.
 // See ModelRegistry.Providers for details.
 func Providers() iter.Seq[string] {
 	initRegistry()
-	return Registry.Providers()
+	return defaultRegistry.Providers()
 }
 
 // ModelsByProvider returns an iterator over all models for a given provider in the default registry.
 // See ModelRegistry.ModelsByProvider for details.
 func ModelsByProvider(provider string) iter.Seq[string] {
 	initRegistry()
-	return Registry.ModelsByProvider(provider)
+	return defaultRegistry.ModelsByProvider(provider)
 }
 
 // Models returns an iterator over all models in the default registry.
 // See ModelRegistry.Models for details.
 func Models() iter.Seq[string] {
 	initRegistry()
-	return Registry.Models()
+	return defaultRegistry.Models()
 }

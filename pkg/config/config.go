@@ -61,7 +61,7 @@ func EnsureConfig(cmd *cobra.Command, args []string) error { //nolint:revive
 
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("reading config: %w", err)
+		return fmt.Errorf("reading config: %w.\n%s", err, "Run `seaq config setup` to generate a new config file")
 	}
 
 	return nil
