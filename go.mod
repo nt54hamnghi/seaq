@@ -13,7 +13,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/gobwas/glob v0.2.3
 	github.com/gocolly/colly v1.2.0
-	github.com/imperatrona/twitter-scraper v0.0.12
+	github.com/imperatrona/twitter-scraper v0.0.16
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/ollama/ollama v0.5.4
 	github.com/spf13/cobra v1.8.1
