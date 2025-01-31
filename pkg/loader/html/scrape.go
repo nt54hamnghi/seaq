@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	md "github.com/JohannesKaufmann/html-to-markdown"
+	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/nt54hamnghi/seaq/pkg/util/reqx"
@@ -33,6 +33,8 @@ func (s pageScraper) scrape(doc *goquery.Document) ([]string, error) {
 	return collect(doc.Selection.Contents()), nil
 }
 
+// selectorScraper scrapes content from a webpage using a CSS selector.
+// The selector field specifies which elements to extract content from.
 type selectorScraper struct {
 	selector string
 }
@@ -71,12 +73,12 @@ func scrapeFromReader(scr scraper, r io.Reader) (string, error) {
 	}
 
 	html := strings.Join(contents, "\n")
-	markdown, err := html2md([]byte(html))
+	markdown, err := html2md(html)
 	if err != nil {
 		return "", err
 	}
 
-	return string(markdown), nil
+	return markdown, nil
 }
 
 func findContent(doc *goquery.Document) ([]string, error) {
@@ -109,19 +111,21 @@ func collect(selection *goquery.Selection) []string {
 	return res
 }
 
-func html2md(rawHTML []byte) ([]byte, error) {
+// html2md converts HTML content to Markdown format.
+// The HTML is first sanitized to remove potentially unsafe content
+// before conversion.
+func html2md(rawHTML string) (string, error) {
 	safeHTML := sanitizeHTML(rawHTML)
-	converter := md.NewConverter("", true, nil)
-	// converter.Use(plugin.Table())
-
-	return converter.ConvertBytes(safeHTML)
+	return htmltomarkdown.ConvertString(safeHTML)
 }
 
-func sanitizeHTML(html []byte) []byte {
+// sanitizeHTML removes unsafe HTML elements and attributes, keeping only
+// safe link elements and their href attributes.
+func sanitizeHTML(html string) string {
 	policy := bluemonday.UGCPolicy()
 	policy.AllowAttrs("href").OnElements("a")
 	policy.RequireParseableURLs(true)
 	policy.RequireNoFollowOnFullyQualifiedLinks(true)
 
-	return policy.SanitizeBytes(html)
+	return policy.Sanitize(html)
 }
