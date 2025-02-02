@@ -17,6 +17,7 @@ const (
 	X_CSRF_TOKEN       = "X_CSRF_TOKEN" // x.com
 	UDEMY_ACCESS_TOKEN = "UDEMY_ACCESS_TOKEN"
 	OLLAMA_HOST        = "OLLAMA_HOST"
+	JINA_API_KEY       = "JINA_API_KEY"
 
 	// seaq
 	SEAQ_SUPPRESS_WARNINGS = "SEAQ_SUPPRESS_WARNINGS"
@@ -103,4 +104,10 @@ func OllamaHost() string {
 		return "http://localhost:11434"
 	}
 	return host
+}
+
+// JinaAPIKey returns the value of the JINA_API_KEY environment variable
+// or an error if not set.
+func JinaAPIKey() (string, error) {
+	return Get(JINA_API_KEY)
 }

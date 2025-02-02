@@ -6,13 +6,16 @@ package fetch
 import (
 	"context"
 	"errors"
+	"os"
 	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
 	"github.com/nt54hamnghi/seaq/pkg/loader"
 	"github.com/nt54hamnghi/seaq/pkg/loader/html"
+	"github.com/nt54hamnghi/seaq/pkg/loader/html/jina"
 	"github.com/spf13/cobra"
+	"github.com/thediveo/enumflag/v2"
 	"github.com/tmc/langchaingo/documentloaders"
 )
 
@@ -40,6 +43,37 @@ func (r *recursive) Validate(cmd *cobra.Command, args []string) error { // nolin
 
 // endregion: --- flag groups
 
+// region: --- engine options
+// https://github.com/thediveo/enumflag?tab=readme-ov-file#cli-flag-with-default
+
+type engine enumflag.Flag
+
+const (
+	defaultEngine engine = iota
+	jinaEngine
+	firecrawlEngine
+)
+
+var engineIDs = map[engine][]string{
+	defaultEngine:   {"default"},
+	jinaEngine:      {"jina"},
+	firecrawlEngine: {"firecrawl"},
+}
+
+func engineVariants() []string {
+	variants := []string{}
+	for _, v := range engineIDs {
+		variants = append(variants, v...)
+	}
+	return variants
+}
+
+func completeEngineFlag(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return engineVariants(), cobra.ShellCompDirectiveDefault
+}
+
+// endregion: --- engine options
+
 type pageOptions struct {
 	url       string
 	selector  string
@@ -47,6 +81,7 @@ type pageOptions struct {
 	recursive recursive
 	output    flaggroup.Output
 	asJSON    bool
+	engine    engine
 }
 
 func newPageCmd() *cobra.Command {
@@ -69,10 +104,22 @@ func newPageCmd() *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.SortFlags = false
-	flags.BoolVarP(&opts.auto, "auto", "a", false, "automatically detect content")
+
+	flags.VarP(
+		enumflag.New(&opts.engine, "engine", engineIDs, enumflag.EnumCaseSensitive),
+		"engine", "e",
+		"engine to use (default|jina|firecrawl)",
+	)
 	flags.StringVarP(&opts.selector, "selector", "s", "", "filter content by selector")
+	flags.BoolVarP(&opts.auto, "auto", "a", false, "automatically detect content")
 	flags.BoolVarP(&opts.asJSON, "json", "j", false, "output as JSON")
 	flaggroup.InitGroups(cmd, &opts.recursive, &opts.output)
+
+	// set up completion for engine flag
+	err := cmd.RegisterFlagCompletionFunc("engine", completeEngineFlag)
+	if err != nil {
+		os.Exit(1)
+	}
 
 	return cmd
 }
@@ -89,8 +136,19 @@ func pageArgs(cmd *cobra.Command, args []string) error { // nolint: revive
 	return nil
 }
 
-func (opts *pageOptions) parse(_ *cobra.Command, args []string) error {
+func (opts *pageOptions) parse(cmd *cobra.Command, args []string) error {
 	opts.url = args[0]
+
+	maxPagesSet := cmd.Flags().Changed("max-pages")
+	recursiveSet := cmd.Flags().Changed("recursive")
+	autoSet := cmd.Flags().Changed("auto")
+
+	if opts.engine != defaultEngine {
+		if autoSet || recursiveSet || maxPagesSet {
+			return errors.New("--auto, --recursive, and --max-pages can only be used with --engine=default")
+		}
+	}
+
 	return nil
 }
 
@@ -100,19 +158,31 @@ func pageRun(ctx context.Context, opts pageOptions) error {
 
 	var htmlLoader documentloaders.Loader
 
-	baseLoader := html.NewLoader(
-		html.WithURL(opts.url),
-		html.WithSelector(opts.selector),
-		html.WithAuto(opts.auto),
-	)
-
-	if opts.recursive.Recursive {
-		htmlLoader = html.NewRecursiveLoader(
-			html.WithPageLoader(baseLoader),
-			html.WithMaxPages(opts.recursive.MaxPages),
+	switch opts.engine {
+	case defaultEngine:
+		baseLoader := html.NewLoader(
+			html.WithURL(opts.url),
+			html.WithSelector(opts.selector),
+			html.WithAuto(opts.auto),
 		)
-	} else {
-		htmlLoader = baseLoader
+
+		if opts.recursive.Recursive {
+			htmlLoader = html.NewRecursiveLoader(
+				html.WithPageLoader(baseLoader),
+				html.WithMaxPages(opts.recursive.MaxPages),
+			)
+		} else {
+			htmlLoader = baseLoader
+		}
+	case jinaEngine:
+		htmlLoader = jina.NewLoader(
+			jina.WithURL(opts.url),
+			jina.WithSelector(opts.selector),
+		)
+	case firecrawlEngine:
+		panic("todo")
+	default:
+		return errors.New("invalid engine")
 	}
 
 	dest, err := opts.output.Writer()

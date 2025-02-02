@@ -50,7 +50,7 @@ func NewXLoader(opts ...Option) (*Loader, error) {
 
 	// After setting AuthToken, IsLoggedIn must be called to verify the token.
 	if !xngin.IsLoggedIn() {
-		return nil, errors.New("invalid AuthToken")
+		return nil, errors.New("failed to authenticate with x.com: invalid auth token or CSRF token")
 	}
 
 	loader := &Loader{
@@ -95,11 +95,9 @@ func tweetToDocument(tweet *x.Tweet) (schema.Document, error) {
 }
 
 func (l Loader) getTweet() (schema.Document, error) {
-	var doc schema.Document
-
 	tweet, err := l.xNgin.GetTweet(l.tweetID)
 	if err != nil {
-		return doc, err
+		return schema.Document{}, err
 	}
 
 	return tweetToDocument(tweet)
