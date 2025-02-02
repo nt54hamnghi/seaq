@@ -108,7 +108,7 @@ func pageRun(ctx context.Context, opts pageOptions) error {
 
 	if opts.recursive.Recursive {
 		htmlLoader = html.NewRecursiveLoader(
-			html.WithHTMLLoader(baseLoader),
+			html.WithPageLoader(baseLoader),
 			html.WithMaxPages(opts.recursive.MaxPages),
 		)
 	} else {

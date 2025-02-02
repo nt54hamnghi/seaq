@@ -14,46 +14,28 @@ import (
 	"github.com/nt54hamnghi/seaq/pkg/util/reqx"
 )
 
+// scraper defines the interface for HTML content extraction.
+// Implementations should extract relevant content from a goquery.Document
+// and return it as a slice of HTML strings.
 type scraper interface {
+	// scrape extracts content from the provided document.
+	// Returns a slice of HTML strings and any error encountered during extraction.
 	scrape(*goquery.Document) ([]string, error)
 }
 
-// autoScraper scrapes the main content of a webpage
-// It uses a waterfall approach to find the content.
-// The search order is: content id, main tag, article tag, section tag
-type autoScraper struct{}
-
-func (s autoScraper) scrape(doc *goquery.Document) ([]string, error) {
-	return findContent(doc)
-}
-
-type pageScraper struct{}
-
-func (s pageScraper) scrape(doc *goquery.Document) ([]string, error) {
-	return collect(doc.Selection.Contents()), nil
-}
-
-// selectorScraper scrapes content from a webpage using a CSS selector.
-// The selector field specifies which elements to extract content from.
-type selectorScraper struct {
-	selector string
-}
-
-func (s selectorScraper) scrape(doc *goquery.Document) ([]string, error) {
-	return findSelector(s.selector, doc)
-}
-
+// scrapeFromURL fetches HTML content from a URL
+// and converts it to markdown using the provided scraper.
 func scrapeFromURL(ctx context.Context, url string, scr scraper) (string, error) {
-	resp, err := reqx.Get(ctx, url, nil)
+	res, err := reqx.Get(ctx, url, nil)
 	if err != nil {
 		return "", err
 	}
 
-	if err := resp.ExpectContentType("text/html"); err != nil {
+	if err := res.ExpectContentType("text/html"); err != nil {
 		return "", err
 	}
 
-	htmlBytes, err := resp.Bytes()
+	htmlBytes, err := res.Bytes()
 	if err != nil {
 		return "", err
 	}
@@ -61,6 +43,8 @@ func scrapeFromURL(ctx context.Context, url string, scr scraper) (string, error)
 	return scrapeFromReader(scr, bytes.NewReader(htmlBytes))
 }
 
+// scrapeFromReader parses HTML content from a reader
+// and converts it to markdown using the provided scraper.
 func scrapeFromReader(scr scraper, r io.Reader) (string, error) {
 	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
@@ -81,16 +65,57 @@ func scrapeFromReader(scr scraper, r io.Reader) (string, error) {
 	return markdown, nil
 }
 
-func findContent(doc *goquery.Document) ([]string, error) {
-	for _, tag := range []string{"#content", "main", "article", "section"} {
-		if res := doc.Find(tag); res.Length() != 0 {
-			return collect(res), nil
+// autoScraper scrapes the main content of a webpage
+// It uses a waterfall approach to find the main content.
+// The search order is: main tag, content IDs (#content, #primary, #main), article tag, section tag
+type autoScraper struct{}
+
+// scrape implements the scraper interface
+func (s autoScraper) scrape(doc *goquery.Document) ([]string, error) {
+	return findMainContent(doc)
+}
+
+// pageScraper scrapes content from a webpage without any filtering.
+type pageScraper struct{}
+
+// scrape implements the scraper interface
+func (s pageScraper) scrape(doc *goquery.Document) ([]string, error) {
+	return collect(doc.Selection.Contents()), nil
+}
+
+// selectorScraper scrapes content from a webpage using a CSS selector.
+type selectorScraper struct {
+	selector string
+}
+
+// scrape implements the scraper interface
+func (s selectorScraper) scrape(doc *goquery.Document) ([]string, error) {
+	return findSelector(s.selector, doc)
+}
+
+// findMainContent attempts to locate the main content of a webpage by searching for
+// common content-containing elements in order of specificity: main tag,
+// content IDs (#content, #primary, #main), article tag, and section tag.
+// Returns the first matching content or an error if no content is found.
+func findMainContent(doc *goquery.Document) ([]string, error) {
+	selectors := []string{
+		"main",                          // semantic main element
+		"#content", "#primary", "#main", // common content IDs
+		"article", // semantic article element
+		"section", // semantic section element
+	}
+
+	for _, selector := range selectors {
+		if s := doc.Find(selector); s.Length() != 0 {
+			return collect(s), nil
 		}
 	}
 
 	return nil, errors.New("no content found")
 }
 
+// findSelector attempts to locate content using a CSS selector.
+// It returns the content if found, or an error if the selector is not found.
 func findSelector(selector string, doc *goquery.Document) ([]string, error) {
 	res := doc.Find(selector)
 	if res.Length() == 0 {
@@ -99,9 +124,11 @@ func findSelector(selector string, doc *goquery.Document) ([]string, error) {
 	return collect(res), nil
 }
 
+// collect extracts HTML content from each element and returns them as a slice of strings.
+// It skips any elements that fail HTML extraction.
 func collect(selection *goquery.Selection) []string {
 	res := make([]string, 0, selection.Length())
-	selection.Contents().Each(func(_ int, s *goquery.Selection) {
+	selection.Each(func(_ int, s *goquery.Selection) {
 		html, err := s.Html()
 		if err != nil {
 			return
@@ -122,10 +149,14 @@ func html2md(rawHTML string) (string, error) {
 // sanitizeHTML removes unsafe HTML elements and attributes, keeping only
 // safe link elements and their href attributes.
 func sanitizeHTML(html string) string {
+	// create a User Generated Content policy
 	policy := bluemonday.UGCPolicy()
+	// only allow href attribute on anchor tags
 	policy.AllowAttrs("href").OnElements("a")
-	policy.RequireParseableURLs(true)
-	policy.RequireNoFollowOnFullyQualifiedLinks(true)
+	// ensure all URLs are parseable with `url.Parse`
+	// only allows mailto, http, and https schemes
+	// allows relative URLs
+	policy.AllowStandardURLs()
 
 	return policy.Sanitize(html)
 }

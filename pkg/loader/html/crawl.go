@@ -8,17 +8,22 @@ import (
 
 	"github.com/gobwas/glob"
 	"github.com/gocolly/colly"
+	"github.com/nt54hamnghi/seaq/pkg/util/set"
 	"golang.org/x/net/publicsuffix"
 )
 
+// crawler manages the web crawling process for a specific domain.
+// It tracks visited pages and ensures crawling stays within
+// the specified domain and page limit.
 type crawler struct {
 	URL      string
 	MaxPages int
 	urlGlob  glob.Glob
 	mutex    sync.Mutex
-	visited  int
+	visited  set.Set[string]
 }
 
+// newCrawler creates a new crawler for the given destination URL.
 func newCrawler(dest string, maxPages int) (*crawler, error) {
 	url, err := url.ParseRequestURI(dest)
 	if err != nil {
@@ -32,6 +37,8 @@ func newCrawler(dest string, maxPages int) (*crawler, error) {
 		return nil, err
 	}
 
+	// Create a glob pattern that matches URLs under the same domain,
+	// including any subdomains and paths
 	gl := glob.MustCompile(`https://*.` + glob.QuoteMeta(etldPlusOne) + `*`)
 
 	return &crawler{
@@ -39,10 +46,11 @@ func newCrawler(dest string, maxPages int) (*crawler, error) {
 		MaxPages: maxPages,
 		urlGlob:  gl,
 		mutex:    sync.Mutex{},
-		visited:  0,
+		visited:  set.New[string](),
 	}, nil
 }
 
+// Content represents a scraped web page with its title, URL, and markdown content.
 type Content struct {
 	Title    string
 	URL      string
@@ -73,21 +81,23 @@ func (crw *crawler) crawl(scr scraper) ([]Content, error) {
 	// TODO: add logging
 	// c.OnError(func(r *colly.Response, err error) {})
 
-	// On every a element with a href attribute call callback
+	// On every anchor element with a href attribute
+	// invoke the callback function
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		crw.mutex.Lock()
 		defer crw.mutex.Unlock()
 
-		if crw.visited >= crw.MaxPages-1 {
+		if len(crw.visited) >= crw.MaxPages-1 {
 			return
 		}
 
+		// Get the absolute URL of the link
 		link := e.Request.AbsoluteURL(e.Attr("href"))
 
 		// Recursively visit the link
 		// if it matches the glob pattern and `MaxPages` is not reached
-		if crw.urlGlob.Match(link) {
-			crw.visited++
+		if crw.urlGlob.Match(link) && !crw.visited.Contains(link) {
+			crw.visited.Add(link)
 
 			// Ignore the link, if failed to visit
 			_ = c.Visit(link)

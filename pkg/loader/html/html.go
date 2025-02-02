@@ -79,27 +79,27 @@ func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSpli
 	return textsplitter.SplitDocuments(splitter, docs)
 }
 
-type RecursiveHTML struct {
+type RecursiveLoader struct {
 	*Loader
 	maxPages int
 }
 
-type RecursiveOption func(*RecursiveHTML)
+type RecursiveOption func(*RecursiveLoader)
 
-func WithHTMLLoader(loader *Loader) RecursiveOption {
-	return func(l *RecursiveHTML) {
+func WithPageLoader(loader *Loader) RecursiveOption {
+	return func(l *RecursiveLoader) {
 		l.Loader = loader
 	}
 }
 
 func WithMaxPages(maxPages int) RecursiveOption {
-	return func(l *RecursiveHTML) {
+	return func(l *RecursiveLoader) {
 		l.maxPages = maxPages
 	}
 }
 
-func NewRecursiveLoader(opts ...RecursiveOption) *RecursiveHTML {
-	loader := &RecursiveHTML{}
+func NewRecursiveLoader(opts ...RecursiveOption) *RecursiveLoader {
+	loader := &RecursiveLoader{}
 	for _, opt := range opts {
 		opt(loader)
 	}
@@ -107,7 +107,7 @@ func NewRecursiveLoader(opts ...RecursiveOption) *RecursiveHTML {
 }
 
 // Load loads from a source and returns documents.
-func (l RecursiveHTML) Load(_ context.Context) ([]schema.Document, error) {
+func (l RecursiveLoader) Load(_ context.Context) ([]schema.Document, error) {
 	var s scraper
 	switch {
 	case l.selector != "":
@@ -137,6 +137,7 @@ func (l RecursiveHTML) Load(_ context.Context) ([]schema.Document, error) {
 				"url":      ct.URL,
 				"title":    ct.Title,
 				"selector": l.selector,
+				"auto":     l.auto,
 			},
 		})
 	}
@@ -145,7 +146,7 @@ func (l RecursiveHTML) Load(_ context.Context) ([]schema.Document, error) {
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
-func (l RecursiveHTML) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
+func (l RecursiveLoader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSplitter) ([]schema.Document, error) {
 	docs, err := l.Load(ctx)
 	if err != nil {
 		return nil, err
