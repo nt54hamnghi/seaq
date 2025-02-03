@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version = "0.3.2"
+const version = "0.4.0"
 
 type rootOptions struct {
 	configFile  flag.FilePath

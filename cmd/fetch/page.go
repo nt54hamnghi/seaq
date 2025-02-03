@@ -13,6 +13,7 @@ import (
 	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
 	"github.com/nt54hamnghi/seaq/pkg/loader"
 	"github.com/nt54hamnghi/seaq/pkg/loader/html"
+	"github.com/nt54hamnghi/seaq/pkg/loader/html/firecrawl"
 	"github.com/nt54hamnghi/seaq/pkg/loader/html/jina"
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag/v2"
@@ -180,7 +181,10 @@ func pageRun(ctx context.Context, opts pageOptions) error {
 			jina.WithSelector(opts.selector),
 		)
 	case firecrawlEngine:
-		panic("todo")
+		htmlLoader = firecrawl.NewLoader(
+			firecrawl.WithURL(opts.url),
+			firecrawl.WithSelector(opts.selector),
+		)
 	default:
 		return errors.New("invalid engine")
 	}

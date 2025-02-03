@@ -18,6 +18,7 @@ const (
 	UDEMY_ACCESS_TOKEN = "UDEMY_ACCESS_TOKEN"
 	OLLAMA_HOST        = "OLLAMA_HOST"
 	JINA_API_KEY       = "JINA_API_KEY"
+	FIRECRAWL_API_KEY  = "FIRECRAWL_API_KEY"
 
 	// seaq
 	SEAQ_SUPPRESS_WARNINGS = "SEAQ_SUPPRESS_WARNINGS"
@@ -110,4 +111,10 @@ func OllamaHost() string {
 // or an error if not set.
 func JinaAPIKey() (string, error) {
 	return Get(JINA_API_KEY)
+}
+
+// FirecrawlAPIKey returns the value of the FIRECRAWL_API_KEY environment variable
+// or an error if not set.
+func FirecrawlAPIKey() (string, error) {
+	return Get(FIRECRAWL_API_KEY)
 }
