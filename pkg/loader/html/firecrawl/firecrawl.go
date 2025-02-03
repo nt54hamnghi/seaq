@@ -65,7 +65,9 @@ func (l Loader) Load(ctx context.Context) ([]schema.Document, error) {
 		return nil, err
 	}
 
-	return []schema.Document{res.toDocument()}, nil
+	doc := res.toDocument()
+	doc.Metadata["selector"] = l.selector
+	return []schema.Document{doc}, nil
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
@@ -97,6 +99,7 @@ func (r firecrawlResponse) toDocument() schema.Document {
 			"url":         r.Data.Metadata.URL,
 			"title":       r.Data.Metadata.Title,
 			"description": r.Data.Metadata.Description,
+			"engine":      "firecrawl",
 		},
 	}
 }

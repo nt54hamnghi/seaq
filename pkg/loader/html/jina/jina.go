@@ -61,7 +61,9 @@ func (l Loader) Load(ctx context.Context) ([]schema.Document, error) {
 		return nil, err
 	}
 
-	return []schema.Document{res.toDocument()}, nil
+	doc := res.toDocument()
+	doc.Metadata["selector"] = l.selector
+	return []schema.Document{doc}, nil
 }
 
 // LoadAndSplit loads from a source and splits the documents using a text splitter.
@@ -94,6 +96,7 @@ func (r jinaResponse) toDocument() schema.Document {
 			"url":         r.Data.URL,
 			"title":       r.Data.Title,
 			"description": r.Data.Description,
+			"engine":      "jina",
 		},
 	}
 }
