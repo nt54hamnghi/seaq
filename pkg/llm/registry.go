@@ -52,9 +52,10 @@ var (
 // Default registry of models
 var defaultRegistry = ModelRegistry{
 	"openai": {
-		// O1:            {},
-		// O1Mini:        {},
-		// O1Preview:     {},
+		O1:            {},
+		O1Mini:        {},
+		O1Preview:     {},
+		O3Mini:        {},
 		GPT4o:         {},
 		GPT4oMini:     {},
 		GPT4:          {},

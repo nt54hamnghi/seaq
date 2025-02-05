@@ -21,6 +21,7 @@ const (
 	O1            = "o1"
 	O1Mini        = "o1-mini"
 	O1Preview     = "o1-preview"
+	O3Mini        = "o3-mini"
 	GPT4o         = "gpt-4o"
 	GPT4oMini     = "gpt-4o-mini"
 	GPT4          = "gpt-4"
@@ -120,6 +121,7 @@ func CreateCompletion(
 	model llms.Model,
 	writer io.Writer,
 	msgs []llms.MessageContent,
+	opts ...llms.CallOption,
 ) (err error) {
 	// temporary workaround:
 	// anthropic.generateMessagesContent() panics when it fails or returns no content
@@ -130,7 +132,7 @@ func CreateCompletion(
 		}
 	}()
 
-	resp, err := model.GenerateContent(ctx, msgs)
+	resp, err := model.GenerateContent(ctx, msgs, opts...)
 	if err != nil {
 		return fmt.Errorf("generate content: %w", err)
 	}
@@ -152,6 +154,7 @@ func CreateStreamCompletion(
 	model llms.Model,
 	writer io.Writer,
 	msgs []llms.MessageContent,
+	opts ...llms.CallOption,
 ) (err error) {
 	// temporary workaround:
 	// anthropic.generateMessagesContent() panics when it fails or returns no content
@@ -167,9 +170,11 @@ func CreateStreamCompletion(
 		return err
 	}
 
-	resp, err := model.GenerateContent(ctx, msgs,
-		llms.WithStreamingFunc(streamFunc),
-	)
+	// extend the options with the streaming function
+	extOpts := append([]llms.CallOption{}, opts...)
+	extOpts = append(extOpts, llms.WithStreamingFunc(streamFunc))
+
+	resp, err := model.GenerateContent(ctx, msgs, extOpts...)
 	if err != nil {
 		return fmt.Errorf("generate stream content: %w", err)
 	}
@@ -181,7 +186,7 @@ func CreateStreamCompletion(
 	return nil
 }
 
-func PrepareMessages(prompt string, content string, hint string) []llms.MessageContent {
+func PrepareMessages(modelName string, prompt string, content string, hint string) []llms.MessageContent {
 	altContent := content
 
 	if hint != "" {
@@ -191,7 +196,7 @@ func PrepareMessages(prompt string, content string, hint string) []llms.MessageC
 
 	return []llms.MessageContent{
 		{
-			Role:  llms.ChatMessageTypeSystem,
+			Role:  lookupSystemRole(modelName),
 			Parts: []llms.ContentPart{llms.TextContent{Text: prompt}},
 		},
 		{
@@ -199,4 +204,29 @@ func PrepareMessages(prompt string, content string, hint string) []llms.MessageC
 			Parts: []llms.ContentPart{llms.TextContent{Text: altContent}},
 		},
 	}
+}
+
+// Exceptions where we need a different role for the system message.
+//
+// The role "system" has been deprecated in favor of "developer" for o1-family models provided by OpenAI.
+// https://platform.openai.com/docs/api-reference/chat/create
+//
+// However, langchaingo does not support "developer" role yet.
+// https://github.com/tmc/langchaingo/blob/0672790bb23a2c7e546a4a7aeffc9bef5bbd8c0b/llms/openai/openaillm.go#L60
+var specialRoles = map[string]llms.ChatMessageType{
+	"openai/o1":         llms.ChatMessageTypeGeneric,
+	"openai/o1-mini":    llms.ChatMessageTypeGeneric,
+	"openai/o1-preview": llms.ChatMessageTypeGeneric,
+}
+
+// lookupSystemRole returns the appropriate system role based on the model name.
+func lookupSystemRole(modelName string) llms.ChatMessageType {
+	// default role is "system"
+	role := llms.ChatMessageTypeSystem
+
+	if special, ok := specialRoles[modelName]; ok {
+		role = special
+	}
+
+	return role
 }
