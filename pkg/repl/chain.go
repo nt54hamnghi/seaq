@@ -83,9 +83,9 @@ func newChain(model llms.Model, store vectorstores.VectorStore) *chain {
 
 // start returns a bubbletea.Cmd that calls the chain with the given
 // question and returns a tea.Msg.
-func (c *chain) start(ctx context.Context, question string) tea.Cmd {
+func (c *chain) start(ctx context.Context, question string, opts ...chains.ChainCallOption) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.call(ctx, question); err != nil {
+		if err := c.call(ctx, question, opts...); err != nil {
 			return err
 		}
 
@@ -119,7 +119,7 @@ func (c *chain) done() {
 	c.stream <- streamEndMsg{}
 }
 
-func (c *chain) call(ctx context.Context, question string) (err error) {
+func (c *chain) call(ctx context.Context, question string, opts ...chains.ChainCallOption) (err error) {
 	// temporary workaround:
 	// anthropic.generateMessagesContent() panics when it fails or returns no content
 	// https://github.com/tmc/langchaingo/issues/993
@@ -141,8 +141,11 @@ func (c *chain) call(ctx context.Context, question string) (err error) {
 		}
 	}
 
+	extOpts := append([]chains.ChainCallOption{}, opts...)
+	extOpts = append(extOpts, chains.WithStreamingFunc(streamFunc))
+
 	res, err := chains.Call(ctx, c, map[string]any{"question": question},
-		chains.WithStreamingFunc(streamFunc),
+		extOpts...,
 	)
 	if err != nil {
 		return fmt.Errorf("chain error: %w", err)

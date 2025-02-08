@@ -15,6 +15,7 @@ import (
 	"github.com/nt54hamnghi/seaq/pkg/repl"
 	"github.com/nt54hamnghi/seaq/pkg/util"
 	"github.com/spf13/cobra"
+	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/documentloaders"
 	"github.com/tmc/langchaingo/textsplitter"
 )
@@ -25,6 +26,10 @@ type chatOptions struct {
 	noStream   bool
 	inputFile  flag.FilePath
 	configFile flag.FilePath
+
+	// llm options
+	// TODO: add validation for temperature
+	temperature float64
 }
 
 func NewChatCmd() *cobra.Command {
@@ -52,6 +57,7 @@ func NewChatCmd() *cobra.Command {
 	flags.SortFlags = false
 	flags.StringVarP(&opts.model, "model", "m", "", "model to use")
 	flags.BoolVar(&opts.noStream, "no-stream", false, "disable streaming mode")
+	flags.Float64Var(&opts.temperature, "temperature", 0.7, "temperature to use")
 	flags.VarP(&opts.inputFile, "input", "i", "input file")
 	config.AddConfigFlag(cmd, &opts.configFile)
 
@@ -112,5 +118,7 @@ func run(ctx context.Context, opts chatOptions) error {
 		return err
 	}
 
-	return chatREPL.Run()
+	return chatREPL.Run(
+		chains.WithTemperature(opts.temperature),
+	)
 }

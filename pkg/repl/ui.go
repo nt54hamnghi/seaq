@@ -16,6 +16,7 @@ import (
 	prompt "github.com/nt54hamnghi/seaq/pkg/repl/input"
 	"github.com/nt54hamnghi/seaq/pkg/repl/renderer"
 	"github.com/nt54hamnghi/seaq/pkg/repl/spinner"
+	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/vectorstores"
@@ -45,7 +46,8 @@ type REPL struct {
 	cancelFunc   context.CancelFunc
 
 	// other options
-	noStream bool
+	noStream  bool
+	chainOpts []chains.ChainCallOption
 }
 
 type Option func(*REPL) error
@@ -278,7 +280,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds,
 					displayCmd,
 					r.spinner.Tick,
-					r.chain.start(ctx, input),
+					r.chain.start(ctx, input, r.chainOpts...),
 					r.chain.awaitNext(),
 				)
 			}
@@ -366,22 +368,18 @@ func (r *REPL) View() string {
 	return r.prompt.View() + "\n"
 }
 
-func (r *REPL) Run() error {
+func (r *REPL) Run(opts ...chains.ChainCallOption) error {
+	// f, err := tea.LogToFile("debug.log", "debug")
+	// if err != nil {
+	// 	return err
+	// }
+	// defer f.Close()
+
+	r.chainOpts = opts
 	p := tea.NewProgram(r)
 	if _, err := p.Run(); err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// nolint:unused
-func _debug() error {
-	f, err := tea.LogToFile("debug.log", "debug")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 
 	return nil
 }
