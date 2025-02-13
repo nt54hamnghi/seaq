@@ -14,14 +14,9 @@ import (
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/nt54hamnghi/seaq/pkg/util/log"
-	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-var fs = afero.Afero{
-	Fs: afero.NewOsFs(),
-}
 
 func newSetupCmd() *cobra.Command {
 	cmd := &cobra.Command{

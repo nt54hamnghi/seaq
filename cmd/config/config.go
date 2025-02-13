@@ -10,8 +10,13 @@ import (
 	"sync"
 
 	"github.com/nt54hamnghi/seaq/pkg/config"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
+
+var fs = afero.Afero{
+	Fs: afero.NewOsFs(),
+}
 
 func NewConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -28,6 +33,8 @@ func NewConfigCmd() *cobra.Command {
 
 	cmd.AddCommand(
 		newSetupCmd(),
+		newPathCmd(),
+		newShowCmd(),
 	)
 
 	return cmd
