@@ -129,6 +129,7 @@ func (c *conversation) saveText() tea.Cmd {
 func (c *conversation) saveJSON() tea.Cmd {
 	return func() tea.Msg {
 		filename := fmt.Sprintf("chat-export-%d.json", time.Now().UnixMilli())
+		// $PWD/filename
 		absPath, err := filepath.Abs(filename)
 		if err != nil {
 			return err

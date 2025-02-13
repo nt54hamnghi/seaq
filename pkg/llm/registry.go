@@ -328,3 +328,10 @@ func Models() iter.Seq[string] {
 	initRegistry()
 	return defaultRegistry.Models()
 }
+
+// BuiltinModels returns a list of builtin models.
+func BuiltinModels() iter.Seq[string] {
+	// FIXME: other code might have run initRegistry()
+	// so the builtin list might contain some models that are not builtin
+	return defaultRegistry.Models()
+}

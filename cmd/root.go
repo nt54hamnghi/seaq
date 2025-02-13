@@ -12,6 +12,7 @@ import (
 
 	"github.com/nt54hamnghi/seaq/cmd/chat"
 	"github.com/nt54hamnghi/seaq/cmd/compose"
+	configCmd "github.com/nt54hamnghi/seaq/cmd/config"
 	"github.com/nt54hamnghi/seaq/cmd/connection"
 	"github.com/nt54hamnghi/seaq/cmd/fetch"
 	"github.com/nt54hamnghi/seaq/cmd/flag"
@@ -183,6 +184,7 @@ func addCommands(cmd *cobra.Command) {
 		fetch.NewFetchCmd(),
 		pattern.NewPatternCmd(),
 		connection.NewConnectionCmd(),
+		configCmd.NewConfigCmd(),
 	)
 
 	// add groups

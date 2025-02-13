@@ -190,6 +190,7 @@ func (r *REPL) save(args []string) tea.Cmd {
 		return r.conversation.saveJSON()
 	}
 
+	// process only the first argument and ignore the rest
 	switch format := args[0]; format {
 	case "json":
 		return r.conversation.saveJSON()

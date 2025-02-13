@@ -73,8 +73,13 @@ func GetPrompt() (string, error) {
 }
 
 // ListPatterns returns a list of available patterns
+// in the repository specified in the config.
 func ListPatterns() ([]string, error) {
-	repo := Repo()
+	return ListPatternsInRepo(Repo())
+}
+
+// ListPatternsInRepo returns a list of available patterns in a given repository
+func ListPatternsInRepo(repo string) ([]string, error) {
 	if repo == "" {
 		return nil, ErrEmptyRepo
 	}

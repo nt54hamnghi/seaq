@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const App = "seaq"
+
 // flagBindings maps CLI flags to their corresponding config keys
 var flagBindings = map[string]string{
 	"pattern": "pattern.name",
@@ -54,8 +56,10 @@ func EnsureConfig(cmd *cobra.Command, args []string) error { //nolint:revive
 	if f := cmd.Flags().Lookup("config"); f != nil {
 		configFile = f.Value.String()
 	}
-	// UseConfigFile will search for the config file if the path is empty
-	if err := UseConfigFile(configFile); err != nil {
+
+	// SetConfigFile will set the config file to use
+	// or configure search paths if the path is empty
+	if err := SetConfigFile(configFile); err != nil {
 		return err
 	}
 
@@ -67,28 +71,26 @@ func EnsureConfig(cmd *cobra.Command, args []string) error { //nolint:revive
 	return nil
 }
 
-// UseConfigFile sets the config file to use.
-//
-// If the path is empty, it will search for the config file.
-func UseConfigFile(path string) error {
+// SetConfigFile sets up Viper's configuration source:
+// - If path is provided, configures Viper to use that specific file
+// - If path is empty, sets up default search paths in multiple locations
+func SetConfigFile(path string) error {
 	if path == "" {
-		return SearchConfigFile()
+		return SetupSearchPaths()
 	}
 
-	// use Viper to avoid recursive calls
 	viper.SetConfigFile(path)
 	return nil
 }
 
-// SearchConfigFile searches for the config file to use.
-//
-// The search order is:
+// SetupSearchPaths configures Viper's search paths in the following order:
 //  1. Current working directory ($PWD/seaq.yaml on Unix)
 //  2. User config directory ($XDG_CONFIG_HOME/seaq/seaq.yaml on Unix)
 //  3. /etc/seaq (Linux only)
 //
-// If no config file is found, it will return an error.
-func SearchConfigFile() error {
+// Note: This function only sets up the search paths. The actual search and loading
+// of the config file happens when viper.ReadInConfig() is called.
+func SetupSearchPaths() error {
 	// get the current working directory
 	curDir, err := os.Getwd()
 	if err != nil {
@@ -96,14 +98,13 @@ func SearchConfigFile() error {
 	}
 
 	// find home directory and get the app directory
-	configDir, err := os.UserConfigDir()
+	appDir, _, err := AppConfig()
 	if err != nil {
 		return err
 	}
-	appDir := filepath.Join(configDir, "seaq")
 
 	// set config file name and type
-	viper.SetConfigName("seaq")
+	viper.SetConfigName(App)
 	viper.SetConfigType("yaml")
 
 	// paths to search for the config file
@@ -111,7 +112,7 @@ func SearchConfigFile() error {
 	viper.AddConfigPath(curDir)
 	viper.AddConfigPath(appDir)
 	if runtime.GOOS == "linux" {
-		viper.AddConfigPath("/etc/seaq")
+		viper.AddConfigPath("/etc/" + App)
 	}
 
 	return nil
@@ -124,4 +125,20 @@ type Unsupported struct {
 
 func (e *Unsupported) Error() string {
 	return fmt.Sprintf("unsupported %s: '%s'", e.Type, e.Key)
+}
+
+// AppConfig is a convenience function that returns the config directory and file for the app.
+// Conceptually, it returns the equivalent of:
+//   - configDir: $HOME/.config/seaq
+//   - configFile: $HOME/.config/seaq/seaq.yaml
+//
+// It doesn't check if the directory or file exists.
+func AppConfig() (configDir string, configFile string, err error) {
+	configDir, err = os.UserConfigDir()
+	if err != nil {
+		return
+	}
+	configDir = filepath.Join(configDir, App)
+	configFile = filepath.Join(configDir, App+".yaml")
+	return
 }
