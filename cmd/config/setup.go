@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	"github.com/charmbracelet/huh"
+	"github.com/nt54hamnghi/seaq/cmd/flag"
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/nt54hamnghi/seaq/pkg/llm"
 	"github.com/nt54hamnghi/seaq/pkg/util/log"
@@ -18,21 +19,32 @@ import (
 	"github.com/spf13/viper"
 )
 
+type setupOptions struct {
+	dir flag.DirPath
+}
+
 func newSetupCmd() *cobra.Command {
+	var opts setupOptions
+
 	cmd := &cobra.Command{
 		Use:          "setup",
 		Short:        "Setup a new config file interactively",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			input, err := collect()
+			input, err := collect(opts)
 			if err != nil {
 				return err
 			}
 
-			return input.setup()
+			return input.setup(opts)
 		},
 	}
+
+	// set up flags
+	flags := cmd.Flags()
+	flags.SortFlags = false
+	flags.VarP(&opts.dir, "dir", "d", "directory to create the config file in")
 
 	return cmd
 }
@@ -45,7 +57,7 @@ type setupInput struct {
 
 // setup writes the configuration to a file and initializes the pattern repository.
 // If using the default pattern repository, it will also create the directory structure with the built-in patterns.
-func (i setupInput) setup() error {
+func (i setupInput) setup(opts setupOptions) error {
 	// Validate inputs
 	if i.modelName == "" || i.patternName == "" || i.patternRepo == "" {
 		return fmt.Errorf(
@@ -53,11 +65,17 @@ func (i setupInput) setup() error {
 		)
 	}
 
+	// --dir is required, so empty means it's not set
+	isDirSet := opts.dir != ""
+
 	configDir, configFile := getConfig()
 
-	// Create config directory if not exists
-	if err := fs.MkdirAll(configDir, 0o755); err != nil {
-		return fmt.Errorf("creating config directory: %w", err)
+	// only create default config directory if --dir is not set
+	if !isDirSet {
+		// create config directory if not exists
+		if err := fs.MkdirAll(configDir, 0o755); err != nil {
+			return fmt.Errorf("creating config directory: %w", err)
+		}
 	}
 
 	log.Info("setting up configuration",
@@ -73,14 +91,22 @@ func (i setupInput) setup() error {
 	viper.Set("pattern.name", i.patternName)
 	viper.Set("pattern.repo", i.patternRepo)
 
+	// if --dir is set, use it as the config file path
+	if isDirSet {
+		configFile = filepath.Join(opts.dir.String(), "seaq.yaml")
+	}
+
 	// SafeWriteConfigAs will error if the file already exists
 	log.Info("writing configuration", "config_file", configFile)
 	if err := viper.SafeWriteConfigAs(configFile); err != nil {
 		return fmt.Errorf("writing config file: %w", err)
 	}
 
-	if err := i.createDefaultPatternRepo(); err != nil {
-		return fmt.Errorf("setting up default patterns: %w", err)
+	// only create default pattern repo if --dir is not set
+	if !isDirSet {
+		if err := i.createDefaultPatternRepo(); err != nil {
+			return fmt.Errorf("setting up default patterns: %w", err)
+		}
 	}
 
 	return nil
@@ -138,15 +164,19 @@ func getDefaultPatternsRepo() string {
 // collect interactively gathers the setup input from the user.
 // It validates that the config file doesn't already exist and ensures
 // the pattern repository is valid if specified.
-func collect() (setupInput, error) {
+func collect(opts setupOptions) (setupInput, error) {
 	var input setupInput
 
-	// Check if config already exists
-	_, configFile := getConfig()
-	if exists, err := fs.Exists(configFile); err != nil {
-		return input, err
-	} else if exists {
-		return input, fmt.Errorf("config file %s already exists", configFile)
+	// --dir is required, so empty means it's not set
+	// if --dir is not set
+	if opts.dir == "" {
+		// Check if default config already exists
+		_, configFile := getConfig()
+		if exists, err := fs.Exists(configFile); err != nil {
+			return input, err
+		} else if exists {
+			return input, fmt.Errorf("config file %s already exists", configFile)
+		}
 	}
 
 	defaultPatternRepo := getDefaultPatternsRepo()
