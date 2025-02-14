@@ -102,11 +102,8 @@ func (i setupInput) setup(opts setupOptions) error {
 		return fmt.Errorf("writing config file: %w", err)
 	}
 
-	// only create default pattern repo if --dir is not set
-	if !isDirSet {
-		if err := i.createDefaultPatternRepo(); err != nil {
-			return fmt.Errorf("setting up default patterns: %w", err)
-		}
+	if err := i.createDefaultPatternRepo(); err != nil {
+		return fmt.Errorf("setting up default patterns: %w", err)
 	}
 
 	return nil
@@ -167,16 +164,15 @@ func getDefaultPatternsRepo() string {
 func collect(opts setupOptions) (setupInput, error) {
 	var input setupInput
 
-	// --dir is required, so empty means it's not set
-	// if --dir is not set
-	if opts.dir == "" {
-		// Check if default config already exists
-		_, configFile := getConfig()
-		if exists, err := fs.Exists(configFile); err != nil {
-			return input, err
-		} else if exists {
-			return input, fmt.Errorf("config file %s already exists", configFile)
-		}
+	_, configFile := getConfig()
+	// --dir is required, so not empty means it's set
+	if opts.dir != "" {
+		configFile = filepath.Join(opts.dir.String(), "seaq.yaml")
+	}
+	if exists, err := fs.Exists(configFile); err != nil {
+		return input, err
+	} else if exists {
+		return input, fmt.Errorf("config file %s already exists", configFile)
 	}
 
 	defaultPatternRepo := getDefaultPatternsRepo()
@@ -227,27 +223,32 @@ func collect(opts setupOptions) (setupInput, error) {
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Default pattern").
+				// This OptionsFunc will be re-evaluated when the binding of the OptionsFunc changes.
 				OptionsFunc(func() []huh.Option[string] {
-					if input.patternRepo == "" {
+					useDefault := input.patternRepo == ""
+
+					if useDefault {
+						input.patternRepo = defaultPatternRepo
+					}
+
+					if exists, err := fs.DirExists(input.patternRepo); err != nil {
+						return nil
+					} else if !exists && useDefault {
 						return huh.NewOptions("prime_mind", "improve_prompt")
 					}
+
 					patterns, err := config.ListPatternsInRepo(input.patternRepo)
 					if err != nil {
 						return nil
 					}
 					return huh.NewOptions(patterns...)
-				}, &input.patternRepo).
+				}, nil).
 				Value(&input.patternName),
 		),
 	)
 
 	if err := form.Run(); err != nil {
 		return setupInput{}, err
-	}
-
-	// if pattern repo is not set, use default
-	if input.patternRepo == "" {
-		input.patternRepo = defaultPatternRepo
 	}
 
 	return input, nil
