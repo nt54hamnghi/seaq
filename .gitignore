@@ -9,9 +9,11 @@
 /chroma
 /.config
 /.legacy
-debug.log
+/.cursor
 .cursorrules
 seaq*.yaml
+debug.log
+cache.db
 
 # Build output
 /summary.md
