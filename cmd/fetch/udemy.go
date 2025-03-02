@@ -14,10 +14,11 @@ import (
 )
 
 type udemyOptions struct {
+	// global fetch options
+	fetchGlobalOptions
+
 	url      string
-	output   flaggroup.Output
 	interval flaggroup.Interval
-	asJSON   bool
 }
 
 func newUdemyCmd() *cobra.Command {
@@ -28,7 +29,7 @@ func newUdemyCmd() *cobra.Command {
 		Short:        "Get transcript of a Udemy lecture",
 		Aliases:      []string{"udm"},
 		Args:         cobra.ExactArgs(1),
-		PreRunE:      flaggroup.ValidateGroups(&opts.output, &opts.interval),
+		PreRunE:      flaggroup.ValidateGroups(&opts.interval, &opts.fetchGlobalOptions),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := opts.parse(cmd, args); err != nil {
@@ -40,8 +41,7 @@ func newUdemyCmd() *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.SortFlags = false
-	flags.BoolVarP(&opts.asJSON, "json", "j", false, "output as JSON")
-	flaggroup.InitGroups(cmd, &opts.output, &opts.interval)
+	flaggroup.InitGroups(cmd, &opts.interval, &opts.fetchGlobalOptions)
 
 	return cmd
 }
@@ -69,6 +69,10 @@ func udemyRun(ctx context.Context, opts udemyOptions) error {
 		return err
 	}
 	defer dest.Close()
+
+	if !opts.ignoreCache {
+		return loader.LoadAndCache(ctx, udemyLoader, dest, opts.asJSON)
+	}
 
 	return loader.LoadAndWrite(ctx, udemyLoader, dest, opts.asJSON)
 }

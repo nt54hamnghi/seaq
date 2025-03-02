@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/nt54hamnghi/seaq/pkg/env"
+	"github.com/nt54hamnghi/seaq/pkg/loader/cache"
 	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
@@ -100,4 +101,18 @@ func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSpli
 		return nil, err
 	}
 	return textsplitter.SplitDocuments(splitter, docs)
+}
+
+func (l Loader) Hash() ([]byte, error) {
+	data := map[string]any{
+		"type":  "udemy",
+		"url":   l.url,
+		"start": l.start.String(),
+		"end":   l.end.String(),
+	}
+	return cache.MarshalAndHash(data)
+}
+
+func (l Loader) Type() string {
+	return "udemy"
 }
