@@ -14,10 +14,11 @@ import (
 )
 
 type xOptions struct {
+	// global fetch options
+	fetchGlobalOptions
+
 	tweetID string
 	single  bool
-	output  flaggroup.Output
-	asJSON  bool
 }
 
 func newXCmd() *cobra.Command {
@@ -28,7 +29,7 @@ func newXCmd() *cobra.Command {
 		Use:          "x [url|videoId]",
 		Short:        "Get thread or tweet from x.com",
 		Args:         xArgs,
-		PreRunE:      flaggroup.ValidateGroups(&opts.output),
+		PreRunE:      flaggroup.ValidateGroups(&opts.fetchGlobalOptions),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := opts.parse(cmd, args); err != nil {
@@ -40,8 +41,8 @@ func newXCmd() *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.SortFlags = false
-	flags.BoolVar(&opts.single, "tweet", false, "get a single tweet")
-	flags.BoolVarP(&opts.asJSON, "json", "j", false, "output as JSON")
+	flags.BoolVarP(&opts.single, "tweet", "t", false, "get a single tweet")
+	flaggroup.InitGroups(cmd, &opts.fetchGlobalOptions)
 
 	return cmd
 }
@@ -83,6 +84,10 @@ func xRun(ctx context.Context, opts xOptions) error {
 		return err
 	}
 	defer dest.Close()
+
+	if !opts.ignoreCache {
+		return loader.LoadAndCache(ctx, xLoader, dest, opts.asJSON)
+	}
 
 	return loader.LoadAndWrite(ctx, xLoader, dest, opts.asJSON)
 }

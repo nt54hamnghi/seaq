@@ -6,6 +6,7 @@ import (
 
 	x "github.com/imperatrona/twitter-scraper"
 	"github.com/nt54hamnghi/seaq/pkg/env"
+	"github.com/nt54hamnghi/seaq/pkg/loader/cache"
 	"github.com/nt54hamnghi/seaq/pkg/util/pool"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
@@ -132,4 +133,17 @@ func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSpli
 		return nil, err
 	}
 	return textsplitter.SplitDocuments(splitter, docs)
+}
+
+func (l Loader) Hash() ([]byte, error) {
+	data := map[string]any{
+		"type":     "x.com",
+		"tweet_id": l.tweetID,
+		"no_reply": l.noReply,
+	}
+	return cache.MarshalAndHash(data)
+}
+
+func (l Loader) Type() string {
+	return "x.com"
 }
