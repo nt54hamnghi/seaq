@@ -14,11 +14,12 @@ import (
 )
 
 type youtubeOptions struct {
+	// global fetch options
+	fetchGlobalOptions
+
 	videoID  string
 	metadata bool
-	output   flaggroup.Output
 	interval flaggroup.Interval
-	asJSON   bool
 }
 
 func newYoutubeCmd() *cobra.Command {
@@ -30,7 +31,7 @@ func newYoutubeCmd() *cobra.Command {
 		Aliases:      []string{"ytb"},
 		Args:         youtubeArgs,
 		SilenceUsage: true,
-		PreRunE:      flaggroup.ValidateGroups(&opts.output, &opts.interval),
+		PreRunE:      flaggroup.ValidateGroups(&opts.interval, &opts.fetchGlobalOptions),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := opts.parse(cmd, args); err != nil {
 				return err
@@ -43,8 +44,7 @@ func newYoutubeCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.SortFlags = false
 	flags.BoolVarP(&opts.metadata, "metadata", "m", false, "to include metadata")
-	flags.BoolVarP(&opts.asJSON, "json", "j", false, "output as JSON")
-	flaggroup.InitGroups(cmd, &opts.output, &opts.interval)
+	flaggroup.InitGroups(cmd, &opts.interval, &opts.fetchGlobalOptions)
 
 	return cmd
 }
@@ -85,6 +85,10 @@ func youtubeRun(ctx context.Context, opts youtubeOptions) error {
 		return err
 	}
 	defer dest.Close()
+
+	if !opts.ignoreCache {
+		return loader.LoadAndCache(ctx, youtubeLoader, dest, opts.asJSON)
+	}
 
 	return loader.LoadAndWrite(ctx, youtubeLoader, dest, opts.asJSON)
 }

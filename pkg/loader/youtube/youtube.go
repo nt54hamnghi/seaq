@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 
+	"github.com/nt54hamnghi/seaq/pkg/loader/cache"
 	"github.com/nt54hamnghi/seaq/pkg/util/pool"
 	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
@@ -89,4 +90,19 @@ func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSpli
 		return nil, err
 	}
 	return textsplitter.SplitDocuments(splitter, docs)
+}
+
+func (l Loader) Hash() ([]byte, error) {
+	data := map[string]any{
+		"type":             "youtube",
+		"video_id":         l.videoID,
+		"include_metadata": l.includeMetadata,
+		"start":            l.start.String(),
+		"end":              l.end.String(),
+	}
+	return cache.MarshalAndHash(data)
+}
+
+func (l Loader) Type() string {
+	return "youtube"
 }
