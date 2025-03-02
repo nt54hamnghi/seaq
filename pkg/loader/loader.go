@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/nt54hamnghi/seaq/pkg/loader/cache"
 	"github.com/tmc/langchaingo/documentloaders"
 )
 
@@ -42,7 +43,7 @@ func LoadAndMarshal(ctx context.Context, l documentloaders.Loader) (string, erro
 }
 
 // LoadAndWrite loads documents using the Loader and writes them to the writer.
-// If asJson is true, the documents are marshaled into a JSON string before writing.
+// If asJSON is true, the documents are marshaled into a JSON string before writing.
 // Otherwise, the documents are joined into a single string using "\n" as the separator before writing.
 func LoadAndWrite(ctx context.Context, l documentloaders.Loader, writer io.Writer, asJSON bool) error {
 	var (
@@ -62,4 +63,13 @@ func LoadAndWrite(ctx context.Context, l documentloaders.Loader, writer io.Write
 
 	_, err = fmt.Fprintln(writer, docs)
 	return err
+}
+
+func LoadAndCache(ctx context.Context, l cache.CacheableLoader, writer io.Writer, asJSON bool) error {
+	cache, err := cache.New(l)
+	if err != nil {
+		return err
+	}
+	defer cache.Close()
+	return LoadAndWrite(ctx, cache, writer, asJSON)
 }

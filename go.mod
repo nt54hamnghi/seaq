@@ -7,6 +7,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/asticode/go-astisub v0.27.0
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/charmbracelet/glamour v0.8.0
@@ -19,10 +20,12 @@ require (
 	github.com/ollama/ollama v0.5.4
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.1
+	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.19.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/thediveo/enumflag/v2 v2.0.7
 	github.com/tmc/langchaingo v0.1.12
+	go.etcd.io/bbolt v1.4.0
 	golang.org/x/net v0.34.0
 )
 
@@ -122,7 +125,6 @@ require (
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.5
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
