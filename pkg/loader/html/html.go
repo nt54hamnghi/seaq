@@ -3,6 +3,7 @@ package html
 import (
 	"context"
 
+	"github.com/nt54hamnghi/seaq/pkg/loader/cache"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 )
@@ -79,6 +80,20 @@ func (l Loader) LoadAndSplit(ctx context.Context, splitter textsplitter.TextSpli
 	return textsplitter.SplitDocuments(splitter, docs)
 }
 
+func (l Loader) Hash() ([]byte, error) {
+	data := map[string]any{
+		"type":     "html",
+		"url":      l.url,
+		"selector": l.selector,
+		"auto":     l.auto,
+	}
+	return cache.MarshalAndHash(data)
+}
+
+func (l Loader) Type() string {
+	return "html"
+}
+
 type RecursiveLoader struct {
 	*Loader
 	maxPages int
@@ -152,4 +167,20 @@ func (l RecursiveLoader) LoadAndSplit(ctx context.Context, splitter textsplitter
 		return nil, err
 	}
 	return textsplitter.SplitDocuments(splitter, docs)
+}
+
+func (l RecursiveLoader) Hash() ([]byte, error) {
+	data := map[string]any{
+		"type":      "html.recursive",
+		"url":       l.url,
+		"selector":  l.selector,
+		"auto":      l.auto,
+		"maxPages":  l.maxPages,
+		"recursive": true,
+	}
+	return cache.MarshalAndHash(data)
+}
+
+func (l RecursiveLoader) Type() string {
+	return "html.recursive"
 }

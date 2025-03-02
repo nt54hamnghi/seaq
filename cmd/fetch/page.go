@@ -12,12 +12,12 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/nt54hamnghi/seaq/cmd/flaggroup"
 	"github.com/nt54hamnghi/seaq/pkg/loader"
+	"github.com/nt54hamnghi/seaq/pkg/loader/cache"
 	"github.com/nt54hamnghi/seaq/pkg/loader/html"
 	"github.com/nt54hamnghi/seaq/pkg/loader/html/firecrawl"
 	"github.com/nt54hamnghi/seaq/pkg/loader/html/jina"
 	"github.com/spf13/cobra"
 	"github.com/thediveo/enumflag/v2"
-	"github.com/tmc/langchaingo/documentloaders"
 )
 
 // region: --- flag groups
@@ -76,12 +76,13 @@ func completeEngineFlag(_ *cobra.Command, _ []string, _ string) ([]string, cobra
 // endregion: --- engine options
 
 type pageOptions struct {
+	// global fetch options
+	fetchGlobalOptions
+
 	url       string
 	selector  string
 	auto      bool
 	recursive recursive
-	output    flaggroup.Output
-	asJSON    bool
 	engine    engine
 }
 
@@ -94,7 +95,7 @@ func newPageCmd() *cobra.Command {
 		Aliases:      []string{"pg"},
 		Args:         pageArgs,
 		SilenceUsage: true,
-		PreRunE:      flaggroup.ValidateGroups(&opts.recursive, &opts.output),
+		PreRunE:      flaggroup.ValidateGroups(&opts.recursive, &opts.fetchGlobalOptions),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := opts.parse(cmd, args); err != nil {
 				return err
@@ -113,8 +114,7 @@ func newPageCmd() *cobra.Command {
 	)
 	flags.StringVarP(&opts.selector, "selector", "s", "", "filter content by selector")
 	flags.BoolVarP(&opts.auto, "auto", "a", false, "automatically detect content")
-	flags.BoolVarP(&opts.asJSON, "json", "j", false, "output as JSON")
-	flaggroup.InitGroups(cmd, &opts.recursive, &opts.output)
+	flaggroup.InitGroups(cmd, &opts.recursive, &opts.fetchGlobalOptions)
 
 	// set up completion for engine flag
 	err := cmd.RegisterFlagCompletionFunc("engine", completeEngineFlag)
@@ -157,7 +157,7 @@ func pageRun(ctx context.Context, opts pageOptions) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
-	var htmlLoader documentloaders.Loader
+	var htmlLoader cache.CacheableLoader
 
 	switch opts.engine {
 	case defaultEngine:
@@ -194,6 +194,10 @@ func pageRun(ctx context.Context, opts pageOptions) error {
 		return err
 	}
 	defer dest.Close()
+
+	if !opts.ignoreCache {
+		return loader.LoadAndCache(ctx, htmlLoader, dest, opts.asJSON)
+	}
 
 	return loader.LoadAndWrite(ctx, htmlLoader, dest, opts.asJSON)
 }

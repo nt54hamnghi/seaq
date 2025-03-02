@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nt54hamnghi/seaq/pkg/env"
+	"github.com/nt54hamnghi/seaq/pkg/loader/cache"
 	"github.com/nt54hamnghi/seaq/pkg/util/reqx"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
@@ -99,4 +100,17 @@ func (r jinaResponse) toDocument() schema.Document {
 			"engine":      "jina",
 		},
 	}
+}
+
+func (l Loader) Hash() ([]byte, error) {
+	data := map[string]any{
+		"type":     "jina",
+		"url":      l.url,
+		"selector": l.selector,
+	}
+	return cache.MarshalAndHash(data)
+}
+
+func (l Loader) Type() string {
+	return "jina"
 }
