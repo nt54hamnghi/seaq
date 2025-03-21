@@ -34,6 +34,8 @@ func NewConnection(provider string, baseURL string) Connection {
 	return Connection{Provider: provider, BaseURL: baseURL}
 }
 
+// GetEnvKey returns the environment variable name that stores the API key
+// for the connection. The format is <PROVIDER>_API_KEY.
 func (c Connection) GetEnvKey() string {
 	return strings.ToUpper(c.Provider) + "_API_KEY"
 }
@@ -77,8 +79,9 @@ type listModelsResponse struct {
 
 type ConnectionMap map[string]Connection
 
-// GetConnections returns a map of connections
-// with provider as key and base_url and env_key as values
+// GetConnections retrieves the LLM provider connections in the config file.
+// It reads the "connections" key from viper configuration file and returns a map
+// where the key is the provider name and the value is the Connection object.
 func GetConnections() (ConnectionMap, error) {
 	connections := []Connection{}
 	if err := viper.UnmarshalKey("connections", &connections); err != nil {

@@ -29,7 +29,7 @@ type ModelLister interface {
 }
 
 // SimpleModelLister provides a simple implementation of the ModelLister interface
-// that allows creating a model lister with a provider name and a listing function.
+// with a provider name and a listing function.
 type SimpleModelLister struct {
 	ProviderName string
 	Lister       func(context.Context) ([]string, error)
@@ -52,29 +52,34 @@ var (
 // Default registry of models
 var defaultRegistry = ModelRegistry{
 	"openai": {
-		O1:            {},
-		O1Mini:        {},
-		O1Preview:     {},
-		O3Mini:        {},
-		GPT4o:         {},
-		GPT4oMini:     {},
-		GPT4:          {},
-		GPT4Turbo:     {},
-		ChatGPT4o:     {},
-		GPT3Dot5Turbo: {},
+		O1:              {},
+		O1Mini:          {},
+		O1Preview:       {},
+		O3Mini:          {},
+		GPT4Dot5Preview: {},
+		GPT4o:           {},
+		GPT4oMini:       {},
+		GPT4:            {},
+		GPT4Turbo:       {},
+		ChatGPT4o:       {},
+		GPT3Dot5Turbo:   {},
 	},
 	"anthropic": {
-		Claude3Dot5Sonnet: {},
-		Claude3Dot5Haiku:  {},
-		Claude3Opus:       {},
-		Claude3Sonnet:     {},
-		Claude3Haiku:      {},
+		Claude3Dot7Sonnet:   {},
+		Claude3Dot5Haiku:    {},
+		Claude3Dot5SonnetV2: {},
+		Claude3Dot5Sonnet:   {},
+		Claude3Opus:         {},
+		Claude3Sonnet:       {},
+		Claude3Haiku:        {},
 	},
 	"google": {
-		Gemini2Dot0FlashExp: {},
-		Gemini1Dot5Flash:    {},
-		Gemini1Dot5Flash8B:  {},
-		Gemini1Dot5Pro:      {},
+		Gemini2Dot0Flash:           {},
+		Gemini2Dot0FlashLite:       {},
+		Gemini2Dot0ProExperimental: {},
+		Gemini1Dot5Flash:           {},
+		Gemini1Dot5Flash8B:         {},
+		Gemini1Dot5Pro:             {},
 	},
 }
 
@@ -83,6 +88,8 @@ var (
 	connMap  ConnectionMap
 )
 
+// initRegistry loads the connections and their corresponding model lists
+// and registers the models in the default registry.
 func initRegistry() {
 	initOnce.Do(func() {
 		var err error
@@ -90,30 +97,35 @@ func initRegistry() {
 		ctx := context.Background()
 		suppressWarnings := env.SuppressWarnings()
 
+		// Get all providers and their connections
 		listers := []ModelLister{ollamaLister}
 		connMap, err = GetConnections()
 		if err != nil && !suppressWarnings {
+			// failure to load connections is not a fatal error
 			log.Warn("failed to load connections", "error", err)
 		}
 		for conn := range maps.Values(connMap) {
 			listers = append(listers, conn)
 		}
 
-		models := pool.OrderedGoFunc(listers, func(l ModelLister) ([]string, error) {
+		// List models from all providers
+		outputs := pool.OrderedGoFunc(listers, func(l ModelLister) ([]string, error) {
 			ctx, cancel := context.WithTimeout(ctx, time.Second*2)
 			defer cancel()
 			return l.List(ctx)
 		})
 
-		for i := 0; i < len(models); i++ {
+		for i := 0; i < len(outputs); i++ {
 			provider := listers[i].GetProvider()
-			modelIDs := models[i]
-			if modelIDs.Err != nil && !suppressWarnings {
-				log.Warn("failed to list models", "provider", provider, "error", modelIDs.Err)
+			output := outputs[i]
+			if output.Err != nil && !suppressWarnings {
+				// failure to list models is not a fatal error
+				log.Warn("failed to list models", "provider", provider, "error", output.Err)
 				continue
 			}
-			err := defaultRegistry.Register(provider, modelIDs.Output)
+			err := defaultRegistry.Register(provider, output.Output)
 			if err != nil && !suppressWarnings {
+				// failure to register models is not a fatal error
 				log.Warn("failed to register models", "provider", provider, "error", err)
 			}
 		}

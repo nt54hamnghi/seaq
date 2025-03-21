@@ -18,31 +18,36 @@ import (
 const (
 	// OpenAI models
 	// https://platform.openai.com/docs/models
-	O1            = "o1"
-	O1Mini        = "o1-mini"
-	O1Preview     = "o1-preview"
-	O3Mini        = "o3-mini"
-	GPT4o         = "gpt-4o"
-	GPT4oMini     = "gpt-4o-mini"
-	GPT4          = "gpt-4"
-	GPT4Turbo     = "gpt-4-turbo"
-	ChatGPT4o     = "chatgpt-4o-latest"
-	GPT3Dot5Turbo = "gpt-3.5-turbo"
+	O1              = "o1"
+	O1Mini          = "o1-mini"
+	O1Preview       = "o1-preview"
+	O3Mini          = "o3-mini"
+	GPT4Dot5Preview = "gpt-4.5-preview"
+	GPT4o           = "gpt-4o"
+	GPT4oMini       = "gpt-4o-mini"
+	GPT4            = "gpt-4"
+	GPT4Turbo       = "gpt-4-turbo"
+	ChatGPT4o       = "chatgpt-4o-latest"
+	GPT3Dot5Turbo   = "gpt-3.5-turbo"
 
 	// Anthropic models
 	// https://docs.anthropic.com/en/docs/about-claude/models
-	Claude3Dot5Sonnet = "claude-3-5-sonnet-latest"
-	Claude3Dot5Haiku  = "claude-3-5-haiku-latest"
-	Claude3Opus       = "claude-3-opus-latest"
-	Claude3Sonnet     = "claude-3-sonnet-20240229"
-	Claude3Haiku      = "claude-3-haiku-20240307"
+	Claude3Dot7Sonnet   = "claude-3-7-sonnet-latest"
+	Claude3Dot5Haiku    = "claude-3-5-haiku-latest"
+	Claude3Dot5SonnetV2 = "claude-3-5-sonnet-latest"
+	Claude3Dot5Sonnet   = "claude-3-5-sonnet-20240620"
+	Claude3Opus         = "claude-3-opus-latest"
+	Claude3Sonnet       = "claude-3-sonnet-20240229"
+	Claude3Haiku        = "claude-3-haiku-20240307"
 
 	// Google models
 	// https://ai.google.dev/gemini-api/docs/models/gemini#model-variations
-	Gemini2Dot0FlashExp = "gemini-2.0-flash-exp"
-	Gemini1Dot5Flash    = "gemini-1.5-flash"
-	Gemini1Dot5Flash8B  = "gemini-1.5-flash-8b"
-	Gemini1Dot5Pro      = "gemini-1.5-pro"
+	Gemini2Dot0Flash           = "gemini-2.0-flash"
+	Gemini2Dot0FlashLite       = "gemini-2.0-flash-lite"
+	Gemini2Dot0ProExperimental = "gemini-2.0-pro-exp-02-05"
+	Gemini1Dot5Flash           = "gemini-1.5-flash"
+	Gemini1Dot5Flash8B         = "gemini-1.5-flash-8b"
+	Gemini1Dot5Pro             = "gemini-1.5-pro"
 )
 
 var hintTemplate = prompts.NewPromptTemplate(`
