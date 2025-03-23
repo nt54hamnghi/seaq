@@ -104,7 +104,7 @@ func initRegistry() {
 			// failure to load connections is not a fatal error
 			log.Warn("failed to load connections", "error", err)
 		}
-		for conn := range maps.Values(connMap) {
+		for _, conn := range connMap {
 			listers = append(listers, conn)
 		}
 

@@ -128,7 +128,8 @@ func Into[T any](res *Response) (T, error) {
 	return t, nil
 }
 
-// String returns the response body as a string
+// String returns the response body as a string.
+// Returns an error if the response has an unsuccessful status code.
 func (r *Response) String() (string, error) {
 	b, err := r.Bytes()
 	if err != nil {
@@ -138,7 +139,8 @@ func (r *Response) String() (string, error) {
 	return string(b), nil
 }
 
-// Bytes returns the response body as a byte slice
+// Bytes returns the response body as a byte slice.
+// Returns an error if the response has an unsuccessful status code.
 func (r *Response) Bytes() ([]byte, error) {
 	if err := r.ExpectSuccess(); err != nil {
 		return nil, err

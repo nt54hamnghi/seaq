@@ -13,10 +13,46 @@ import (
 
 const App = "seaq"
 
+// Complete configuration in Go struct
+//
+// ```go
+//	type SeaqConfig struct {
+//		Connections []struct {
+//			BaseURL  string `yaml:"base_url"`
+//			Provider string `yaml:"provider"`
+//		} `yaml:"connections"`
+//		Model struct {
+//			Name string `yaml:"name"`
+//		} `yaml:"model"`
+//		Pattern struct {
+//			Name   string `yaml:"name"`
+//			Repo   string `yaml:"repo"`
+//			Remote string `yaml:"remote"`
+//		} `yaml:"pattern"`
+//	}
+// ```
+//
+// Example in yaml format
+//
+// ```yaml
+// connections:
+//   - base_url: https://api.groq.com/openai/v1
+//     provider: groq
+//   - base_url: https://openrouter.ai/api/v1
+//     provider: openrouter
+// model:
+//   name: anthropic/claude-3-5-sonnet-latest
+// pattern:
+//   name: take_note
+//   repo: /home/user/.config/seaq/patterns
+//   remote: https://github.com/danielmiessler/fabric
+// ```
+
 // flagBindings maps CLI flags to their corresponding config keys
 var flagBindings = map[string]string{
 	"pattern": "pattern.name",
 	"repo":    "pattern.repo",
+	"remote":  "pattern.remote",
 	"model":   "model.name",
 }
 
@@ -49,7 +85,7 @@ func AddConfigFlag(cmd *cobra.Command, configFile pflag.Value) {
 
 // EnsureConfig ensures that the config file is loaded.
 //
-// It will reads the config flags from the provided command to load the config file.
+// It will reads the config file path from the "config" flag of the provided command.
 // If this flag is not available (the command doesn't have it or it's not set), it will search for the config file.
 func EnsureConfig(cmd *cobra.Command, args []string) error { //nolint:revive
 	var configFile string
@@ -79,6 +115,7 @@ func SetConfigFile(path string) error {
 		return SetupSearchPaths()
 	}
 
+	// explicitly set the config file, so viper doesn't search for it
 	viper.SetConfigFile(path)
 	return nil
 }
@@ -118,15 +155,6 @@ func SetupSearchPaths() error {
 	return nil
 }
 
-type Unsupported struct {
-	Type string
-	Key  string
-}
-
-func (e *Unsupported) Error() string {
-	return fmt.Sprintf("unsupported %s: '%s'", e.Type, e.Key)
-}
-
 // AppConfig is a convenience function that returns the config directory and file for the app.
 // Conceptually, it returns the equivalent of:
 //   - configDir: $HOME/.config/seaq
@@ -141,4 +169,13 @@ func AppConfig() (configDir string, configFile string, err error) {
 	configDir = filepath.Join(configDir, App)
 	configFile = filepath.Join(configDir, App+".yaml")
 	return
+}
+
+type Unsupported struct {
+	Type string
+	Key  string
+}
+
+func (e *Unsupported) Error() string {
+	return fmt.Sprintf("unsupported %s: '%s'", e.Type, e.Key)
 }

@@ -77,11 +77,14 @@ type listModelsResponse struct {
 	} `json:"data"`
 }
 
+// ConnectionMap is a map of provider name to Connection.
+// This is to provide a fast and ergonomic provider-to-Connection lookup.
+// We're trading memory for speed as we don't expect a large number of connections.
+// Also, we're paying upfront the cost of constructing the map.
 type ConnectionMap map[string]Connection
 
-// GetConnections retrieves the LLM provider connections in the config file.
-// It reads the "connections" key from viper configuration file and returns a map
-// where the key is the provider name and the value is the Connection object.
+// GetConnections retrieves the LLM provider connections in the config file
+// and constructs a provider-to-Connection map.
 func GetConnections() (ConnectionMap, error) {
 	connections := []Connection{}
 	if err := viper.UnmarshalKey("connections", &connections); err != nil {
@@ -96,6 +99,7 @@ func GetConnections() (ConnectionMap, error) {
 	return connMap, nil
 }
 
+// AsSlice returns a slice of all connections in the map.
 func (cm ConnectionMap) AsSlice() []Connection {
 	return slices.Collect(maps.Values(cm))
 }

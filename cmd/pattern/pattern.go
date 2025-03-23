@@ -26,13 +26,13 @@ func NewPatternCmd() *cobra.Command {
 		newGetCmd(),
 		newListCmd(),
 		newSetCmd(),
+		newAddCmd(),
 	)
 
 	return cmd
 }
 
-// nolint: revive
-func CompletePatternArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func CompletePatternArgs(cmd *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 	// ListPatterns reads `pattern.repo` from the config file to provide completions
 	// so it relies on the config file being fully loaded
 	if err := config.EnsureConfig(cmd, args); err != nil {

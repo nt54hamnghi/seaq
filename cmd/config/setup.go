@@ -6,6 +6,7 @@ package config
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -17,6 +18,10 @@ import (
 	"github.com/nt54hamnghi/seaq/pkg/util/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+)
+
+const (
+	DefaultRemotePatternsRepo = "https://github.com/danielmiessler/fabric"
 )
 
 type setupOptions struct {
@@ -50,18 +55,19 @@ func newSetupCmd() *cobra.Command {
 }
 
 type setupInput struct {
-	modelName   string
-	patternName string
-	patternRepo string
+	modelName     string
+	patternName   string
+	patternRepo   string
+	patternRemote string
 }
 
 // setup writes the configuration to a file and initializes the pattern repository.
 // If using the default pattern repository, it will also create the directory structure with the built-in patterns.
 func (i setupInput) setup(opts setupOptions) error {
 	// Validate inputs
-	if i.modelName == "" || i.patternName == "" || i.patternRepo == "" {
-		return fmt.Errorf(
-			"invalid configuration: model name, pattern name, and pattern repository are required",
+	if i.modelName == "" || i.patternName == "" || i.patternRepo == "" || i.patternRemote == "" {
+		return errors.New(
+			"model name, pattern name, pattern repository, and pattern remote URL are required",
 		)
 	}
 
@@ -82,6 +88,7 @@ func (i setupInput) setup(opts setupOptions) error {
 		"model", i.modelName,
 		"pattern", i.patternName,
 		"pattern_repo", i.patternRepo,
+		"pattern_remote", i.patternRemote,
 	)
 
 	viper.SetConfigType("yaml")
@@ -90,8 +97,9 @@ func (i setupInput) setup(opts setupOptions) error {
 	viper.Set("model.name", i.modelName)
 	viper.Set("pattern.name", i.patternName)
 	viper.Set("pattern.repo", i.patternRepo)
+	viper.Set("pattern.remote", i.patternRemote)
 
-	// if --dir is set, use it as the config file path
+	// if --dir is set, use it as the base for the config file path
 	if isDirSet {
 		configFile = filepath.Join(opts.dir.String(), "seaq.yaml")
 	}
@@ -115,10 +123,11 @@ var primeMindPattern []byte
 //go:embed patterns/improve_prompt/system.md
 var improvePromptPattern []byte
 
-// createDefaultPatternRepo creates the default pattern directories.
+// createDefaultPatternRepo creates the default pattern directory.
 // It will create directories for built-in patterns only if:
-// 1. The configured pattern repository is the default one
-// 2. The repository directory doesn't already exist
+//  1. i.patternRepo is the default config directory
+//  2. i.patternRepo doesn't already exist
+//
 // The default patterns created are "prime_mind" and "improve_prompt".
 func (i setupInput) createDefaultPatternRepo() error {
 	if i.patternRepo != getDefaultPatternsRepo() {
@@ -191,7 +200,13 @@ func collect(opts setupOptions) (setupInput, error) {
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Pattern repository").
-				Description(fmt.Sprintf("The folder containing prompts. Leave empty to use %s.", defaultPatternRepo)).
+				Description(
+					fmt.Sprintf(
+						"The folder containing patterns.\n"+
+							"Leave empty to use %s.",
+						defaultPatternRepo,
+					),
+				).
 				Placeholder(defaultPatternRepo).
 				Value(&input.patternRepo).
 				Validate(func(s string) error {
@@ -245,10 +260,27 @@ func collect(opts setupOptions) (setupInput, error) {
 				}, nil).
 				Value(&input.patternName),
 		),
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Remote pattern repository").
+				Description(
+					fmt.Sprintf(
+						"The remote GitHub repository containing patterns to download.\n"+
+							"Leave empty to use %s.",
+						DefaultRemotePatternsRepo,
+					),
+				).
+				Placeholder(DefaultRemotePatternsRepo).
+				Value(&input.patternRemote),
+		),
 	)
 
 	if err := form.Run(); err != nil {
 		return setupInput{}, err
+	}
+
+	if input.patternRemote == "" {
+		input.patternRemote = DefaultRemotePatternsRepo
 	}
 
 	return input, nil

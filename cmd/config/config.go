@@ -46,6 +46,18 @@ var (
 	configFile string
 )
 
+// getConfig returns the application's config directory and file paths.
+// Essentially (on Unix-like systems):
+//   - $HOME/.config/seaq
+//   - $HOME/.config/seaq/seaq.yaml
+//
+// It doesn't check if the directory or file exists.
+//
+// Since these values don't change throughout the lifetime of the config command,
+// the first call to this function will "initialize" them. Subsequent calls
+// will return the initialized values.
+//
+// Failure to initialize the config will cause the program to exit.
 func getConfig() (string, string) {
 	once.Do(func() {
 		var err error
