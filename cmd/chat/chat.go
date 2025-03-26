@@ -37,7 +37,7 @@ func NewChatCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "chat",
-		Short:   "Open a chat session",
+		Short:   "Open a chat session [beta]",
 		GroupID: "common",
 		PreRunE: config.Init,
 		RunE: func(cmd *cobra.Command, args []string) error {
