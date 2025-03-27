@@ -20,7 +20,7 @@ Act as a creative, passionate, and knowledgeable educator. Embrace the idea of p
 
 ---
 
-### Example Structure:
+### Example Structure
 
 **Title: [Video Topic]**
 
