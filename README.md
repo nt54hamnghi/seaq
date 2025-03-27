@@ -84,6 +84,8 @@ seaq fetch x "1883686162709295541" | seaq -p take_note -m anthropic/claude-3-7-s
 seaq fetch page "https://charm.sh/blog/commands-in-bubbletea/" --auto | seaq chat
 ```
 
+> **Note:** `seaq chat` is an experimental feature.
+
 ### Manage patterns and models
 
 ```sh
@@ -105,8 +107,6 @@ seaq models list
 seaq model set ollama/smollm2:latest
 seaq model get
 ```
-
-> **Note:** `seaq chat` is an experimental feature.
 
 ### `seaq` command
 
@@ -160,7 +160,7 @@ seaq fetch page --engine jina "https://en.wikipedia.org/wiki/Go_(programming_lan
 > - `jina` requires setting the `JINA_API_KEY` environment variable
 > - `firecrawl` requires setting the `FIRECRAWL_API_KEY` environment variable
 
-#### 2. YouTube videos transcripts
+#### 2. YouTube video transcripts
 
 ```sh
 seaq fetch youtube "https://www.youtube.com/watch?v=446E-r0rXHI"
@@ -282,7 +282,7 @@ The `ENV KEY` column tells you the environment variable that needs to be set for
 seaq connection remove groq
 ```
 
-Once a connection is created, you list all models
+Once a connection is created, you list all models.
 
 ```sh
 seaq models list
