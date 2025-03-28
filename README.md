@@ -19,11 +19,19 @@
 
 ## Installation
 
+[Make sure Go is installed](https://go.dev/doc/install) before running the following command:
+
 ```sh
-# Clone the repository
-git clone https://github.com/nt54hamnghi/seaq.git
-cd ./seaq
-go install .
+go install github.com/nt54hamnghi/seaq@latest
+```
+
+You may need to add the following environment variables to run `seaq`:
+
+```sh
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go
+# Add Go binary paths and local user binaries to the system PATH
+export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
 ```
 
 ## Getting started
