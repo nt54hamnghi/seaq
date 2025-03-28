@@ -1,21 +1,21 @@
 # seaq
 
-`seaq` (pronounced "seek") allows you to extract text data from diverse sources across the web and process it with your preferred LLM model and predefined prompts (patterns), all from your terminal.
+`seaq` (pronounced "seek") allows you to extract text data from the web and process it with your favorite prompt and LLM model, all from your terminal.
 
 `seaq` was initially created as an experiment in using LLMs to implement the idea of **optimizing cognitive load**, as presented by Dr. Justin Sung in [this video](https://www.youtube.com/watch?v=1iv4YPQVmTc). It was strongly inspired by [`fabric`](https://github.com/danielmiessler/fabric) and was originally meant to be a Go-based alternative (as it turns out, `fabric` is now written in Go too).
 
 ## Features
 
-- Support for multiple LLM providers
-  - Builtin (OpenAI, Anthropic, Google)
-  - Any OpenAI-compatible providers via `connection`
-- Scrape web pages with various providers
-  - Builtin
+- Support for multiple LLM providers.
+  - Built-in (OpenAI, Anthropic, Google).
+  - Any OpenAI-compatible providers via `connection`.
+- Scrape web pages with various engines.
+  - Built-in
   - [Firecrawl](https://www.firecrawl.dev)
   - [Jina](https://jina.ai)
 - Fetch YouTube transcripts, Udemy transcripts, X threads.
-- Adding patterns on-demand from a repository on GitHub
-- `yaml`-based configuration file
+- Adding patterns from a GitHub repository on demand.
+- YAML-based configuration file.
 
 ## Installation
 
@@ -30,12 +30,12 @@ go install .
 
 Run `seaq config setup` to generate a new config file interactively. It will walk you through selecting:
 
-- A LLM model
+- An LLM model
 - A pattern repository (where you store your patterns)
-- A pattern
+- A pattern (prompt)
 - A default remote GitHub repository to download patterns
 
-These values acts as defaults and can be overridden by CLI flags and/or arguments.
+These values act as defaults and can be overridden by CLI flags and/or arguments.
 
 ```sh
 seaq config setup
@@ -53,16 +53,29 @@ pattern:
 ```
 
 > Note:
-> `seaq` reads API keys from environment variables. For example, if you're using a model from OpenAI, `seaq` expect the `OPENAI_API_KEY` environment variable to hold the API key.
->
-> A list of available environment variables is defined here: <https://github.com/nt54hamnghi/seaq/blob/fe1198e6438797be3c47928bc0beec8a42ef4b4a/pkg/env/env.go#L10>
+> `seaq` reads API keys from environment variables. For example, if you're using a model from OpenAI, `seaq` expects the `OPENAI_API_KEY` environment variable to hold the API key.
+
+Supported environment variables:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
+- `YOUTUBE_API_KEY`
+- `CHROMA_URL`
+- `X_AUTH_TOKEN`
+- `X_CSRF_TOKEN`
+- `UDEMY_ACCESS_TOKEN`
+- `OLLAMA_HOST`
+- `JINA_API_KEY`
+- `FIRECRAWL_API_KEY`
+- `SEAQ_SUPPRESS_WARNINGS`
 
 ## Usage
 
 ### Some basic examples
 
 ```sh
-# Fetch a YouTube video transcript and process it with local model and the prime_mind pattern (prompt)
+# Fetch a YouTube video transcript and process it with a local model and the prime_mind pattern (prompt)
 seaq fetch youtube "446E-r0rXHI" | seaq --pattern prime_mind --model ollama/smollm2:latest
 ```
 
@@ -72,7 +85,7 @@ seaq fetch youtube "446E-r0rXHI" | seaq
 ```
 
 ```sh
-# Fetch a X thread and process it with Claude 3.7 Sonnet and the take_note pattern
+# Fetch an X thread and process it with Claude 3.7 Sonnet and the take_note pattern
 # `-p` is short for `--pattern`
 # `-m` is short for `--model`
 seaq fetch x "1883686162709295541" | seaq -p take_note -m anthropic/claude-3-7-sonnet-latest
@@ -84,7 +97,7 @@ seaq fetch x "1883686162709295541" | seaq -p take_note -m anthropic/claude-3-7-s
 seaq fetch page "https://charm.sh/blog/commands-in-bubbletea/" --auto | seaq chat
 ```
 
-> **Note:** `seaq chat` is an experimental feature.
+> Note: `seaq chat` is an experimental feature.
 
 ### Manage patterns and models
 
@@ -92,7 +105,7 @@ seaq fetch page "https://charm.sh/blog/commands-in-bubbletea/" --auto | seaq cha
 # List all available patterns
 seaq pattern list
 
-# Set and get default pattern
+# Set and get the default pattern
 # These will modify the `seaq.yaml` config file
 seaq pattern set prime_mind
 seaq pattern get
@@ -100,9 +113,9 @@ seaq pattern get
 
 ```sh
 # List all available models
-seaq models list
+seaq model list
 
-# Set and get default model
+# Set and get the default model
 # These will modify the `seaq.yaml` config file
 seaq model set ollama/smollm2:latest
 seaq model get
@@ -179,7 +192,7 @@ You can use `--start` and `--end` flags to filter the transcript.
 seaq fetch youtube "446E-r0rXHI" --start 0:07 --end 0:42
 ```
 
-To include metadata (e.g. video title, description, etc.) in the output, use the `--metadata` flag.
+To include metadata (e.g., video title, description, etc.) in the output, use the `--metadata` flag.
 
 ```sh
 seaq fetch youtube "446E-r0rXHI" --metadata
@@ -194,7 +207,7 @@ seaq fetch youtube "446E-r0rXHI" --metadata
 seaq fetch udemy "https://www.udemy.com/course/course-name/learn/lecture/lecture-id"
 ```
 
-`seaq fetch udemy` also supports `--start` and `--end` flags.
+`seaq fetch udemy` also supports the `--start` and `--end` flags.
 
 ```sh
 seaq fetch udemy "https://www.udemy.com/course/course-name/learn/lecture/lecture-id" --start 0:07 --end 0:42
@@ -216,7 +229,7 @@ Or just with the tweet ID:
 seaq fetch x "1883686162709295541"
 ```
 
-By default, `seaq` will fetch the entire thread, use `-t` or `--tweet` to get a single tweet.
+By default, `seaq` will fetch the entire thread. Use `-t` or `--tweet` to get a single tweet.
 
 ```sh
 seaq fetch x "1883686162709295541" --tweet
@@ -282,7 +295,7 @@ The `ENV KEY` column tells you the environment variable that needs to be set for
 seaq connection remove groq
 ```
 
-Once a connection is created, you list all models.
+Once a connection is created, you can list all models.
 
 ```sh
 seaq models list
@@ -292,7 +305,7 @@ seaq models list
 
 To add new patterns from a remote repository, `seaq` expects the repository to have a top-level `patterns` directory with one or more patterns.
 
-The directory structure looks like this:
+The directory structure should look like this:
 
 ```sh
 patterns/
@@ -304,7 +317,7 @@ patterns/
     └── system.md
 ```
 
-By default, `seaq` will use `pattern.remote` in your config file as the remote repository. However, you can specify the remote repository with the `--remote` flag.
+By default, `seaq` will use `pattern.remote` in your config file as the remote repository. However, you can overwrite this with the `--remote` flag.
 
 ```sh
 seaq pattern add improve_prompt --remote https://github.com/danielmiessler/fabric
