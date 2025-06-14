@@ -1,52 +1,47 @@
+version: "2"
 output:
   formats:
-    - format: colored-line-number
+    text:
       path: stdout
-  sort-results: true
   sort-order:
     - linter
     - severity
-    - file # filepath, line, and column.
-
+    - file
 linters:
   enable:
-    # Default
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-
-    # Code Complexity
-    - gocritic # Various Go source code linting
-    - goconst # Find repeated strings that could be replaced by constants
-    - gocyclo # Check cyclomatic complexity
-    - unparam # Report unused function parameters
-
-    # Doc & Text
-    - misspell # Find commonly misspelled English words
-
-    # Resource
-    - bodyclose # Check HTTP response bodies are closed
-    - noctx # Find HTTP requests without context.Context
-    - contextcheck # Check for non-inherited context usage
-
-    # Security & Bug
-    - bidichk # Check for dangerous unicode sequences
-    - errorlint # Find code that will cause problems with the error wrapping scheme introduced in Go 1.13
-    - gosec # Security problems checker
-    - typecheck # Parser and type-checks Go code
-
-    # Style & Format
-    - gofumpt # Check code formatting with gofumpt
-    - goimports # Check import statements formatting
-    - revive # Drop-in replacement for golint
-    - unconvert # Remove unnecessary type conversions
-
-    # Testing
-    - testifylint # Check testify usage
-    - tparallel # Check t.Parallel() usage
-
-issues:
-  exclude-use-default: true
+    - bidichk
+    - bodyclose
+    - contextcheck
+    - errorlint
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - misspell
+    - noctx
+    - revive
+    - testifylint
+    - tparallel
+    - unconvert
+    - unparam
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

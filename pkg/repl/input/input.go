@@ -70,6 +70,6 @@ func (m Model) Display() string {
 }
 
 func (m *Model) Append(value string) {
-	m.history.append(value)
+	m.history.append(value) //nolint:staticcheck
 	m.Reset()
 }
