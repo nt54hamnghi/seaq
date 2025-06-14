@@ -83,10 +83,16 @@ func WithClient(client *http.Client) RequestFunc {
 		if err != nil {
 			return nil, fmt.Errorf("create request: %w", err)
 		}
+
+		// Set custom headers first
 		for k, vs := range headers {
 			req.Header[k] = append(req.Header[k], vs...)
 		}
-		req.Header.Set("User-Agent", "go-http-client/1.1")
+
+		// Set default User-Agent only if not provided
+		if req.Header.Get("User-Agent") == "" {
+			req.Header.Set("User-Agent", "go-http-client/1.1")
+		}
 
 		// Send request
 		// Caller is responsible for closing the response body
