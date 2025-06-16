@@ -22,7 +22,9 @@ const (
 	O1Mini          = "o1-mini"
 	O1Preview       = "o1-preview"
 	O3Mini          = "o3-mini"
+	O4Mini          = "o4-mini"
 	GPT4Dot5Preview = "gpt-4.5-preview"
+	GPT4Dot1        = "gpt-4.1"
 	GPT4o           = "gpt-4o"
 	GPT4oMini       = "gpt-4o-mini"
 	GPT4            = "gpt-4"
@@ -32,16 +34,17 @@ const (
 
 	// Anthropic models
 	// https://docs.anthropic.com/en/docs/about-claude/models
-	Claude3Dot7Sonnet   = "claude-3-7-sonnet-latest"
-	Claude3Dot5Haiku    = "claude-3-5-haiku-latest"
-	Claude3Dot5SonnetV2 = "claude-3-5-sonnet-latest"
-	Claude3Dot5Sonnet   = "claude-3-5-sonnet-20240620"
-	Claude3Opus         = "claude-3-opus-latest"
-	Claude3Sonnet       = "claude-3-sonnet-20240229"
-	Claude3Haiku        = "claude-3-haiku-20240307"
+	ClaudeOpus4       = "claude-opus-4-0"
+	ClaudeSonnet4     = "claude-sonnet-4-0"
+	ClaudeSonnet3Dot7 = "claude-3-7-sonnet-latest"
+	ClaudeSonnet3Dot5 = "claude-3-5-sonnet-latest"
+	ClaudeHaiku3Dot5  = "claude-3-5-haiku-latest"
+	ClaudeOpus3       = "claude-3-opus-latest"
 
 	// Google models
-	// https://ai.google.dev/gemini-api/docs/models/gemini#model-variations
+	// https://ai.google.dev/gemini-api/docs/models#model-variations
+	Gemini2Dot5FlashPreview    = "gemini-2.5-flash-preview-05-20"
+	Gemini2Dot5ProPreview      = "gemini-2.5-pro-preview-06-05"
 	Gemini2Dot0Flash           = "gemini-2.0-flash"
 	Gemini2Dot0FlashLite       = "gemini-2.0-flash-lite"
 	Gemini2Dot0ProExperimental = "gemini-2.0-pro-exp-02-05"
