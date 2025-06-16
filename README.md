@@ -17,13 +17,41 @@
 - Adding patterns from a GitHub repository on demand.
 - YAML-based configuration file.
 
-## Installation
+## Example workflows
+
+![seaq demo](./imgs/seaq.gif)
 
 ```sh
-# Clone the repository
-git clone https://github.com/nt54hamnghi/seaq.git
-cd ./seaq
-go install .
+# Fetch a YouTube video transcript with defaults in the `seaq.yaml` config file
+seaq fetch youtube "446E-r0rXHI" | seaq
+```
+
+```sh
+# Get insights from an X thread using a local model
+seaq fetch x "1883686162709295541" | seaq --pattern prime_mind --model ollama/smollm2:latest
+```
+
+```sh
+# Fetch a web page and chat with it
+# `--auto` tells the built-in scrapper to automatically detect the main content of the page
+seaq fetch page "https://modelcontextprotocol.io/introduction" --auto | seaq chat
+```
+
+## Installation
+
+[Make sure Go is installed](https://go.dev/doc/install) before running the following command:
+
+```sh
+go install github.com/nt54hamnghi/seaq@latest
+```
+
+You may need to add the following environment variables to run `seaq`:
+
+```sh
+export GOROOT=/usr/local/go
+export GOPATH=$HOME/go
+# Add Go binary paths and local user binaries to the system PATH
+export PATH=$GOPATH/bin:$GOROOT/bin:$HOME/.local/bin:$PATH
 ```
 
 ## Getting started
@@ -72,55 +100,6 @@ Supported environment variables:
 
 ## Usage
 
-### Some basic examples
-
-```sh
-# Fetch a YouTube video transcript and process it with a local model and the prime_mind pattern (prompt)
-seaq fetch youtube "446E-r0rXHI" | seaq --pattern prime_mind --model ollama/smollm2:latest
-```
-
-```sh
-# Fetch a YouTube video transcript with defaults in the `seaq.yaml` config file
-seaq fetch youtube "446E-r0rXHI" | seaq
-```
-
-```sh
-# Fetch an X thread and process it with Claude 3.7 Sonnet and the take_note pattern
-# `-p` is short for `--pattern`
-# `-m` is short for `--model`
-seaq fetch x "1883686162709295541" | seaq -p take_note -m anthropic/claude-3-7-sonnet-latest
-```
-
-```sh
-# Fetch a web page and chat with it
-# `--auto` tells the built-in scrapper to automatically detect the main content of the page
-seaq fetch page "https://charm.sh/blog/commands-in-bubbletea/" --auto | seaq chat
-```
-
-> Note: `seaq chat` is an experimental feature.
-
-### Manage patterns and models
-
-```sh
-# List all available patterns
-seaq pattern list
-
-# Set and get the default pattern
-# These will modify the `seaq.yaml` config file
-seaq pattern set prime_mind
-seaq pattern get
-```
-
-```sh
-# List all available models
-seaq model list
-
-# Set and get the default model
-# These will modify the `seaq.yaml` config file
-seaq model set ollama/smollm2:latest
-seaq model get
-```
-
 ### `seaq` command
 
 The root command, `seaq`, processes input text with a specified model and pattern. It can read input either from a file or from standard input (pipe).
@@ -146,6 +125,51 @@ Available flags:
 -c, --config string       config file (default is $HOME/.config/seaq.yaml)
 -o, --output string       output file
 -f, --force               overwrite existing file
+```
+
+### Chat with a model
+
+> Note: `seaq chat` is an experimental feature.
+
+To use the chat feature, you need a running [ChromaDB](https://www.trychroma.com/) instance. To quickly start one:
+
+```sh
+docker run -d -p 7645:8000 --name chroma-core ghcr.io/chroma-core/chroma:0.5.0
+
+# `seaq` requires the `CHROMA_URL` environment variable to be set
+export CHROMA_URL=http://0.0.0.0:7645
+```
+
+Like the root command, `seaq chat` accepts input from both a file and standard input (pipe).
+
+```sh
+# Process input from a file
+seaq -i essay.md
+
+# Process piped input
+cat essay.md | seaq chat
+```
+
+### Manage patterns and models
+
+```sh
+# List all available patterns
+seaq pattern list
+
+# Set and get the default pattern
+# These will modify the `seaq.yaml` config file
+seaq pattern set prime_mind
+seaq pattern get
+```
+
+```sh
+# List all available models
+seaq model list
+
+# Set and get the default model
+# These will modify the `seaq.yaml` config file
+seaq model set ollama/smollm2:latest
+seaq model get
 ```
 
 ### Fetch data
