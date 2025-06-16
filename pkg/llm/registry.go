@@ -73,6 +73,8 @@ var defaultRegistry = ModelRegistry{
 		ClaudeSonnet3Dot5: {},
 		ClaudeHaiku3Dot5:  {},
 		ClaudeOpus3:       {},
+		ClaudeSonnet3:     {},
+		ClaudeHaiku3:      {},
 	},
 	"google": {
 		Gemini2Dot5FlashPreview:    {},

@@ -40,6 +40,8 @@ const (
 	ClaudeSonnet3Dot5 = "claude-3-5-sonnet-latest"
 	ClaudeHaiku3Dot5  = "claude-3-5-haiku-latest"
 	ClaudeOpus3       = "claude-3-opus-latest"
+	ClaudeSonnet3     = "claude-3-sonnet-20240229"
+	ClaudeHaiku3      = "claude-3-haiku-20240307"
 
 	// Google models
 	// https://ai.google.dev/gemini-api/docs/models#model-variations

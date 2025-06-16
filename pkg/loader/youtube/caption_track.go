@@ -17,7 +17,6 @@ import (
 const (
 	youtubePlayerAPI = "https://www.youtube.com/youtubei/v1/player"
 	youtubeTVURL     = "https://www.youtube.com/tv"
-	userAgent        = "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version,gzip(gfe)"
 )
 
 func loadCaptionTracks(ctx context.Context, vid videoID) ([]captionTrack, error) {
@@ -108,7 +107,7 @@ func fetchPlayerResponse(ctx context.Context, client *http.Client, cfg *playerCo
 		http.MethodPost,
 		youtubePlayerAPI,
 		map[string][]string{
-			"User-Agent": {userAgent},
+			"User-Agent": {"Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version,gzip(gfe)"},
 		},
 		cfg,
 	)
