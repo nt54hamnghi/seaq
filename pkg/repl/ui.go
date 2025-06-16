@@ -264,7 +264,7 @@ func (r *REPL) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return r, tea.Quit
 			default:
 				if strings.HasPrefix(name, "/") {
-					err := fmt.Errorf("unknown command: %s. Type /? for help.", name) //nolint:revive
+					err := fmt.Errorf("unknown command: %s. Type /? for help", name) //nolint:revive
 					return r, tea.Sequence(displayCmd, r.error(err), promptCmd)
 				}
 

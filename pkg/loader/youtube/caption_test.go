@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
@@ -128,84 +127,6 @@ func Test_captionTrack_toEnglish(t *testing.T) {
 			} else {
 				r.NoError(err)
 				r.Contains(tc.track.BaseURL.RawQuery, "tlang=en")
-			}
-		})
-	}
-}
-
-func Test_extractCaptionTracks(t *testing.T) {
-	testCases := []struct {
-		name    string
-		body    string
-		want    []captionTrack
-		wantErr string
-	}{
-		{
-			name: "valid",
-			body: `{"captionTracks":[{"baseUrl":"https://www.youtube.com","kind":"asr","languageCode":"en"}]}`,
-			want: []captionTrack{
-				{
-					BaseURL: &baseURL{
-						URL: url.URL{Scheme: "https", Host: "www.youtube.com"},
-					},
-					LanguageCode: "en",
-					Kind:         "asr",
-				},
-			},
-		},
-		{
-			name: "multiple tracks",
-			body: `{"captionTracks":[
-                {"baseUrl":"https://www.youtube.com","kind":"asr","languageCode":"en"},
-                {"baseUrl":"https://www.youtube.com","kind":"asr","languageCode":"es"}
-            ]}`,
-			want: []captionTrack{
-				{
-					BaseURL: &baseURL{
-						URL: url.URL{Scheme: "https", Host: "www.youtube.com"},
-					},
-					LanguageCode: "en",
-					Kind:         "asr",
-				},
-				{
-					BaseURL: &baseURL{
-						URL: url.URL{Scheme: "https", Host: "www.youtube.com"},
-					},
-					LanguageCode: "es",
-					Kind:         "asr",
-				},
-			},
-		},
-		{
-			name:    "empty body",
-			body:    "",
-			wantErr: "caption tracks not found",
-		},
-		{
-			name:    "malformed JSON",
-			body:    `{"captionTracks":[INVALID]}`,
-			wantErr: "malformed caption tracks",
-		},
-		{
-			name:    "no caption tracks",
-			body:    `{"something":"else"}`,
-			wantErr: "caption tracks not found",
-		},
-	}
-
-	r := require.New(t)
-
-	for _, tt := range testCases {
-		t.Run(tt.name, func(*testing.T) {
-			body := strings.NewReader(tt.body)
-			actual, err := extractCaptionTracks(body)
-
-			if tt.wantErr != "" {
-				r.Error(err)
-				r.Contains(err.Error(), tt.wantErr)
-			} else {
-				r.NoError(err)
-				r.Equal(tt.want, actual)
 			}
 		})
 	}

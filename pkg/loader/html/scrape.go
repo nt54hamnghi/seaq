@@ -80,7 +80,7 @@ type pageScraper struct{}
 
 // scrape implements the scraper interface
 func (s pageScraper) scrape(doc *goquery.Document) ([]string, error) {
-	return collect(doc.Selection.Contents()), nil
+	return collect(doc.Contents()), nil
 }
 
 // selectorScraper scrapes content from a webpage using a CSS selector.

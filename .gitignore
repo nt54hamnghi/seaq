@@ -1,5 +1,7 @@
 # IDE-specific files
 /.vscode
+/.cursor
+.cursorrules
 
 # Temporary files and directories
 /tmp
@@ -9,8 +11,6 @@
 /chroma
 /.config
 /.legacy
-/.cursor
-.cursorrules
 seaq*.yaml
 debug.log
 cache.db
@@ -19,6 +19,6 @@ cache.db
 /summary.md
 
 # All .env files
-*.env
+**/*.env
 
 # Miscellaneous system files
