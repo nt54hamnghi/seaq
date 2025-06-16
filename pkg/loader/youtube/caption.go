@@ -16,7 +16,10 @@ import (
 	"github.com/tmc/langchaingo/schema"
 )
 
-const YouTubeWatchURL = "https://www.youtube.com/watch"
+const (
+	YouTubeShortURL = "https://www.youtube.com/shorts"
+	YouTubeWatchURL = "https://www.youtube.com/watch"
+)
 
 func getCaptionAsDocuments(ctx context.Context, vid videoID, filter *filter) ([]schema.Document, error) {
 	// fetch available caption tracks from a YouTube video ID

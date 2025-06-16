@@ -10,10 +10,12 @@ import (
 var ErrInvalidPlaceholder = errors.New("invalid placeholder format")
 
 // ParseURL returns a function that parses URLs and validates the hostname for a specific host.
+//
 // The returned function takes a raw URL string and returns a parsed *url.URL if:
-// - The URL is valid and can be parsed
-// - The URL's hostname matches the specified host
-// - Any URL fragments (#) are removed before parsing
+//
+//   - The URL is valid and can be parsed
+//   - The URL's hostname matches the specified host
+//   - Any URL fragments (#) are removed before parsing
 //
 // Example:
 //
