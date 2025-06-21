@@ -33,7 +33,7 @@ func parseRedditURL(rawURL string) (*url.URL, error) {
 
 // parseRedditPath extracts Reddit URL components into a structured map.
 //
-// It supports two Reddit URL formats:
+// It supports 3 Reddit URL formats:
 //   - Post (titled): /r/{subreddit}/comments/{post-id}/{title}
 //   - Post (un-titled): /r/{subreddit}/comments/{post-id}
 //   - Comment: /r/{subreddit}/comments/{post-id}/comment/{comment-id}
@@ -42,9 +42,10 @@ func parseRedditURL(rawURL string) (*url.URL, error) {
 //
 // Returns a map containing the extracted components:
 //   - For posts: "subreddit", "post-id", "title"
+//   - For posts: "subreddit", "post-id"
 //   - For comments: "subreddit", "post-id", "comment-id"
 //
-// Returns an error if the URL doesn't match either supported format.
+// Returns an error if the URL doesn't match any supported format.
 func parseRedditPath(url *url.URL) (map[string]string, error) {
 	path := strings.TrimSuffix(url.EscapedPath(), "/.json")
 
