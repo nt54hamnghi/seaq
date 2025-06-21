@@ -40,6 +40,7 @@ func NewFetchCmd() *cobra.Command {
 	cmd.AddCommand(
 		newPageCmd(),
 		newUdemyCmd(),
+		newRedditCmd(),
 		newXCmd(),
 		newYoutubeCmd(),
 	)

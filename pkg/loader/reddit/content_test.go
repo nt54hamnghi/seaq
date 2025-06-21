@@ -372,7 +372,7 @@ func Test_GetRedditContentAsDocuments(t *testing.T) {
 			mockResponse: postResponse,
 			statusCode:   200,
 			wantErr:      false,
-			wantContent:  "Test Post Title\nhttps://example.com\nThis is the post content",
+			wantContent:  "Test Post Title\n\nhttps://example.com\n\nThis is the post content",
 			wantMetadata: map[string]any{
 				"id":           "123abc",
 				"name":         "t3_123abc",
