@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/nt54hamnghi/seaq/pkg/util/log"
 )
 
 // nolint: revive,gosec
@@ -21,7 +24,8 @@ const (
 	FIRECRAWL_API_KEY  = "FIRECRAWL_API_KEY"
 
 	// seaq
-	SEAQ_SUPPRESS_WARNINGS = "SEAQ_SUPPRESS_WARNINGS"
+	SEAQ_SUPPRESS_WARNINGS = "SEAQ_SUPPRESS_WARNINGS" // whether to suppress warnings
+	SEAQ_CACHE_DURATION    = "SEAQ_CACHE_DURATION"    // cache duration in seconds
 )
 
 func Get(key string) (string, error) {
@@ -95,6 +99,50 @@ func SuppressWarnings() bool {
 	default:
 		return false
 	}
+}
+
+const DefaultCacheDuration = 24 * time.Hour
+
+// CacheDuration returns the value of the SEAQ_CACHE_DURATION environment variable
+// or an error if not set.
+func CacheDuration() time.Duration {
+	fallback := DefaultCacheDuration
+	fallbackStr := "24h"
+
+	val, err := Get(SEAQ_CACHE_DURATION)
+	if err != nil {
+		return fallback
+	}
+
+	if d, err := time.ParseDuration(val); err == nil {
+		switch {
+		case d <= 0:
+			log.Warn(
+				"non-positive cache duration is invalid",
+				"provided", val, "fallback", fallbackStr,
+			)
+			return fallback
+		case d < 5*time.Minute:
+			log.Warn(
+				"short cache duration may cause performance issues",
+				"provided", val, "fallback", fallbackStr,
+			)
+			return d // but still allow it
+		case d > 30*24*time.Hour: // 30 days
+			log.Warn(
+				"long cache duration may cause stale data issues",
+				"provided", val, "fallback", fallbackStr,
+			)
+			return d // but still allow it
+		default:
+			return d
+		}
+	}
+	log.Warn(
+		"invalid cache duration format",
+		"provided", val, "fallback", fallbackStr,
+	)
+	return fallback
 }
 
 // OllamaHost returns the value of the OLLAMA_HOST environment variable

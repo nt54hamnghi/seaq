@@ -9,6 +9,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/nt54hamnghi/seaq/pkg/config"
+	"github.com/nt54hamnghi/seaq/pkg/env"
 	"github.com/nt54hamnghi/seaq/pkg/util/log"
 	"github.com/spf13/afero"
 	"github.com/tmc/langchaingo/documentloaders"
@@ -17,10 +18,7 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-const (
-	CacheDuration = 24 * time.Hour
-	CacheFileName = "cache.db"
-)
+const CacheFileName = "cache.db"
 
 var fs = afero.Afero{
 	Fs: afero.NewOsFs(),
@@ -91,7 +89,7 @@ type cacheItem struct {
 }
 
 func (ci cacheItem) expired() bool {
-	return time.Since(ci.CreatedAt) > CacheDuration
+	return time.Since(ci.CreatedAt) > env.CacheDuration()
 }
 
 // id returns the bucket and key for the current loader.
