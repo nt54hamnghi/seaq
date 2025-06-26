@@ -2,6 +2,7 @@ package env
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 )
@@ -20,8 +21,11 @@ const (
 	JINA_API_KEY       = "JINA_API_KEY"
 	FIRECRAWL_API_KEY  = "FIRECRAWL_API_KEY"
 
-	// seaq
+	// seaq-specific
+
+	// Deprecated: Use SEAQ_LOG_LEVEL=error to suppress warnings instead.
 	SEAQ_SUPPRESS_WARNINGS = "SEAQ_SUPPRESS_WARNINGS"
+	SEAQ_LOG_LEVEL         = "SEAQ_LOG_LEVEL" // log level
 )
 
 func Get(key string) (string, error) {
@@ -80,8 +84,35 @@ func UdemyAccessToken() (string, error) {
 	return Get(UDEMY_ACCESS_TOKEN)
 }
 
+// LogLevel returns the value of the SEAQ_LOG_LEVEL environment variable
+// or an error if not set.
+func LogLevel() slog.Level {
+	lv, err := Get(SEAQ_LOG_LEVEL)
+	if err != nil {
+		// for backwards compatibility
+		if SuppressWarnings() {
+			return slog.LevelError
+		}
+		return slog.LevelInfo
+	}
+	switch strings.ToLower(strings.TrimSpace(lv)) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
 // SuppressWarnings returns the value of the SEAQ_SUPPRESS_WARNINGS environment variable
 // or an error if not set.
+//
+// Deprecated: SEAQ_SUPPRESS_WARNINGS environment variable is deprecated and replaced by SEAQ_LOG_LEVEL.
 func SuppressWarnings() bool {
 	val, err := Get(SEAQ_SUPPRESS_WARNINGS)
 	// show warnings by default if there's an error
