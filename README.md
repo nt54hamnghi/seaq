@@ -96,7 +96,7 @@ Supported environment variables:
 - `OLLAMA_HOST`
 - `JINA_API_KEY`
 - `FIRECRAWL_API_KEY`
-- `SEAQ_SUPPRESS_WARNINGS`
+- `SEAQ_LOG_LEVEL` (default: `info`)
 
 ## Usage
 

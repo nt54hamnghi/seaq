@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nt54hamnghi/seaq/pkg/env"
 	"github.com/nt54hamnghi/seaq/pkg/util/log"
 	"github.com/nt54hamnghi/seaq/pkg/util/pool"
 	"github.com/nt54hamnghi/seaq/pkg/util/set"
@@ -100,12 +99,11 @@ func initRegistry() {
 		var err error
 
 		ctx := context.Background()
-		suppressWarnings := env.SuppressWarnings()
 
 		// Get all providers and their connections
 		listers := []ModelLister{ollamaLister}
 		connMap, err = GetConnections()
-		if err != nil && !suppressWarnings {
+		if err != nil {
 			// failure to load connections is not a fatal error
 			log.Warn("failed to load connections", "error", err)
 		}
@@ -123,13 +121,13 @@ func initRegistry() {
 		for i := 0; i < len(outputs); i++ {
 			provider := listers[i].GetProvider()
 			output := outputs[i]
-			if output.Err != nil && !suppressWarnings {
+			if output.Err != nil {
 				// failure to list models is not a fatal error
 				log.Warn("failed to list models", "provider", provider, "error", output.Err)
 				continue
 			}
 			err := defaultRegistry.Register(provider, output.Output)
-			if err != nil && !suppressWarnings {
+			if err != nil {
 				// failure to register models is not a fatal error
 				log.Warn("failed to register models", "provider", provider, "error", err)
 			}

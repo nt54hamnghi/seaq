@@ -4,9 +4,12 @@ import (
 	"log/slog"
 	"os"
 	"time"
+
+	"github.com/nt54hamnghi/seaq/pkg/env"
 )
 
 var DefaultLogger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+	Level: env.LogLevel(),
 	// nolint: revive
 	ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 		if a.Key == slog.TimeKey {
