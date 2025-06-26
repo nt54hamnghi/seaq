@@ -97,6 +97,7 @@ Supported environment variables:
 - `JINA_API_KEY`
 - `FIRECRAWL_API_KEY`
 - `SEAQ_LOG_LEVEL` (default: `info`)
+- `SEAQ_CACHE_DURATION` (default: `24h`)
 
 ## Usage
 
@@ -265,7 +266,9 @@ seaq fetch x "1883686162709295541" --tweet
 
 #### `--no-cache` and `--json`
 
-All fetch commands support caching extracted results. Cached entries are stored in `cache.db` in your config directory and are valid for 24 hours. To disable caching, use the `--no-cache` flag.
+All fetch commands support caching extracted results. Cached entries are stored in `cache.db` in your config directory and are valid for 24 hours. Time-to-live for cached entries can be configured with the `SEAQ_CACHE_DURATION` environment variable.
+
+To disable caching, use the `--no-cache` flag.
 
 Fetch commands also support outputting JSON. Use the `--json` flag to enable this.
 
