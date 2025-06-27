@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 )
 
 // nolint: revive,gosec
@@ -24,8 +25,9 @@ const (
 	// seaq-specific
 
 	// Deprecated: Use SEAQ_LOG_LEVEL=error to suppress warnings instead.
-	SEAQ_SUPPRESS_WARNINGS = "SEAQ_SUPPRESS_WARNINGS"
-	SEAQ_LOG_LEVEL         = "SEAQ_LOG_LEVEL" // log level
+	SEAQ_SUPPRESS_WARNINGS = "SEAQ_SUPPRESS_WARNINGS" // whether to suppress warnings
+	SEAQ_CACHE_DURATION    = "SEAQ_CACHE_DURATION"    // cache duration in seconds
+	SEAQ_LOG_LEVEL         = "SEAQ_LOG_LEVEL"         // log level
 )
 
 func Get(key string) (string, error) {
@@ -126,6 +128,23 @@ func SuppressWarnings() bool {
 	default:
 		return false
 	}
+}
+
+const defaultCacheDuration = 24 * time.Hour
+
+// CacheDuration returns the value of the SEAQ_CACHE_DURATION environment variable
+// or an error if not set.
+func CacheDuration() time.Duration {
+	val, err := Get(SEAQ_CACHE_DURATION)
+	if err != nil {
+		return defaultCacheDuration
+	}
+
+	dur, err := time.ParseDuration(val)
+	if err != nil || dur <= 0 {
+		return defaultCacheDuration
+	}
+	return dur
 }
 
 // OllamaHost returns the value of the OLLAMA_HOST environment variable
