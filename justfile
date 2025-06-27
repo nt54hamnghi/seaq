@@ -9,7 +9,11 @@ dev:
 alias d := dev
 
 test:
-    @go test ./cmd/... ./pkg/...
+    # -count=2 - run each test twice
+    # -race - run tests with race detection
+    # -shuffle=on - shuffle tests to catch flakiness
+    # -cover - show test coverage
+    @go test ./cmd/... ./pkg/... -count=2 -race -shuffle=on -cover
 
 alias t := test
 

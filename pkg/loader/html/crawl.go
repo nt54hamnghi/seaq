@@ -58,7 +58,7 @@ type Content struct {
 }
 
 func (crw *crawler) crawl(scr scraper) ([]Content, error) {
-	contentList := make([]Content, 0)
+	ch := make(chan Content, crw.MaxPages)
 
 	// Instantiate default collector
 	c := colly.NewCollector(
@@ -87,7 +87,7 @@ func (crw *crawler) crawl(scr scraper) ([]Content, error) {
 		crw.mutex.Lock()
 		defer crw.mutex.Unlock()
 
-		if len(crw.visited) >= crw.MaxPages-1 {
+		if len(crw.visited) >= crw.MaxPages {
 			return
 		}
 
@@ -121,14 +121,27 @@ func (crw *crawler) crawl(scr scraper) ([]Content, error) {
 			Markdown: scraped,
 		}
 
-		contentList = append(contentList, content)
+		ch <- content
 	})
 
 	// Start the collector
+	// Add initial URL to visited set before starting crawl.
+	// No lock needed here - concurrent goroutines start only after c.Visit() is called.
+	crw.visited.Add(crw.URL)
 	if err = c.Visit(crw.URL); err != nil {
 		return nil, err
 	}
-	c.Wait()
 
-	return contentList, nil
+	go func() {
+		defer close(ch)
+		c.Wait()
+	}()
+
+	// Collect all content from channel into slice
+	slc := make([]Content, 0, crw.MaxPages)
+	for content := range ch {
+		slc = append(slc, content)
+	}
+
+	return slc, nil
 }
