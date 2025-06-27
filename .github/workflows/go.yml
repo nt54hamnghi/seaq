@@ -1,0 +1,57 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: go
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        # https://github.com/actions/setup-go?tab=readme-ov-file#using-stableoldstable-aliases
+        go-version: ["stable", "oldstable"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          # https://github.com/actions/setup-go?tab=readme-ov-file#check-latest-version
+          check-latest: false
+
+      # Check the integrity of downloaded modules by verifying their checksums against the go.sum file.
+      - name: Go Mod Verify
+        run: go mod verify
+
+      # Ensure go.mod/go.sum are clean - fails if go mod tidy makes changes.
+      # This catches cases where dependencies were added/removed during development but `go mod tidy` wasn't run.
+      - name: Go Mod Tidy
+        run: go mod tidy && git diff --exit-code
+
+      - name: Build
+        run: go build -v -o /dev/null ./...
+
+      - name: Test
+        run: go test -v -count=1 -race -shuffle=on -coverprofile=coverage.out -covermode=atomic ./...
+
+      - uses: actions/upload-artifact@v4
+        with:
+          # Name of the artifact to upload.
+          name: coverage
+          # A file, directory or wildcard pattern that describes what to upload
+          path: coverage.out
+          # Duration after which artifact will expire in days.
+          retention-days: 15
+          # If true, an artifact with a matching name will be deleted before a new one is uploaded.
+          # If false, the action will fail if an artifact for the given name already exists.
+          # Does not fail if the artifact does not exist.
+          overwrite: true
