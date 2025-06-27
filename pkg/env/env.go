@@ -130,21 +130,19 @@ func SuppressWarnings() bool {
 	}
 }
 
-const DefaultCacheDuration = 24 * time.Hour
+const defaultCacheDuration = 24 * time.Hour
 
 // CacheDuration returns the value of the SEAQ_CACHE_DURATION environment variable
 // or an error if not set.
 func CacheDuration() time.Duration {
-	fallback := DefaultCacheDuration
-
 	val, err := Get(SEAQ_CACHE_DURATION)
 	if err != nil {
-		return fallback
+		return defaultCacheDuration
 	}
 
 	dur, err := time.ParseDuration(val)
 	if err != nil || dur <= 0 {
-		return fallback
+		return defaultCacheDuration
 	}
 	return dur
 }
