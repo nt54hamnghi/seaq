@@ -13,7 +13,8 @@ test:
     # -race - run tests with race detection
     # -shuffle=on - shuffle tests to catch flakiness
     # -cover - show test coverage
-    @go test ./cmd/... ./pkg/... -count=2 -race -shuffle=on -cover
+    # -covermode=atomic - thread-safe coverage for race testing
+    @go test ./cmd/... ./pkg/... -count=2 -race -shuffle=on -cover -covermode=atomic
 
 alias t := test
 

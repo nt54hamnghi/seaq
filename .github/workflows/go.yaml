@@ -1,0 +1,44 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: go
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        # https://github.com/actions/setup-go?tab=readme-ov-file#using-stableoldstable-aliases
+        go-version: ["stable", "oldstable"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          # https://github.com/actions/setup-go?tab=readme-ov-file#check-latest-version
+          check-latest: false
+
+      # Checks the integrity of downloaded modulesby verifying their checksums against the go.sum file.
+      - name: Go Mod Verify
+        run: go mod verify
+
+      # Ensure go.mod/go.sum are clean - fails if go mod tidy makes changes.
+      # This catches cases where dependencies were added/removed during development but `go mod tidy` wasn't run.
+      - name: Go Mod Tidy
+        run: go mod tidy && git diff --exit-code
+
+      - name: Build
+        run: go build -v -o /dev/null ./...
+
+      - name: Test
+        run: go test -v -count=1 -race -shuffle=on -coverprofile=coverage.out -covermode=atomic ./...
