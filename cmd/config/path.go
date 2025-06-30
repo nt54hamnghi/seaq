@@ -1,7 +1,3 @@
-/*
-Copyright © 2024 Nghi Nguyen
-*/
-
 package config
 
 import (

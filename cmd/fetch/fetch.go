@@ -1,6 +1,3 @@
-/*
-Copyright © 2024 Nghi Nguyen
-*/
 package fetch
 
 import (
