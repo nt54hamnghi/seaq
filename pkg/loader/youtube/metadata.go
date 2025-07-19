@@ -2,6 +2,7 @@ package youtube
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -24,8 +25,13 @@ func getMetadataAsDocument(ctx context.Context, vid videoID) (schema.Document, e
 		return schema.Document{}, err
 	}
 
+	content, err := json.MarshalIndent(snippet, "", "\t")
+	if err != nil {
+		return schema.Document{}, err
+	}
+
 	return schema.Document{
-		PageContent: snippet.String(),
+		PageContent: string(content),
 		Metadata: map[string]interface{}{
 			"videoId": vid,
 			"type":    "metadata",
@@ -78,6 +84,7 @@ Description:
 `, s.Title, s.ChannelTitle, s.Description)
 }
 
+// API docs: https://developers.google.com/youtube/v3/docs/videos/list
 func buildSnippetRequestURL(vid videoID) (string, error) {
 	apiKey, err := env.YoutubeAPIKey()
 	if err != nil {
