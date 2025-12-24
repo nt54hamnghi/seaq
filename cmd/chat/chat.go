@@ -10,7 +10,7 @@ import (
 	"github.com/nt54hamnghi/seaq/cmd/model"
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/nt54hamnghi/seaq/pkg/repl"
-	"github.com/nt54hamnghi/seaq/pkg/util"
+	"github.com/nt54hamnghi/seaq/pkg/util/fileio"
 	"github.com/spf13/cobra"
 	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/documentloaders"
@@ -39,7 +39,7 @@ func NewChatCmd() *cobra.Command {
 		PreRunE: config.Init,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch err := opts.parse(cmd, args); {
-			case errors.Is(err, util.ErrInteractiveInput):
+			case errors.Is(err, fileio.ErrInteractiveInput):
 				return cmd.Usage()
 			case err != nil:
 				return err
@@ -80,7 +80,7 @@ func (opts *chatOptions) parse(_ *cobra.Command, _ []string) error {
 		}
 		input = string(bytes)
 	} else {
-		input, err = util.ReadPipedStdin()
+		input, err = fileio.ReadPipedStdin()
 		if err != nil {
 			return err
 		}

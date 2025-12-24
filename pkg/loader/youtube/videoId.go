@@ -15,7 +15,7 @@ var (
 	ErrVideoIDNotFoundInURL = errors.New("video id not found in YouTube url")
 )
 
-type videoID = string
+type VideoID = string
 
 var videoIDRegex = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
 
@@ -33,7 +33,7 @@ var videoIDRegex = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
 //
 //	// Short URL
 //	id, err := ResolveVideoID("https://www.youtube.com/shorts/dQw4w9WgXcQ")
-func ResolveVideoID(src string) (videoID, error) {
+func ResolveVideoID(src string) (VideoID, error) {
 	// check if src is exactly a valid video ID (11 chars matching the pattern)
 	if videoIDRegex.MatchString(src) {
 		return src, nil
@@ -43,7 +43,7 @@ func ResolveVideoID(src string) (videoID, error) {
 }
 
 // extractVideoID returns the video ID of a YouTube watch URL
-func extractVideoID(rawURL string) (videoID, error) {
+func extractVideoID(rawURL string) (VideoID, error) {
 	u, err := reqx.ParseURL("www.youtube.com")(rawURL)
 	if err != nil {
 		return "", ErrInvalidYouTubeURL
@@ -60,7 +60,7 @@ func extractVideoID(rawURL string) (videoID, error) {
 	}
 }
 
-func fromWatchURL(u *url.URL) (videoID, error) {
+func fromWatchURL(u *url.URL) (VideoID, error) {
 	// Get the first value of the "v" query parameter
 	vid := u.Query().Get("v")
 
@@ -75,7 +75,7 @@ func fromWatchURL(u *url.URL) (videoID, error) {
 	return vid, nil
 }
 
-func fromShortsURL(u *url.URL) (videoID, error) {
+func fromShortsURL(u *url.URL) (VideoID, error) {
 	path := u.EscapedPath()
 	segments := strings.Split(path, "/")
 	if len(segments) < 3 {

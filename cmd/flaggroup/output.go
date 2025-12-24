@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/nt54hamnghi/seaq/pkg/util"
+	"github.com/nt54hamnghi/seaq/pkg/util/fileio"
 	"github.com/spf13/cobra"
 )
 
@@ -20,10 +20,10 @@ func (o *Output) Writer() (io.WriteCloser, error) {
 	}
 
 	if o.Force {
-		return util.NewTruncateFileWriter(o.File)
+		return fileio.NewTruncateFileWriter(o.File)
 	}
 
-	return util.NewCreateOnlyFileWriter(o.File)
+	return fileio.NewCreateOnlyFileWriter(o.File)
 }
 
 func (o *Output) Validate(cmd *cobra.Command, args []string) error { // nolint: revive

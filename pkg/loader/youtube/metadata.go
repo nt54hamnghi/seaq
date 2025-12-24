@@ -19,7 +19,7 @@ var ErrYoutubeAPIKeyNotSet = errors.New("YOUTUBE_API_KEY is not set")
 
 const YoutubeAPIURL = "https://youtube.googleapis.com/youtube/v3/videos"
 
-func getMetadataAsDocument(ctx context.Context, vid videoID) (schema.Document, error) {
+func getMetadataAsDocument(ctx context.Context, vid VideoID) (schema.Document, error) {
 	snippet, err := fetchMetadta(ctx, vid)
 	if err != nil {
 		return schema.Document{}, err
@@ -85,7 +85,7 @@ Description:
 }
 
 // API docs: https://developers.google.com/youtube/v3/docs/videos/list
-func buildSnippetRequestURL(vid videoID) (string, error) {
+func buildSnippetRequestURL(vid VideoID) (string, error) {
 	apiKey, err := env.YoutubeAPIKey()
 	if err != nil {
 		return "", err
