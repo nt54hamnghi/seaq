@@ -12,7 +12,7 @@ func TestResolveVideoId(t *testing.T) {
 	testCases := []struct {
 		name string
 		src  string
-		want videoID
+		want VideoID
 	}{
 		{
 			name: "directVideoId",

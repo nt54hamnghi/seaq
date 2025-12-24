@@ -12,9 +12,9 @@ var (
 	ErrTweetIDNotFoundInURL = errors.New("tweet id not found in X url")
 )
 
-type tweetID = string
+type TweetID = string
 
-func ResolveTweetID(src string) (tweetID, error) {
+func ResolveTweetID(src string) (TweetID, error) {
 	// tweetId is a unique unsigned 64-bit integer
 	// https://developer.x.com/en/docs/x-ids
 	if _, err := strconv.ParseUint(src, 10, 64); err == nil {

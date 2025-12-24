@@ -21,7 +21,7 @@ const (
 	YouTubeWatchURL = "https://www.youtube.com/watch"
 )
 
-func getCaptionAsDocuments(ctx context.Context, vid videoID, filter *filter) ([]schema.Document, error) {
+func getCaptionAsDocuments(ctx context.Context, vid VideoID, filter *filter) ([]schema.Document, error) {
 	caption, err := downloadYouTubeCaptions(ctx, vid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch caption: %w", err)
@@ -65,10 +65,13 @@ func downloadYouTubeCaptions(ctx context.Context, vid string) (caption, error) {
 	_, err = cmd.Output()
 	if err != nil {
 		prefix := "failed to download YouTube captions"
-		if exitErr, ok := err.(*exec.ExitError); ok {
+
+		var exitErr *exec.ExitError
+		if ok := errors.As(err, &exitErr); ok {
 			rootMsg := string(exitErr.Stderr)
 			return sub, fmt.Errorf("%s: %w: %s", prefix, exitErr, rootMsg)
 		}
+
 		return sub, fmt.Errorf("%s: %w", prefix, err)
 	}
 

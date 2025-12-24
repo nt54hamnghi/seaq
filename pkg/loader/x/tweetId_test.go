@@ -16,7 +16,7 @@ func TestResolveTweetId(t *testing.T) {
 	testCases := []struct {
 		name string
 		src  string
-		want tweetID
+		want TweetID
 	}{
 		{
 			name: "validId",
