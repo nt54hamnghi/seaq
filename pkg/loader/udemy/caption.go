@@ -180,16 +180,16 @@ func (l *lecture) getArticle() (string, error) {
 }
 
 type caption struct {
-	ID         int       `json:"id"`
-	Title      string    `json:"title"`
-	Created    time.Time `json:"created"`
-	FileName   string    `json:"file_name"`
-	Status     int       `json:"status"`
-	URL        string    `json:"url"`
-	Source     string    `json:"source"`
-	LocaleID   string    `json:"locale_id"`
-	VideoLabel string    `json:"video_label"`
-	AssetID    int       `json:"asset_id"`
+	ID         int    `json:"id"`
+	Title      string `json:"title"`
+	Created    string `json:"created"`
+	FileName   string `json:"file_name"`
+	Status     int    `json:"status"`
+	URL        string `json:"url"`
+	Source     string `json:"source"`
+	LocaleID   string `json:"locale_id"`
+	VideoLabel string `json:"video_label"`
+	AssetID    int    `json:"asset_id"`
 	events     []event
 }
 
