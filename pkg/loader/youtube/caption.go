@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
+	"os"
+	"os/exec"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/nt54hamnghi/seaq/pkg/util/pool"
-	"github.com/nt54hamnghi/seaq/pkg/util/reqx"
 	"github.com/nt54hamnghi/seaq/pkg/util/timestamp"
 	"github.com/tmc/langchaingo/schema"
 )
@@ -21,15 +21,8 @@ const (
 	YouTubeWatchURL = "https://www.youtube.com/watch"
 )
 
-func getCaptionAsDocuments(ctx context.Context, vid videoID, filter *filter) ([]schema.Document, error) {
-	// fetch available caption tracks from a YouTube video ID
-	tracks, err := loadCaptionTracks(ctx, vid)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch available caption tracks: %w", err)
-	}
-
-	// fetch caption from the available caption tracks
-	caption, err := loadCaption(ctx, tracks)
+func getCaptionAsDocuments(ctx context.Context, vid VideoID, filter *filter) ([]schema.Document, error) {
+	caption, err := downloadYouTubeCaptions(ctx, vid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch caption: %w", err)
 	}
@@ -43,87 +36,55 @@ func getCaptionAsDocuments(ctx context.Context, vid videoID, filter *filter) ([]
 	return caption.toDocuments(), nil
 }
 
-type baseURL struct {
-	url.URL
-}
+func downloadYouTubeCaptions(ctx context.Context, vid string) (caption, error) {
+	var sub caption
+	appName := "seaq"
 
-// baseURL implements the json.Unmarshaler interface
-// it marshals a JSON URL string into an url.URL object
-func (u *baseURL) UnmarshalJSON(data []byte) error {
-	// Unmarshal the data into a string
-	var str string
-	if err := json.Unmarshal(data, &str); err != nil {
-		return err
-	}
-
-	// Parse URL
-	parsed, err := reqx.ParseURL("www.youtube.com")(str)
+	tmpDir, err := os.MkdirTemp("", appName+"-*")
 	if err != nil {
-		return err
+		return sub, fmt.Errorf("failed to create temporary directory to save the caption: %w", err)
 	}
+	defer os.RemoveAll(tmpDir)
 
-	// Assign the parsed URL to the baseURL
-	*u = baseURL{URL: *parsed}
+	// TODO: enable EJS, with "--js-runtimes node" and "--remote-components ejs:github"
+	// see: https://github.com/yt-dlp/yt-dlp/wiki/EJS
+	outFile := fmt.Sprintf("%s/%s.en.json3", tmpDir, appName)
+	cmd := exec.CommandContext(ctx, "yt-dlp",
+		"--skip-download",
+		"--write-subs",
+		"--write-auto-subs",
+		"--sub-langs", "en",
+		"--sub-format", "json3",
+		"--quiet",
+		"-P", tmpDir,
+		"--output", appName,
+		vid,
+	)
 
-	return nil
-}
-
-func (u *baseURL) setQuery(key, value string) {
-	q := u.Query()
-	q.Set(key, value)
-	u.RawQuery = q.Encode()
-}
-
-// selectCaptionTrack selects based on `VssID`:
-// 1. ".en" for user-added captions in English
-// 2. "a.en" for auto-generated captions in English
-// 3. English translatable track as fallback
-func selectCaptionTrack(tracks []captionTrack) (*captionTrack, error) {
-	// Priority: .en > a.en > translatable track
-	var fallback *captionTrack
-
-	for _, track := range tracks {
-		// Priority 1: Manual captions (`.en`)
-		if track.VssID == ".en" {
-			return &track, nil
-		}
-		// Priority 2: Auto-generated captions (`a.en`)
-		if track.VssID == "a.en" {
-			return &track, nil
-		}
-		// Priority 3: Translatable track (as fallback)
-		if fallback == nil && track.IsTranslatable {
-			fallback = &track
-		}
-	}
-
-	// No suitable track found
-	if fallback == nil {
-		return nil, fmt.Errorf("no English caption track found")
-	}
-
-	// Attempt to translate the fallback track into English
-	if err := fallback.toEnglish(); err != nil {
-		return nil, err
-	}
-
-	return fallback, nil
-}
-
-// loadCaption returns a caption from a list of available caption tracks.
-// Only English caption tracks are supported.
-func loadCaption(ctx context.Context, tracks []captionTrack) (caption, error) {
-	if len(tracks) == 0 {
-		return caption{}, errors.New("caption tracks list is empty")
-	}
-
-	ct, err := selectCaptionTrack(tracks)
+	// the command doesn't write anything to stdout
+	_, err = cmd.Output()
 	if err != nil {
-		return caption{}, err
+		prefix := "failed to download YouTube captions"
+
+		var exitErr *exec.ExitError
+		if ok := errors.As(err, &exitErr); ok {
+			rootMsg := string(exitErr.Stderr)
+			return sub, fmt.Errorf("%s: %w: %s", prefix, exitErr, rootMsg)
+		}
+
+		return sub, fmt.Errorf("%s: %w", prefix, err)
 	}
 
-	ct.asJSON3()
-	return reqx.GetAs[caption](ctx, ct.BaseURL.String(), nil)
+	data, err := os.ReadFile(outFile)
+	if err != nil {
+		return sub, err
+	}
+
+	if err = json.Unmarshal(data, &sub); err != nil {
+		return sub, err
+	}
+
+	return sub, nil
 }
 
 // caption represents a collection of caption events.

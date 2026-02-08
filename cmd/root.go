@@ -18,7 +18,7 @@ import (
 	"github.com/nt54hamnghi/seaq/cmd/pattern"
 	"github.com/nt54hamnghi/seaq/pkg/config"
 	"github.com/nt54hamnghi/seaq/pkg/llm"
-	"github.com/nt54hamnghi/seaq/pkg/util"
+	"github.com/nt54hamnghi/seaq/pkg/util/fileio"
 	"github.com/nt54hamnghi/seaq/pkg/util/log"
 	"github.com/tmc/langchaingo/llms"
 
@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const version = "0.10.0"
+const version = "0.10.1"
 
 type rootOptions struct {
 	configFile  flag.FilePath
@@ -59,7 +59,7 @@ func New() *cobra.Command {
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch err := opts.parse(cmd, args); {
-			case errors.Is(err, util.ErrInteractiveInput):
+			case errors.Is(err, fileio.ErrInteractiveInput):
 				return cmd.Usage()
 			case err != nil:
 				return err
@@ -88,7 +88,7 @@ func (opts *rootOptions) parse(_ *cobra.Command, _ []string) error {
 		}
 		input = string(bytes)
 	} else {
-		input, err = util.ReadPipedStdin()
+		input, err = fileio.ReadPipedStdin()
 		if err != nil {
 			return err
 		}
