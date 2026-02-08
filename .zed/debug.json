@@ -1,0 +1,16 @@
+[
+  {
+    "label": "Run main.go",
+    "adapter": "Delve",
+    "request": "launch",
+    "mode": "debug",
+    "program": ".",
+    "cwd": "/home/hamnghi/projects/seaq",
+    "args": ["connection", "list"],
+    "buildFlags": [],
+    "env": {},
+  },
+] // Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger

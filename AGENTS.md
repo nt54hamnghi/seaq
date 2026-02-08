@@ -41,8 +41,9 @@
 ## Testing Guidelines
 - Tests live alongside code in `*_test.go` files.
 - Use `go test ./cmd/... ./pkg/...` (see `just test`).
-- Prefer table-driven tests and clear case names.
-- Prefer `testify` for assertions in parameterized tests.
+- Use table-driven tests and clear case names.
+- Use `testify` for assertions in parameterized tests.
+- Use `testify/suite` for setup & teardown behaviors.
 - Cover edge cases and error paths; test plan should be explicit for complex features.
 
 ## Commit & Pull Request Guidelines

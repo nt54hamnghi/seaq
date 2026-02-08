@@ -98,10 +98,7 @@ var defaultRegistry = ModelRegistry{
 	},
 }
 
-var (
-	initOnce sync.Once
-	connMap  ConnectionMap
-)
+var initOnce sync.Once
 
 // initRegistry loads the connections and their corresponding model lists
 // and registers the models in the default registry.
@@ -113,11 +110,11 @@ func initRegistry() {
 
 		// Get all providers and their connections
 		listers := []ModelLister{ollamaLister}
-		connMap, err = GetConnections()
+		connections, err := GetConnectionSet()
 		if err != nil {
 			log.Warn("failed to load connections", "error", err)
 		}
-		for _, conn := range connMap {
+		for _, conn := range connections.AsSlice() {
 			listers = append(listers, conn)
 		}
 

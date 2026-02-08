@@ -120,13 +120,17 @@ func New(name string) (llms.Model, error) {
 			ollama.WithServerURL(env.OllamaHost()),
 		)
 	default:
-		// TODO: check if provider is in connMap
-		conn, ok := connMap[provider]
+		connections, err := GetConnectionSet()
+		if err != nil {
+			return nil, err
+		}
+
+		conn, ok := connections.Get(provider)
 		if !ok {
 			return nil, fmt.Errorf("unexpected error: provider %s not found", provider)
 		}
 
-		apiKey, err := env.Get(conn.GetEnvKey())
+		apiKey, err := env.Get(conn.EnvKey)
 		if err != nil {
 			return nil, err
 		}
