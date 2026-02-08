@@ -28,16 +28,20 @@ func IsIdent(s string) bool {
 type Connection struct {
 	Provider string `mapstructure:"provider" yaml:"provider"`
 	BaseURL  string `mapstructure:"base_url" yaml:"base_url"`
+	EnvKey   string `mapstructure:"env_key" yaml:"env_key"`
 }
 
-func NewConnection(provider string, baseURL string) Connection {
-	return Connection{Provider: provider, BaseURL: baseURL}
+func NewConnection(provider string, baseURL string, envKey string) Connection {
+	if envKey == "" {
+		envKey = strings.ToUpper(provider) + "_API_KEY"
+	}
+	return Connection{provider, baseURL, envKey}
 }
 
 // GetEnvKey returns the environment variable name that stores the API key
 // for the connection. The format is <PROVIDER>_API_KEY.
 func (c Connection) GetEnvKey() string {
-	return strings.ToUpper(c.Provider) + "_API_KEY"
+	return c.EnvKey
 }
 
 // GetProvider implements the ModelLister interface

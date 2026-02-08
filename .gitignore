@@ -1,6 +1,7 @@
 # IDE-specific files
-/.vscode
 /.cursor
+/.vscode
+/.zed
 .cursorrules
 
 # Temporary files and directories
