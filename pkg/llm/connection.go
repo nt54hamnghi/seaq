@@ -78,9 +78,9 @@ type listModelsResponse struct {
 }
 
 // ConnectionMap is a map of provider name to Connection.
-// This is to provide a fast and ergonomic provider-to-Connection lookup.
-// We're trading memory for speed as we don't expect a large number of connections.
-// Also, we're paying upfront the cost of constructing the map.
+// It enables O(1) lookup over a slice when provider access is common.
+// The tradeoff is extra upfront work to build the map and duplicated provider
+// names as both map keys and Connection fields.
 type ConnectionMap map[string]Connection
 
 // GetConnections retrieves the LLM provider connections in the config file

@@ -15,6 +15,7 @@ import (
 	"github.com/nt54hamnghi/seaq/pkg/util/set"
 )
 
+// ModelRegistry is a map of model providers to sets of model IDs.
 type ModelRegistry map[string]set.Set[string]
 
 // ModelLister defines an interface for services that can list available models.
@@ -114,7 +115,6 @@ func initRegistry() {
 		listers := []ModelLister{ollamaLister}
 		connMap, err = GetConnections()
 		if err != nil {
-			// failure to load connections is not a fatal error
 			log.Warn("failed to load connections", "error", err)
 		}
 		for _, conn := range connMap {
@@ -128,26 +128,24 @@ func initRegistry() {
 			return l.List(ctx)
 		})
 
-		for i := 0; i < len(outputs); i++ {
+		for i := range outputs {
 			provider := listers[i].GetProvider()
 			output := outputs[i]
 			if output.Err != nil {
-				// failure to list models is not a fatal error
 				log.Warn("failed to list models", "provider", provider, "error", output.Err)
 				continue
 			}
 			err := defaultRegistry.Register(provider, output.Output)
 			if err != nil {
-				// failure to register models is not a fatal error
 				log.Warn("failed to register models", "provider", provider, "error", err)
 			}
 		}
 	})
 }
 
-// normalize returns a string that is trimmed of whitespace and converted to lowercase.
-func normalize(s string) string {
-	return strings.TrimSpace(strings.ToLower(s))
+// clean returns a string that is trimmed of whitespace.
+func clean(s string) string {
+	return strings.TrimSpace(s)
 }
 
 func toModelID(provider, model string) string {
@@ -156,40 +154,31 @@ func toModelID(provider, model string) string {
 
 // LookupModel returns the provider and model name for a given model identifier.
 // Model identifier must follow the format "provider/model" (e.g., "openai/gpt-4").
-// Both provider and model names are case-insensitive and trimmed of whitespace.
+// Both provider and model names are trimmed of whitespace.
 //
 // Returns:
-//   - provider: The provider name in lowercase if found, empty string if not found
-//   - model: The model name in lowercase if found, empty string if not found
-//   - ok: True if the model was found, false otherwise
-//
-// The method returns empty strings and false if:
-//   - The input id is empty
-//   - The input doesn't contain the required "/" separator
-//   - The provider/model format is used but either part is empty after trimming
-//   - The specified provider doesn't exist
-//   - The specified model doesn't exist for the given provider
+//   - provider: The provider name if found, empty string if not found
+//   - model: The model name if found, empty string if not found
+//   - ok: true if the model was found, false otherwise
 func (r ModelRegistry) LookupModel(id string) (provider, model string, ok bool) {
-	if id == "" {
+	// If we have a provider/model format, look up that specific combination
+	provider, model, hasSep := strings.Cut(id, "/")
+	if !hasSep {
 		return "", "", false
 	}
 
-	// If we have a provider/model format, look up that specific combination
-	if provider, model, hasSep := strings.Cut(id, "/"); hasSep {
-		provider, model = normalize(provider), normalize(model)
+	provider, model = clean(provider), clean(model)
 
-		if provider == "" || model == "" {
-			return "", "", false
-		}
-
-		models, exists := r[provider]
-		if !exists || !models.Contains(model) {
-			return "", "", false
-		}
-		return provider, model, true
+	if provider == "" || model == "" {
+		return "", "", false
 	}
 
-	return "", "", false
+	models, exists := r[provider]
+	if !exists || !models.Contains(model) {
+		return "", "", false
+	}
+
+	return provider, model, true
 }
 
 // HasModel checks if a model is supported by any provider in the registry.
@@ -210,7 +199,7 @@ func (r ModelRegistry) Register(provider string, models []string) error {
 		return ErrModelsListEmpty
 	}
 
-	provider = normalize(provider)
+	provider = clean(provider)
 	if provider == "" {
 		return ErrProviderNameEmpty
 	}
@@ -220,12 +209,12 @@ func (r ModelRegistry) Register(provider string, models []string) error {
 	}
 
 	// Normalize all model names
-	normalizedModels := make([]string, len(models))
+	modelNames := make([]string, len(models))
 	for i, model := range models {
-		normalizedModels[i] = normalize(model)
+		modelNames[i] = clean(model)
 	}
 
-	r[provider] = set.New(normalizedModels...)
+	r[provider] = set.New(modelNames...)
 	return nil
 }
 

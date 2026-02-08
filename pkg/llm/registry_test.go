@@ -35,14 +35,6 @@ func TestLookupModel(t *testing.T) {
 			wantFound:    true,
 		},
 		{
-			name:         "case insensitive",
-			registry:     registry,
-			id:           "OpenAI/GPT-4o",
-			wantProvider: "openai",
-			wantModel:    "gpt-4o",
-			wantFound:    true,
-		},
-		{
 			name:         "non-existent provider",
 			registry:     registry,
 			id:           "non-existent/gpt-4o",
@@ -152,7 +144,7 @@ func TestRegister(t *testing.T) {
 				return
 			}
 
-			models, ok := tt.registry[normalize(tt.provider)]
+			models, ok := tt.registry[clean(tt.provider)]
 			r.True(ok)
 			r.Equal(set.New(tt.models...), models)
 		})
@@ -236,7 +228,7 @@ func TestRegisterWith(t *testing.T) {
 				return
 			}
 
-			models, ok := tt.registry[normalize(tt.provider)]
+			models, ok := tt.registry[clean(tt.provider)]
 			r.True(ok)
 
 			// Get models from the function to verify
