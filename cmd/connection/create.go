@@ -20,7 +20,7 @@ func newCreateCmd() *cobra.Command {
 	var opts createOptions
 
 	cmd := &cobra.Command{
-		Use:          "create",
+		Use:          "create [name]",
 		Short:        "Create a new connection",
 		Aliases:      []string{"add"},
 		Args:         createArgs,
