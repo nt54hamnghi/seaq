@@ -16,7 +16,7 @@ func newRemoveCmd() *cobra.Command {
 	var opts removeOptions
 
 	cmd := &cobra.Command{
-		Use:          "remove",
+		Use:          "remove [name]...",
 		Short:        "Remove a connection",
 		Aliases:      []string{"rm"},
 		Args:         cobra.MinimumNArgs(1),
