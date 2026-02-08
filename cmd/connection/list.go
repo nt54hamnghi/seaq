@@ -35,7 +35,7 @@ func newListCmd() *cobra.Command {
 			const format = "%s\t%s\t%s\n"
 			fmt.Fprintf(w, format, "PROVIDER", "BASE URL", "ENV KEY")
 			for _, conn := range conns {
-				fmt.Fprintf(w, format, conn.Provider, conn.BaseURL, conn.GetEnvKey())
+				fmt.Fprintf(w, format, conn.Provider, conn.BaseURL, conn.EnvKey)
 			}
 
 			return nil

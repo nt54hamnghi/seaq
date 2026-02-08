@@ -1,11 +1,8 @@
-// TESTME:
-
 package llm
 
 import (
 	"context"
 	"fmt"
-	"maps"
 	"net/http"
 	"regexp"
 	"slices"
@@ -38,12 +35,6 @@ func NewConnection(provider string, baseURL string, envKey string) Connection {
 	return Connection{provider, baseURL, envKey}
 }
 
-// GetEnvKey returns the environment variable name that stores the API key
-// for the connection. The format is <PROVIDER>_API_KEY.
-func (c Connection) GetEnvKey() string {
-	return c.EnvKey
-}
-
 // GetProvider implements the ModelLister interface
 // and returns the provider name
 func (c Connection) GetProvider() string {
@@ -53,12 +44,12 @@ func (c Connection) GetProvider() string {
 // List implements the ModelLister interface
 // and returns a slice of available model IDs from the provider.
 func (c Connection) List(ctx context.Context) ([]string, error) {
-	secret, err := env.Get(c.GetEnvKey())
+	secret, err := env.Get(c.EnvKey)
 	if err != nil {
 		return nil, err
 	}
 
-	headers := http.Header{"Authorization": []string{fmt.Sprintf("Bearer %s", secret)}}
+	headers := http.Header{"Authorization": []string{"Bearer " + secret}}
 	res, err := reqx.GetAs[listModelsResponse](ctx, c.BaseURL+"/models", headers)
 	if err != nil {
 		return nil, fmt.Errorf("fetch models: %w", err)
@@ -81,29 +72,56 @@ type listModelsResponse struct {
 	} `json:"data"`
 }
 
-// ConnectionMap is a map of provider name to Connection.
-// It enables O(1) lookup over a slice when provider access is common.
-// The tradeoff is extra upfront work to build the map and duplicated provider
-// names as both map keys and Connection fields.
-type ConnectionMap map[string]Connection
-
-// GetConnections retrieves the LLM provider connections in the config file
-// and constructs a provider-to-Connection map.
-func GetConnections() (ConnectionMap, error) {
-	connections := []Connection{}
-	if err := viper.UnmarshalKey("connections", &connections); err != nil {
-		return ConnectionMap{}, err
-	}
-
-	connMap := make(ConnectionMap)
-	for _, conn := range connections {
-		connMap[conn.Provider] = conn
-	}
-
-	return connMap, nil
+// ConnectionSet stores configured connections and a provider index for efficient lookup
+type ConnectionSet struct {
+	// connections keeps the original list loaded from config.
+	connections []Connection
+	// index maps provider names to connection entries for O(1) lookup.
+	index map[string]*Connection
 }
 
-// AsSlice returns a slice of all connections in the map.
-func (cm ConnectionMap) AsSlice() []Connection {
-	return slices.Collect(maps.Values(cm))
+// GetConnectionSet loads configured connections from viper
+// and builds the collection set.
+func GetConnectionSet() (ConnectionSet, error) {
+	connections := []Connection{}
+	if err := viper.UnmarshalKey("connections", &connections); err != nil {
+		return ConnectionSet{}, err
+	}
+
+	index := make(map[string]*Connection)
+	for i := range connections {
+		c := connections[i]
+		index[c.Provider] = &c
+	}
+
+	return ConnectionSet{
+		connections,
+		index,
+	}, nil
+}
+
+// AsSlice returns the current connections as a slice.
+func (cs ConnectionSet) AsSlice() []Connection {
+	return cs.connections
+}
+
+// Has reports whether a provider exists in the collection set.
+func (cs ConnectionSet) Has(provider string) bool {
+	_, ok := cs.index[provider]
+	return ok
+}
+
+// Get returns a connection by provider and whether it exists.
+func (cs ConnectionSet) Get(provider string) (Connection, bool) {
+	c, ok := cs.index[provider]
+	if !ok || c == nil {
+		return Connection{}, false
+	}
+	return *c, true
+}
+
+// Delete removes a provider from the collection set
+func (cs *ConnectionSet) Delete(provider string) {
+	cs.connections = slices.DeleteFunc(cs.connections, func(c Connection) bool { return c.Provider == provider })
+	delete(cs.index, provider)
 }

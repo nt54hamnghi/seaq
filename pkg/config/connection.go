@@ -13,41 +13,41 @@ import (
 var ErrUnexpectedType = errors.New("unexpected type of connections")
 
 func AddConnection(conn llm.Connection) error {
-	conns, err := llm.GetConnections()
+	cs, err := llm.GetConnectionSet()
 	if err != nil {
 		return err
 	}
 
-	if _, ok := conns[conn.Provider]; ok {
+	if cs.Has(conn.Provider) {
 		return fmt.Errorf("connection %q already exists", conn.Provider)
 	}
 
-	viper.Set("connections", append(conns.AsSlice(), conn))
+	viper.Set("connections", append(cs.AsSlice(), conn))
 	return viper.WriteConfig()
 }
 
 func RemoveConnection(providers ...string) error {
-	conns, err := llm.GetConnections()
+	cs, err := llm.GetConnectionSet()
 	if err != nil {
 		return err
 	}
 
 	for _, p := range providers {
-		if _, ok := conns[p]; !ok {
+		if !cs.Has(p) {
 			return fmt.Errorf("connection %q not found", p)
 		}
-		delete(conns, p)
+		cs.Delete(p)
 		fmt.Println(p)
 	}
 
-	viper.Set("connections", conns.AsSlice())
+	viper.Set("connections", cs.AsSlice())
 	return viper.WriteConfig()
 }
 
 func ListConnections() ([]llm.Connection, error) {
-	conns, err := llm.GetConnections()
+	cs, err := llm.GetConnectionSet()
 	if err != nil {
 		return nil, err
 	}
-	return conns.AsSlice(), nil
+	return cs.AsSlice(), nil
 }
