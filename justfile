@@ -12,10 +12,16 @@ alias w := watch
 
 # run dev binary in ./dev/main.go
 [group('dev')]
-dev:
-    @go run ./dev/main.go
+dev *args:
+    @go run ./dev/main.go {{ args }}
 
 alias d := dev
+
+[group('dev')]
+run *args:
+    @go run ./main.go {{ args }}
+
+alias r := run
 
 # run all tests
 [group('test')]

@@ -13,6 +13,7 @@ import (
 type createOptions struct {
 	baseURL    flag.URL
 	configFile flag.FilePath
+	envKey     string
 }
 
 func newCreateCmd() *cobra.Command {
@@ -28,7 +29,7 @@ func newCreateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			provider := args[0]
 
-			conn := llm.NewConnection(provider, opts.baseURL.String())
+			conn := llm.NewConnection(provider, opts.baseURL.String(), opts.envKey)
 			if err := config.AddConnection(conn); err != nil {
 				return fmt.Errorf("add connection: %w", err)
 			}
@@ -45,6 +46,7 @@ func newCreateCmd() *cobra.Command {
 	if err := cmd.MarkFlagRequired("url"); err != nil {
 		os.Exit(1)
 	}
+	flags.StringVar(&opts.envKey, "env", "", "Environment variable name for API key")
 	config.AddConfigFlag(cmd, &opts.configFile)
 
 	return cmd
