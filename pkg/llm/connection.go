@@ -72,11 +72,16 @@ type listModelsResponse struct {
 	} `json:"data"`
 }
 
+// ConnectionSet stores configured connections and a provider index for efficient lookup
 type ConnectionSet struct {
+	// connections keeps the original list loaded from config.
 	connections []Connection
-	index       map[string]*Connection
+	// index maps provider names to connection entries for O(1) lookup.
+	index map[string]*Connection
 }
 
+// GetConnectionSet loads configured connections from viper
+// and builds the collection set.
 func GetConnectionSet() (ConnectionSet, error) {
 	connections := []Connection{}
 	if err := viper.UnmarshalKey("connections", &connections); err != nil {
@@ -95,15 +100,18 @@ func GetConnectionSet() (ConnectionSet, error) {
 	}, nil
 }
 
+// AsSlice returns the current connections as a slice.
 func (cs ConnectionSet) AsSlice() []Connection {
 	return cs.connections
 }
 
+// Has reports whether a provider exists in the collection set.
 func (cs ConnectionSet) Has(provider string) bool {
 	_, ok := cs.index[provider]
 	return ok
 }
 
+// Get returns a connection by provider and whether it exists.
 func (cs ConnectionSet) Get(provider string) (Connection, bool) {
 	c, ok := cs.index[provider]
 	if !ok || c == nil {
@@ -112,6 +120,7 @@ func (cs ConnectionSet) Get(provider string) (Connection, bool) {
 	return *c, true
 }
 
+// Delete removes a provider from the collection set
 func (cs *ConnectionSet) Delete(provider string) {
 	cs.connections = slices.DeleteFunc(cs.connections, func(c Connection) bool { return c.Provider == provider })
 	delete(cs.index, provider)
